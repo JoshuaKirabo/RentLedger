@@ -1,0 +1,534 @@
+{
+  "source_workbook": "/Volumes/T7 Shield/kimujo 2324.xlsx",
+  "database": "/Users/joshuakirabo/Desktop/Code/Rent Collection App/data/kimujjo_holdings_database.db",
+  "backup_database": "/Users/joshuakirabo/Desktop/Code/Rent Collection App/data/backups/kimujjo_holdings_database.before-real-import-20260626-101246.db",
+  "imported_at": "2026-06-26T10:12:46",
+  "counts": {
+    "estates": 7,
+    "units": 81,
+    "tenants": 98,
+    "tenancy_assignments": 98,
+    "security_deposits": 98,
+    "rent_obligations": 1067,
+    "payments": 727,
+    "payment_allocations": 1067,
+    "security_deposit_payments": 19,
+    "receipts": 727
+  },
+  "active_tenants": 81,
+  "inactive_tenants": 17,
+  "rent_payment_count": 708,
+  "security_payment_count": 19,
+  "allocation_count": 1067,
+  "duplicate_unit_resolution": [
+    {
+      "estate": "Goshen Kawempe",
+      "unit": "G3",
+      "tenants": [
+        {
+          "source_id": "Goshen Kawempe!5",
+          "name": "Joan",
+          "active": true,
+          "latest_payment_date": "2024-11-01"
+        },
+        {
+          "source_id": "Goshen Kawempe!15",
+          "name": "Joan Nansubuga",
+          "active": false,
+          "latest_payment_date": null
+        }
+      ]
+    },
+    {
+      "estate": "Goshen Kawempe",
+      "unit": "G4",
+      "tenants": [
+        {
+          "source_id": "Goshen Kawempe!6",
+          "name": "Mulambe Hassan",
+          "active": true,
+          "latest_payment_date": "2024-12-01"
+        },
+        {
+          "source_id": "Goshen Kawempe!16",
+          "name": "Lumu Mathew",
+          "active": false,
+          "latest_payment_date": null
+        }
+      ]
+    },
+    {
+      "estate": "Goshen Kawempe",
+      "unit": "G6",
+      "tenants": [
+        {
+          "source_id": "Goshen Kawempe!8",
+          "name": "Margaritah nakayiki",
+          "active": true,
+          "latest_payment_date": "2025-05-01"
+        },
+        {
+          "source_id": "Goshen Kawempe!17",
+          "name": "Tweba co ltd",
+          "active": false,
+          "latest_payment_date": null
+        }
+      ]
+    },
+    {
+      "estate": "Goshen Kawempe",
+      "unit": "G7",
+      "tenants": [
+        {
+          "source_id": "Goshen Kawempe!9",
+          "name": "Namubiru Sylvia",
+          "active": true,
+          "latest_payment_date": "2025-04-01"
+        },
+        {
+          "source_id": "Goshen Kawempe!18",
+          "name": "Johnny TV seller",
+          "active": false,
+          "latest_payment_date": null
+        }
+      ]
+    },
+    {
+      "estate": "Moriah Kikaya",
+      "unit": "A1",
+      "tenants": [
+        {
+          "source_id": "Moriah Kikaya!7",
+          "name": "Sabaidu Stephen",
+          "active": true,
+          "latest_payment_date": "2026-02-01"
+        },
+        {
+          "source_id": "Moriah Kikaya!45",
+          "name": "Sali Michael",
+          "active": false,
+          "latest_payment_date": "2023-08-01"
+        }
+      ]
+    },
+    {
+      "estate": "Moriah Kikaya",
+      "unit": "A3",
+      "tenants": [
+        {
+          "source_id": "Moriah Kikaya!9",
+          "name": "Esther Tufube",
+          "active": true,
+          "latest_payment_date": "2025-12-01"
+        },
+        {
+          "source_id": "Moriah Kikaya!50",
+          "name": "Michael Luyija",
+          "active": false,
+          "latest_payment_date": "2023-07-01"
+        }
+      ]
+    },
+    {
+      "estate": "Moriah Kikaya",
+      "unit": "A4",
+      "tenants": [
+        {
+          "source_id": "Moriah Kikaya!10",
+          "name": "Kyosimba Yosia",
+          "active": true,
+          "latest_payment_date": "2026-02-01"
+        },
+        {
+          "source_id": "Moriah Kikaya!48",
+          "name": "Chrispus Magala",
+          "active": false,
+          "latest_payment_date": "2023-10-01"
+        }
+      ]
+    },
+    {
+      "estate": "Moriah Kikaya",
+      "unit": "B2",
+      "tenants": [
+        {
+          "source_id": "Moriah Kikaya!13",
+          "name": "Tom",
+          "active": false,
+          "latest_payment_date": null
+        },
+        {
+          "source_id": "Moriah Kikaya!37",
+          "name": "Phiona Kukundakwe",
+          "active": true,
+          "latest_payment_date": "2025-01-01"
+        }
+      ]
+    },
+    {
+      "estate": "Moriah Kikaya",
+      "unit": "B3",
+      "tenants": [
+        {
+          "source_id": "Moriah Kikaya!14",
+          "name": "Claire Agaba",
+          "active": true,
+          "latest_payment_date": "2025-09-01"
+        },
+        {
+          "source_id": "Moriah Kikaya!46",
+          "name": "Elizabeth tetureka",
+          "active": false,
+          "latest_payment_date": "2023-02-01"
+        }
+      ]
+    },
+    {
+      "estate": "Moriah Kikaya",
+      "unit": "C1",
+      "tenants": [
+        {
+          "source_id": "Moriah Kikaya!16",
+          "name": "Nambi Sidona",
+          "active": true,
+          "latest_payment_date": "2026-04-01"
+        },
+        {
+          "source_id": "Moriah Kikaya!36",
+          "name": "Joan Katushabe",
+          "active": false,
+          "latest_payment_date": "2024-09-01"
+        }
+      ]
+    },
+    {
+      "estate": "Moriah Kikaya",
+      "unit": "C3",
+      "tenants": [
+        {
+          "source_id": "Moriah Kikaya!18",
+          "name": "King Success/salma",
+          "active": true,
+          "latest_payment_date": "2026-02-01"
+        },
+        {
+          "source_id": "Moriah Kikaya!53",
+          "name": "Kamuyi",
+          "active": false,
+          "latest_payment_date": null
+        }
+      ]
+    },
+    {
+      "estate": "Moriah Kikaya",
+      "unit": "D1",
+      "tenants": [
+        {
+          "source_id": "Moriah Kikaya!20",
+          "name": "Paul Tojuba",
+          "active": true,
+          "latest_payment_date": "2025-12-01"
+        },
+        {
+          "source_id": "Moriah Kikaya!51",
+          "name": "Diana Ingabire",
+          "active": false,
+          "latest_payment_date": "2024-01-01"
+        }
+      ]
+    },
+    {
+      "estate": "Moriah Kikaya",
+      "unit": "D3",
+      "tenants": [
+        {
+          "source_id": "Moriah Kikaya!47",
+          "name": "Catherine Nantumbwe",
+          "active": false,
+          "latest_payment_date": "2024-01-01"
+        },
+        {
+          "source_id": "Moriah Kikaya!52",
+          "name": "Lydia Ndagire",
+          "active": true,
+          "latest_payment_date": "2024-08-01"
+        }
+      ]
+    },
+    {
+      "estate": "Moriah Kikaya",
+      "unit": "E3",
+      "tenants": [
+        {
+          "source_id": "Moriah Kikaya!26",
+          "name": "Patience Musayuni Opolot",
+          "active": true,
+          "latest_payment_date": "2025-12-01"
+        },
+        {
+          "source_id": "Moriah Kikaya!35",
+          "name": "Julius Kyaligomza",
+          "active": false,
+          "latest_payment_date": "2023-09-01"
+        },
+        {
+          "source_id": "Moriah Kikaya!49",
+          "name": "Job Kyakakasibwa",
+          "active": false,
+          "latest_payment_date": "2024-06-01"
+        }
+      ]
+    },
+    {
+      "estate": "Moriah Kikaya",
+      "unit": "F2",
+      "tenants": [
+        {
+          "source_id": "Moriah Kikaya!28",
+          "name": "Joshua Ndugga",
+          "active": true,
+          "latest_payment_date": "2025-10-01"
+        },
+        {
+          "source_id": "Moriah Kikaya!29",
+          "name": "Peter Ngala",
+          "active": false,
+          "latest_payment_date": "2025-09-01"
+        }
+      ]
+    },
+    {
+      "estate": "Nansana",
+      "unit": "HOUSE 1",
+      "tenants": [
+        {
+          "source_id": "Nansana!8",
+          "name": "Kaddu Williams",
+          "active": false,
+          "latest_payment_date": null
+        },
+        {
+          "source_id": "Nansana!22",
+          "name": "Caleb Mabirizi",
+          "active": true,
+          "latest_payment_date": "2024-08-01"
+        }
+      ]
+    }
+  ],
+  "skipped_rows": [
+    {
+      "source_id": "Moriah Kikaya!40",
+      "name": "Lutaaya Muzefar",
+      "reason": "no unit, security amount, or payment data"
+    },
+    {
+      "source_id": "Moriah Kikaya!41",
+      "name": "Bridget Masamba",
+      "reason": "no unit, security amount, or payment data"
+    },
+    {
+      "source_id": "Moriah Kikaya!44",
+      "name": "Out",
+      "reason": "no unit, security amount, or payment data"
+    },
+    {
+      "source_id": "Salem Maganjo!10",
+      "name": "Namuddu Fatuma caretaker",
+      "reason": "no unit, security amount, or payment data"
+    },
+    {
+      "source_id": "Salem Maganjo!17",
+      "name": "Alex iga",
+      "reason": "no unit, security amount, or payment data"
+    }
+  ],
+  "generated_phones": [
+    {
+      "source_id": "Moriah Kikaya!13",
+      "raw_phone": null,
+      "generated_phone": "+256799000001",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Moriah Kikaya!28",
+      "raw_phone": null,
+      "generated_phone": "+256799000002",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Moriah Kikaya!34",
+      "raw_phone": null,
+      "generated_phone": "+256799000003",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Moriah Kikaya!35",
+      "raw_phone": null,
+      "generated_phone": "+256799000004",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Moriah Kikaya!38",
+      "raw_phone": null,
+      "generated_phone": "+256799000005",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Moriah Kikaya!39",
+      "raw_phone": null,
+      "generated_phone": "+256799000006",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Moriah Kikaya!42",
+      "raw_phone": null,
+      "generated_phone": "+256799000007",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Moriah Kikaya!45",
+      "raw_phone": null,
+      "generated_phone": "+256799000008",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Moriah Kikaya!46",
+      "raw_phone": null,
+      "generated_phone": "+256799000009",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Moriah Kikaya!47",
+      "raw_phone": null,
+      "generated_phone": "+256799000010",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Moriah Kikaya!49",
+      "raw_phone": null,
+      "generated_phone": "+256799000011",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Moriah Kikaya!52",
+      "raw_phone": null,
+      "generated_phone": "+256799000012",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Kibuli!4",
+      "raw_phone": null,
+      "generated_phone": "+256799000013",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Kibuli!9",
+      "raw_phone": null,
+      "generated_phone": "+256799000014",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Kibuli!13",
+      "raw_phone": null,
+      "generated_phone": "+256799000015",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Kibuli!20",
+      "raw_phone": null,
+      "generated_phone": "+256799000016",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Nansana!5",
+      "raw_phone": "43121050",
+      "generated_phone": "+256799000017",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Nansana!12",
+      "raw_phone": null,
+      "generated_phone": "+256799000018",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Nansana!15",
+      "raw_phone": "789009984",
+      "generated_phone": "+256799000019",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Salem Maganjo!13",
+      "raw_phone": null,
+      "generated_phone": "+256799000020",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Salem Maganjo!15",
+      "raw_phone": null,
+      "generated_phone": "+256799000021",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Salem Maganjo!19",
+      "raw_phone": null,
+      "generated_phone": "+256799000022",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Salem Maganjo!20",
+      "raw_phone": null,
+      "generated_phone": "+256799000023",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Salem Maganjo!21",
+      "raw_phone": null,
+      "generated_phone": "+256799000024",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Ebenezer Kawempe!16",
+      "raw_phone": "703000478",
+      "generated_phone": "+256799000025",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Ebenezer Kawempe!19",
+      "raw_phone": null,
+      "generated_phone": "+256799000026",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Ebenezer Kawempe!20",
+      "raw_phone": null,
+      "generated_phone": "+256799000027",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Ebenezer Kawempe!25",
+      "raw_phone": null,
+      "generated_phone": "+256799000028",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Ebenezer Kawempe!26",
+      "raw_phone": null,
+      "generated_phone": "+256799000029",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Ebenezer Kawempe!27",
+      "raw_phone": null,
+      "generated_phone": "+256799000030",
+      "reason": "missing, invalid, or duplicate phone"
+    },
+    {
+      "source_id": "Goshen Kawempe!22",
+      "raw_phone": null,
+      "generated_phone": "+256799000031",
+      "reason": "missing, invalid, or duplicate phone"
+    }
+  ]
+}

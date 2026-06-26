@@ -1,0 +1,1905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RentLedger — Dashboard</title>
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <button type="button" class="sidebar__toggle" id="sidebarToggle" aria-label="Collapse sidebar" aria-expanded="true">
+        <span class="material-symbols-outlined">chevron_left</span>
+      </button>
+
+      <div class="sidebar__brand">
+        <div class="sidebar__logo">R</div>
+        <div class="sidebar__brand-text">
+          <span class="sidebar__brand-name">RentLedger</span>
+          <span class="sidebar__brand-sub">Kimujo Holdings Limited</span>
+        </div>
+      </div>
+
+      <nav class="sidebar__nav">
+        <span class="sidebar__section">Main</span>
+        <a href="#" class="sidebar__link sidebar__link--active" data-view="dashboard" data-label="Dashboard">
+          <span class="material-symbols-outlined icon icon--nav">dashboard</span>
+          <span class="sidebar__link-text">Dashboard</span>
+        </a>
+        <a href="#" class="sidebar__link" data-view="payment-entry" data-label="Payment Entry">
+          <span class="material-symbols-outlined icon icon--nav">payments</span>
+          <span class="sidebar__link-text">Payment Entry</span>
+        </a>
+        <a href="#" class="sidebar__link" data-view="outstanding-balances" data-label="Outstanding Balances">
+          <span class="material-symbols-outlined icon icon--nav">schedule</span>
+          <span class="sidebar__link-text">Outstanding Balances</span>
+        </a>
+        <a href="#" class="sidebar__link" data-view="pending-deposits" data-label="Pending Security Deposits">
+          <span class="material-symbols-outlined icon icon--nav">lock</span>
+          <span class="sidebar__link-text">Pending Security Deposits</span>
+        </a>
+        <a href="#" class="sidebar__link" data-view="receipts" data-label="Payments">
+          <span class="material-symbols-outlined icon icon--nav">receipt_long</span>
+          <span class="sidebar__link-text">Payments</span>
+        </a>
+        <a href="#" class="sidebar__link" data-view="tenants" data-label="Tenants">
+          <span class="material-symbols-outlined icon icon--nav">group</span>
+          <span class="sidebar__link-text">Tenants</span>
+        </a>
+        <a href="#" class="sidebar__link" data-view="estates" data-label="Estates">
+          <span class="material-symbols-outlined icon icon--nav">location_city</span>
+          <span class="sidebar__link-text">Estates</span>
+        </a>
+
+        <span class="sidebar__section">Reports</span>
+        <a href="#" class="sidebar__link" data-view="monthly-collection" data-label="Monthly Collection Summary">
+          <span class="material-symbols-outlined icon icon--nav">calendar_month</span>
+          <span class="sidebar__link-text">Monthly Collection Summary</span>
+        </a>
+        <a href="#" class="sidebar__link" data-view="bank-statement-review" data-label="Bank Statement Review">
+          <span class="material-symbols-outlined icon icon--nav">account_balance</span>
+          <span class="sidebar__link-text">Bank Statement Review</span>
+        </a>
+        <a href="#" class="sidebar__link" data-view="custom-reports" data-label="Generate Custom Reports">
+          <span class="material-symbols-outlined icon icon--nav">summarize</span>
+          <span class="sidebar__link-text">Generate Custom Reports</span>
+        </a>
+      </nav>
+
+      <a href="#" class="sidebar__link sidebar__link--settings" data-label="Settings">
+        <span class="material-symbols-outlined icon icon--nav">settings</span>
+        <span class="sidebar__link-text">Settings</span>
+      </a>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+
+    <!-- Main -->
+    <main class="main">
+      <button type="button" class="mobile-sidebar-menu" id="sidebarMenuBtn" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
+        <span class="material-symbols-outlined icon icon--action">menu</span>
+      </button>
+
+      <!-- Dashboard View -->
+      <div id="view-dashboard" class="view view--active">
+        <div class="dashboard">
+          <section class="metrics metrics--primary">
+            <article class="card metric-card">
+              <div class="metric-card__header">
+                <span class="metric-card__label" id="dashYearCollectedLabel">Total Collected</span>
+                <span class="metric-card__icon metric-card__icon--neutral">
+                  <span class="material-symbols-outlined icon icon--metric">savings</span>
+                </span>
+              </div>
+              <p class="metric-card__value" id="dashYearCollected">UGX 0</p>
+              <p class="metric-card__sub" id="dashYearCollectedSub"></p>
+              <div class="metric-card__progress">
+                <div class="metric-card__progress-fill metric-card__progress-fill--neutral" id="dashYearCollectionProgress" style="width: 0%"></div>
+              </div>
+            </article>
+
+            <article class="card metric-card">
+              <div class="metric-card__header">
+                <span class="metric-card__label">Collected This Month</span>
+                <span class="metric-card__icon metric-card__icon--success">
+                  <span class="material-symbols-outlined icon icon--metric">trending_up</span>
+                </span>
+              </div>
+              <p class="metric-card__value metric-card__value--success" id="dashTotalCollected">UGX 0</p>
+              <p class="metric-card__sub" id="dashMonthCollectedSub"></p>
+              <div class="metric-card__progress">
+                <div class="metric-card__progress-fill" id="dashCollectionProgress" style="width: 0%"></div>
+              </div>
+            </article>
+
+            <article class="card metric-card">
+              <div class="metric-card__header">
+                <span class="metric-card__label">Total Outstanding</span>
+                <span class="metric-card__icon metric-card__icon--danger">
+                  <span class="material-symbols-outlined icon icon--metric">warning</span>
+                </span>
+              </div>
+              <p class="metric-card__value metric-card__value--danger" id="dashTotalOutstanding">UGX 0</p>
+            </article>
+          </section>
+
+          <section class="metrics metrics--secondary">
+            <article class="card stat-card">
+              <div class="stat-card__content">
+                <span class="stat-card__label">Active Tenants</span>
+                <span class="stat-card__value" id="dashActiveTenants">0</span>
+              </div>
+              <span class="stat-card__icon stat-card__icon--success">
+                <span class="material-symbols-outlined icon icon--stat">groups</span>
+              </span>
+            </article>
+
+            <article class="card stat-card">
+              <div class="stat-card__content">
+                <span class="stat-card__label">Pending Rent Months</span>
+                <span class="stat-card__value" id="dashPendingRentMonths">0</span>
+              </div>
+              <span class="stat-card__icon stat-card__icon--info">
+                <span class="material-symbols-outlined icon icon--stat">calendar_month</span>
+              </span>
+            </article>
+
+            <article class="card stat-card stat-card--action" id="dashDepositsPendingCard" role="button" tabindex="0" aria-label="View tenants with pending security deposits">
+              <div class="stat-card__content">
+                <span class="stat-card__label">Security Deposits Pending</span>
+                <span class="stat-card__value" id="dashDepositsPending">0</span>
+              </div>
+              <span class="stat-card__icon stat-card__icon--muted">
+                <span class="material-symbols-outlined icon icon--stat">lock</span>
+              </span>
+            </article>
+          </section>
+
+          <section class="analytics-row">
+            <article class="card chart-card">
+              <div class="card__header">
+                <h2 class="card__title">Collection Overview</h2>
+                <div class="chart-legend">
+                  <span class="chart-legend__item"><span class="chart-legend__swatch chart-legend__swatch--expected"></span>Expected</span>
+                  <span class="chart-legend__item"><span class="chart-legend__swatch chart-legend__swatch--collected"></span>Collected</span>
+                </div>
+              </div>
+              <div class="chart-card__body">
+                <canvas id="collectionChart" aria-label="Collection overview bar chart"></canvas>
+              </div>
+            </article>
+
+            <article class="card attention-card">
+              <div class="card__header">
+                <h2 class="card__title">Attention Required</h2>
+                <a href="#" class="card__link" data-view="outstanding-balances">View All</a>
+              </div>
+              <ul class="attention-list" id="attentionList"></ul>
+            </article>
+          </section>
+        </div>
+      </div>
+
+      <!-- Payment Entry View -->
+      <div id="view-payment-entry" class="view">
+        <div class="page-content">
+          <div class="payment-layout">
+            <article class="card payment-form-card">
+              <div class="payment-form-card__header">
+                <h2 class="card__title">Record New Payment</h2>
+              </div>
+
+              <form class="payment-form" id="paymentForm">
+                <div class="form-group tenant-search">
+                  <label class="form-label" for="tenantSearch">Search Tenant</label>
+                  <div class="form-input-wrap">
+                    <span class="material-symbols-outlined icon icon--input">search</span>
+                    <input type="text" id="tenantSearch" class="form-input" value="" placeholder="Start typing name, ID, or unit no..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="tenantSearchResults">
+                    <ul class="tenant-suggest" id="tenantSearchResults" role="listbox" aria-label="Tenant matches" hidden></ul>
+                  </div>
+                </div>
+
+                <div class="tenant-info" id="tenantInfo">
+                  <div class="tenant-info__row">
+                    <span class="tenant-info__label">Estate</span>
+                    <span class="tenant-info__value" id="tenantEstate">-</span>
+                  </div>
+                  <div class="tenant-info__row">
+                    <span class="tenant-info__label">House/Unit</span>
+                    <span class="tenant-info__value" id="tenantUnit">-</span>
+                  </div>
+                  <div class="tenant-info__row">
+                    <span class="tenant-info__label">Monthly Rent</span>
+                    <span class="tenant-info__value" id="tenantRent">-</span>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="paymentDateDisplay">Payment Date</label>
+                    <div class="datepicker" id="paymentDatePicker">
+                      <button type="button" class="datepicker__trigger" id="paymentDateTrigger" aria-haspopup="dialog" aria-expanded="false">
+                        <span class="material-symbols-outlined icon icon--input">calendar_today</span>
+                        <span class="datepicker__value" id="paymentDateDisplay">Select date</span>
+                      </button>
+                      <input type="hidden" id="paymentDate" value="">
+
+                      <div class="datepicker__popover" id="paymentDatePopover" role="dialog" aria-label="Choose payment date" hidden>
+                        <div class="datepicker__header">
+                          <button type="button" class="datepicker__nav-btn" id="datepickerPrev" aria-label="Previous month">
+                            <span class="material-symbols-outlined">chevron_left</span>
+                          </button>
+                          <span class="datepicker__month-label" id="datepickerMonthLabel"></span>
+                          <button type="button" class="datepicker__nav-btn" id="datepickerNext" aria-label="Next month">
+                            <span class="material-symbols-outlined">chevron_right</span>
+                          </button>
+                        </div>
+
+                        <div class="datepicker__toolbar">
+                          <input type="text" class="datepicker__field" id="datepickerField" readonly value="">
+                          <button type="button" class="datepicker__today-btn" id="datepickerToday">Today</button>
+                        </div>
+
+                        <div class="datepicker__weekdays">
+                          <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+                        </div>
+                        <div class="datepicker__grid" id="datepickerGrid"></div>
+
+                        <div class="datepicker__footer">
+                          <button type="button" class="datepicker__btn datepicker__btn--cancel" id="datepickerCancel">Cancel</button>
+                          <button type="button" class="datepicker__btn datepicker__btn--apply" id="datepickerApply">Apply</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="amountPaid">Amount Paid (UGX)</label>
+                    <input type="text" id="amountPaid" class="form-input" value="0" inputmode="numeric" autocomplete="off" maxlength="15" aria-describedby="amountPaidHint" aria-invalid="false">
+                    <p class="form-hint form-hint--error" id="amountPaidHint" role="alert" hidden></p>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" id="paymentMethodLabel">Deposit Channel</label>
+                    <div class="custom-select" id="paymentMethodSelect">
+                      <button type="button" class="custom-select__trigger" id="paymentMethodTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="paymentMethodLabel paymentMethodDisplay">
+                        <span class="custom-select__value" id="paymentMethodDisplay">Bank Deposit</span>
+                        <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                      </button>
+                      <input type="hidden" id="paymentMethod" name="paymentMethod" value="bank">
+                      <ul class="custom-select__menu" id="paymentMethodMenu" role="listbox" hidden>
+                        <li class="custom-select__option custom-select__option--selected" role="option" data-value="bank" data-label="Bank Deposit" aria-selected="true">
+                          <span class="material-symbols-outlined icon icon--method">account_balance</span>
+                          Bank Deposit
+                        </li>
+                        <li class="custom-select__option" role="option" data-value="mobile" data-label="Mobile Money" aria-selected="false">
+                          <span class="material-symbols-outlined icon icon--method">smartphone</span>
+                          Mobile Money
+                        </li>
+                        <li class="custom-select__option" role="option" data-value="agb" data-label="Agency Banking" aria-selected="false">
+                          <span class="material-symbols-outlined icon icon--method">storefront</span>
+                          Agency Banking
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="bankRef">Bank Reference <span class="form-label__required" aria-hidden="true">*</span></label>
+                    <input type="text" id="bankRef" class="form-input" required autocomplete="off" placeholder="Enter bank or transaction reference">
+                    <p class="form-hint form-hint--error" id="bankRefHint" hidden>Bank reference is required for every payment.</p>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="paymentNotes">Notes (Optional)</label>
+                  <textarea id="paymentNotes" class="form-input form-textarea" rows="3" placeholder="Add any notes about this payment..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                  <button type="button" class="btn btn--outline" id="previewBtn">Preview Distribution</button>
+                  <button type="submit" class="btn btn--primary" id="recordBtn" disabled>Record Payment</button>
+                </div>
+              </form>
+            </article>
+
+            <article class="card preview-card">
+              <div class="preview-card__header">
+                <h2 class="card__title">Payment Distribution Preview</h2>
+                <label class="toggle">
+                  <span class="toggle__label">Auto-Allocation</span>
+                  <input type="checkbox" id="autoAllocation" checked>
+                  <span class="toggle__track"><span class="toggle__thumb"></span></span>
+                </label>
+              </div>
+
+              <div class="preview-total">
+                <span class="preview-total__label">Total to Distribute</span>
+                <span class="preview-total__value" id="totalToDistribute">UGX 0</span>
+              </div>
+
+              <div class="preview-table-wrap">
+                <table class="preview-table">
+                  <thead>
+                    <tr>
+                      <th>Month</th>
+                      <th class="text-right">Opening Bal</th>
+                      <th class="text-right">Applied</th>
+                      <th class="text-right">Remaining</th>
+                    </tr>
+                  </thead>
+                  <tbody id="previewTableBody">
+                    <tr class="preview-empty">
+                      <td colspan="4">
+                        <span class="material-symbols-outlined icon icon--empty">touch_app</span>
+                        Enter amount and click "Preview" to see allocation
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+
+      <!-- Outstanding Balances View -->
+      <div id="view-outstanding-balances" class="view">
+        <div class="page-content outstanding-page">
+          <section class="metrics metrics--outstanding" aria-label="Outstanding balance summary">
+            <article class="card outstanding-stat-card outstanding-stat-card--amount">
+              <div>
+                <span class="outstanding-stat-card__label">Total outstanding</span>
+                <strong class="outstanding-stat-card__value" id="outstandingTotal">UGX 0</strong>
+                <span class="outstanding-stat-card__hint">Across all tenants with unpaid rent</span>
+              </div>
+              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--danger">
+                <span class="material-symbols-outlined">account_balance_wallet</span>
+              </span>
+            </article>
+
+            <article class="card outstanding-stat-card">
+              <div>
+                <span class="outstanding-stat-card__label">Tenants with a balance</span>
+                <strong class="outstanding-stat-card__value" id="outstandingTenants">0</strong>
+                <span class="outstanding-stat-card__hint">Require follow-up or a payment</span>
+              </div>
+              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--blue">
+                <span class="material-symbols-outlined">group</span>
+              </span>
+            </article>
+
+            <article class="card outstanding-stat-card">
+              <div>
+                <span class="outstanding-stat-card__label">Pending rent months</span>
+                <strong class="outstanding-stat-card__value" id="outstandingMonths">0</strong>
+                <span class="outstanding-stat-card__hint">Individual rent periods still unpaid</span>
+              </div>
+              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--neutral">
+                <span class="material-symbols-outlined">calendar_month</span>
+              </span>
+            </article>
+          </section>
+
+          <section class="card outstanding-report-card">
+            <div class="outstanding-report-card__header">
+              <div>
+                <h2 class="card__title">Unpaid rent by tenant</h2>
+              </div>
+            </div>
+
+            <div class="outstanding-filters">
+              <label class="outstanding-search" for="outstandingSearch">
+                <span class="material-symbols-outlined">search</span>
+                <input id="outstandingSearch" type="search" placeholder="Search name, house number, or phone">
+              </label>
+              <div class="outstanding-filter-control">
+                <span class="outstanding-filter-label" id="outstandingEstateLabel">Estate</span>
+                <div class="custom-select" id="outstandingEstateSelect">
+                  <button type="button" class="custom-select__trigger" id="outstandingEstateTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="outstandingEstateLabel outstandingEstateDisplay">
+                    <span class="custom-select__value" id="outstandingEstateDisplay">All estates</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="outstandingEstateFilter" value="">
+                  <ul class="custom-select__menu" id="outstandingEstateMenu" role="listbox" hidden>
+                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="All estates" aria-selected="true">All estates</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="outstanding-filter-control">
+                <span class="outstanding-filter-label" id="outstandingMonthLabel">Pending month</span>
+                <div class="custom-select" id="outstandingMonthSelect">
+                  <button type="button" class="custom-select__trigger" id="outstandingMonthTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="outstandingMonthLabel outstandingMonthDisplay">
+                    <span class="custom-select__value" id="outstandingMonthDisplay">All pending months</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="outstandingMonthFilter" value="">
+                  <ul class="custom-select__menu" id="outstandingMonthMenu" role="listbox" hidden>
+                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="All pending months" aria-selected="true">All pending months</li>
+                  </ul>
+                </div>
+              </div>
+              <button type="button" class="clear-filters" id="clearOutstandingFilters" disabled>Clear filters</button>
+            </div>
+
+            <div class="table-wrap outstanding-table-wrap">
+              <table class="outstanding-table">
+                <thead>
+                  <tr>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="name"><span>Tenant name</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="estate"><span>Estate</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="house"><span>House no.</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="phone"><span>Phone number</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="pendingMonths"><span>Pending months</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th class="text-right" aria-sort="descending"><button type="button" class="outstanding-column-sort outstanding-column-sort--right" data-sort-key="outstanding"><span>Total outstanding</span><span class="material-symbols-outlined">arrow_downward</span></button></th>
+                  </tr>
+                </thead>
+                <tbody id="outstandingTable"></tbody>
+              </table>
+            </div>
+
+            <footer class="outstanding-report-card__footer">
+              <span id="outstandingTableCount">Showing 0 tenants</span>
+            </footer>
+          </section>
+
+        </div>
+      </div>
+
+      <!-- Pending Security Deposits View -->
+      <div id="view-pending-deposits" class="view">
+        <div class="page-content outstanding-page">
+          <section class="metrics metrics--outstanding" aria-label="Pending security deposit summary">
+            <article class="card outstanding-stat-card outstanding-stat-card--amount">
+              <div>
+                <span class="outstanding-stat-card__label">Total deposit balance</span>
+                <strong class="outstanding-stat-card__value" id="pendingDepositsTotal">UGX 0</strong>
+                <span class="outstanding-stat-card__hint">Still owed across all pending deposits</span>
+              </div>
+              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--danger">
+                <span class="material-symbols-outlined">account_balance_wallet</span>
+              </span>
+            </article>
+
+            <article class="card outstanding-stat-card">
+              <div>
+                <span class="outstanding-stat-card__label">Tenants with pending deposits</span>
+                <strong class="outstanding-stat-card__value" id="pendingDepositsTenants">0</strong>
+                <span class="outstanding-stat-card__hint">Active tenants who have not paid in full</span>
+              </div>
+              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--blue">
+                <span class="material-symbols-outlined">group</span>
+              </span>
+            </article>
+
+            <article class="card outstanding-stat-card">
+              <div>
+                <span class="outstanding-stat-card__label">Partially paid</span>
+                <strong class="outstanding-stat-card__value" id="pendingDepositsPartial">0</strong>
+                <span class="outstanding-stat-card__hint">Tenants who paid some but not the full deposit</span>
+              </div>
+              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--neutral">
+                <span class="material-symbols-outlined">pie_chart</span>
+              </span>
+            </article>
+          </section>
+
+          <section class="card outstanding-report-card">
+            <div class="outstanding-report-card__header">
+              <div>
+                <h2 class="card__title">Pending security deposits by tenant</h2>
+              </div>
+            </div>
+
+            <div class="outstanding-filters">
+              <label class="outstanding-search" for="pendingDepositsSearch">
+                <span class="material-symbols-outlined">search</span>
+                <input id="pendingDepositsSearch" type="search" placeholder="Search name, house number, or phone">
+              </label>
+              <div class="outstanding-filter-control">
+                <span class="outstanding-filter-label" id="pendingDepositsEstateLabel">Estate</span>
+                <div class="custom-select" id="pendingDepositsEstateSelect">
+                  <button type="button" class="custom-select__trigger" id="pendingDepositsEstateTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="pendingDepositsEstateLabel pendingDepositsEstateDisplay">
+                    <span class="custom-select__value" id="pendingDepositsEstateDisplay">All estates</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="pendingDepositsEstateFilter" value="">
+                  <ul class="custom-select__menu" id="pendingDepositsEstateMenu" role="listbox" hidden>
+                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="All estates" aria-selected="true">All estates</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="outstanding-filter-control">
+                <span class="outstanding-filter-label" id="pendingDepositsStatusLabel">Deposit status</span>
+                <div class="custom-select" id="pendingDepositsStatusSelect">
+                  <button type="button" class="custom-select__trigger" id="pendingDepositsStatusTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="pendingDepositsStatusLabel pendingDepositsStatusDisplay">
+                    <span class="custom-select__value" id="pendingDepositsStatusDisplay">All statuses</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="pendingDepositsStatusFilter" value="">
+                  <ul class="custom-select__menu" id="pendingDepositsStatusMenu" role="listbox" hidden>
+                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="All statuses" aria-selected="true">All statuses</li>
+                    <li class="custom-select__option" role="option" data-value="Pending" data-label="Pending" aria-selected="false">Pending</li>
+                    <li class="custom-select__option" role="option" data-value="Partial" data-label="Partial" aria-selected="false">Partial</li>
+                  </ul>
+                </div>
+              </div>
+              <button type="button" class="clear-filters" id="clearPendingDepositsFilters" disabled>Clear filters</button>
+            </div>
+
+            <div class="table-wrap outstanding-table-wrap">
+              <table class="outstanding-table pending-deposits-table">
+                <thead>
+                  <tr>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="name"><span>Tenant name</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="estate"><span>Estate</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="house"><span>House no.</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="phone"><span>Phone number</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="securityDeposit"><span>Status</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th class="text-right" aria-sort="none"><button type="button" class="outstanding-column-sort outstanding-column-sort--right" data-sort-key="depositRequired"><span>Required</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th class="text-right" aria-sort="none"><button type="button" class="outstanding-column-sort outstanding-column-sort--right" data-sort-key="depositPaid"><span>Paid</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th class="text-right" aria-sort="descending"><button type="button" class="outstanding-column-sort outstanding-column-sort--right" data-sort-key="balance"><span>Balance</span><span class="material-symbols-outlined">arrow_downward</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="dateBecame"><span>Move-in date</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                  </tr>
+                </thead>
+                <tbody id="pendingDepositsTable"></tbody>
+              </table>
+            </div>
+
+            <footer class="outstanding-report-card__footer">
+              <span id="pendingDepositsTableCount">Showing 0 tenants</span>
+            </footer>
+          </section>
+        </div>
+      </div>
+
+      <!-- Tenants View -->
+      <div id="view-tenants" class="view">
+        <div class="page-content tenants-page">
+          <section class="card tenants-report-card">
+            <div class="tenants-report-card__header">
+              <div>
+                <h2 class="card__title">Tenant directory</h2>
+              </div>
+            </div>
+
+            <div class="tenants-search-bar outstanding-filters">
+              <label class="outstanding-search" for="tenantsSearch">
+                <span class="material-symbols-outlined">search</span>
+                <input id="tenantsSearch" type="search" placeholder="Search by tenant name, phone, estate, house, or date…">
+              </label>
+              <div class="outstanding-filter-control">
+                <span class="outstanding-filter-label" id="tenantsEstateLabel">Estate</span>
+                <div class="custom-select" id="tenantsEstateSelect">
+                  <button type="button" class="custom-select__trigger" id="tenantsEstateTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="tenantsEstateLabel tenantsEstateDisplay">
+                    <span class="custom-select__value" id="tenantsEstateDisplay">All estates</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="tenantsEstateFilter" value="">
+                  <ul class="custom-select__menu" id="tenantsEstateMenu" role="listbox" hidden>
+                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="All estates" aria-selected="true">All estates</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="outstanding-filter-control">
+                <span class="outstanding-filter-label" id="tenantsTypeLabel">Tenant type</span>
+                <div class="custom-select" id="tenantsTypeSelect">
+                  <button type="button" class="custom-select__trigger" id="tenantsTypeTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="tenantsTypeLabel tenantsTypeDisplay">
+                    <span class="custom-select__value" id="tenantsTypeDisplay">All types</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="tenantsTypeFilter" value="">
+                  <ul class="custom-select__menu" id="tenantsTypeMenu" role="listbox" hidden>
+                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="All types" aria-selected="true">All types</li>
+                    <li class="custom-select__option" role="option" data-value="INDIVIDUAL" data-label="Individuals" aria-selected="false">Individuals</li>
+                    <li class="custom-select__option" role="option" data-value="BUSINESS" data-label="Businesses" aria-selected="false">Businesses</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="outstanding-filter-control">
+                <span class="outstanding-filter-label" id="tenantsStatusLabel">Status</span>
+                <div class="custom-select" id="tenantsStatusSelect">
+                  <button type="button" class="custom-select__trigger" id="tenantsStatusTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="tenantsStatusLabel tenantsStatusDisplay">
+                    <span class="custom-select__value" id="tenantsStatusDisplay">Active</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="tenantsStatusFilter" value="Active">
+                  <ul class="custom-select__menu" id="tenantsStatusMenu" role="listbox" hidden>
+                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="All statuses" aria-selected="true">All statuses</li>
+                  </ul>
+                </div>
+              </div>
+              <button type="button" class="clear-filters" id="clearTenantFilters" disabled>Clear filters</button>
+            </div>
+
+            <div class="table-wrap tenants-table-wrap">
+              <table class="tenants-table">
+                <thead>
+                  <tr>
+                    <th aria-sort="ascending"><button type="button" class="outstanding-column-sort" data-sort-key="name"><span>Tenant Name</span><span class="material-symbols-outlined">arrow_upward</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="nationalIdNumber"><span>National ID No.</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="phone"><span>Phone Number</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="estate"><span>Estate</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="house"><span>House Number</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th class="text-right" aria-sort="none"><button type="button" class="outstanding-column-sort outstanding-column-sort--right" data-sort-key="monthlyRent"><span>Monthly Rent</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="securityDeposit"><span>Security Deposit</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="dateBecame"><span>Date Became Tenant</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="status"><span>Status</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                  </tr>
+                </thead>
+                <tbody id="tenantsTable"></tbody>
+              </table>
+            </div>
+
+            <footer class="outstanding-report-card__footer">
+              <span id="tenantsTableCount">Showing 0 tenants</span>
+            </footer>
+          </section>
+
+          <div class="tenants-page__actions">
+            <button type="button" class="btn btn--outline btn--icon" id="exportTenantsBtn">
+              <span class="material-symbols-outlined icon icon--btn">download</span>
+              Export
+            </button>
+            <button type="button" class="btn btn--primary btn--icon" id="addTenantBtn">
+              <span class="material-symbols-outlined icon icon--btn">person_add</span>
+              Add Tenant
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Estates View -->
+      <div id="view-estates" class="view">
+        <div class="page-content">
+          <header class="page-header">
+            <h1 class="page-header__title">Estates</h1>
+            <p class="page-header__subtitle">Choose an estate to view its tenants.</p>
+          </header>
+          <div class="estates-grid" id="estatesGrid" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <!-- Estate Detail View -->
+      <div id="view-estate-detail" class="view">
+        <div class="page-content">
+          <header class="page-header estate-detail__header">
+            <div>
+              <nav class="estate-detail__breadcrumb" aria-label="Breadcrumb">
+                <button type="button" class="estate-detail__crumb-link" id="estateDetailBack">Estates</button>
+                <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                <span class="estate-detail__crumb-current" id="estateDetailCrumb">Estate</span>
+              </nav>
+              <h1 class="page-header__title" id="estateDetailTitle">Estate</h1>
+              <div class="estate-detail__meta">
+                <p class="page-header__subtitle estate-detail__subtitle" id="estateDetailSubtitle">
+                  <span class="material-symbols-outlined" aria-hidden="true">location_on</span>
+                  <span id="estateDetailLocation">—</span>
+                </p>
+                <p class="page-header__subtitle estate-detail__subtitle estate-detail__caretaker" id="estateDetailCaretaker" hidden aria-label="Caretaker">
+                  <span class="material-symbols-outlined" aria-hidden="true">badge</span>
+                  <span class="estate-detail__caretaker-name" id="estateDetailCaretakerName"></span>
+                  <a class="estate-detail__caretaker-phone" id="estateDetailCaretakerPhone" href="#" hidden>
+                    <span class="material-symbols-outlined" aria-hidden="true">call</span>
+                    <span id="estateDetailCaretakerPhoneText"></span>
+                  </a>
+                </p>
+              </div>
+            </div>
+            <div class="estate-detail__header-actions">
+              <button type="button" class="btn btn--outline" id="estateDetailViewTenants">
+                <span class="material-symbols-outlined" aria-hidden="true">groups</span>
+                View all tenants
+              </button>
+              <button type="button" class="btn btn--primary" id="estateDetailRecordPayment">
+                <span class="material-symbols-outlined" aria-hidden="true">add</span>
+                Record payment
+              </button>
+            </div>
+          </header>
+
+          <div class="estate-detail__layout">
+            <div class="estate-detail__overview">
+              <article class="card estate-detail__media">
+                <span class="estate-detail__media-image">
+                  <img src="assets/estate-property.png" alt="" id="estateDetailImage">
+                </span>
+              </article>
+
+              <section class="estate-detail__stats">
+                <article class="card estate-stat">
+                  <span class="estate-stat__label">Total Tenants</span>
+                  <span class="estate-stat__value" id="estateStatTotal">0</span>
+                </article>
+                <article class="card estate-stat">
+                  <span class="estate-stat__label">Active Tenants</span>
+                  <span class="estate-stat__value estate-stat__value--success" id="estateStatActive">0</span>
+                </article>
+                <article class="card estate-stat">
+                  <span class="estate-stat__label">In Arrears</span>
+                  <span class="estate-stat__value estate-stat__value--danger" id="estateStatArrears">0</span>
+                </article>
+              </section>
+
+              <article class="card estate-info">
+                <h2 class="card__title estate-info__title">Estate Summary</h2>
+                <dl class="estate-info__list">
+                  <div class="estate-info__row">
+                    <dt>Expected monthly rent</dt>
+                    <dd id="estateInfoExpected">UGX 0</dd>
+                  </div>
+                  <div class="estate-info__row">
+                    <dt>Outstanding balance</dt>
+                    <dd id="estateInfoOutstanding">UGX 0</dd>
+                  </div>
+                  <div class="estate-info__row">
+                    <dt>Tenants in arrears</dt>
+                    <dd id="estateInfoArrears">0</dd>
+                  </div>
+                  <div class="estate-info__row">
+                    <dt>Security deposits pending</dt>
+                    <dd id="estateInfoDeposits">0</dd>
+                  </div>
+                  <div class="estate-info__row">
+                    <dt>Rent due day</dt>
+                    <dd>5th of every month</dd>
+                  </div>
+                  <div class="estate-info__row">
+                    <dt>Grace period</dt>
+                    <dd>5 days</dd>
+                  </div>
+                </dl>
+              </article>
+            </div>
+
+            <div class="estate-detail__side">
+              <article class="card estate-collection-card">
+                <div class="card__header">
+                  <div>
+                    <h2 class="card__title">Rent Collection</h2>
+                    <p class="estate-collection-card__meta" id="estateCollectionMeta">Collected per month</p>
+                  </div>
+                  <span class="estate-collection-card__year" id="estateCollectionYear"></span>
+                </div>
+                <div class="estate-collection-card__body">
+                  <canvas id="estateCollectionChart" aria-label="Rent collected per month bar chart"></canvas>
+                </div>
+              </article>
+
+              <article class="card estate-tenants-card">
+                <div class="card__header">
+                  <h2 class="card__title">Tenants in This Estate</h2>
+                  <span class="estate-tenants-card__count" id="estateTenantsCount">0 tenants</span>
+                </div>
+                <div class="estate-tenants-filters outstanding-filters">
+                  <label class="outstanding-search" for="estateTenantsSearch">
+                    <span class="material-symbols-outlined">search</span>
+                    <input id="estateTenantsSearch" type="search" placeholder="Search tenant, phone, or house">
+                  </label>
+                  <div class="outstanding-filter-control">
+                    <span class="outstanding-filter-label" id="estateTenantsTypeLabel">Tenant type</span>
+                    <div class="custom-select" id="estateTenantsTypeSelect">
+                      <button type="button" class="custom-select__trigger" id="estateTenantsTypeTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="estateTenantsTypeLabel estateTenantsTypeDisplay">
+                        <span class="custom-select__value" id="estateTenantsTypeDisplay">All types</span>
+                        <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                      </button>
+                      <input type="hidden" id="estateTenantsTypeFilter" value="">
+                      <ul class="custom-select__menu" id="estateTenantsTypeMenu" role="listbox" hidden>
+                        <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="All types" aria-selected="true">All types</li>
+                        <li class="custom-select__option" role="option" data-value="INDIVIDUAL" data-label="Individuals" aria-selected="false">Individuals</li>
+                        <li class="custom-select__option" role="option" data-value="BUSINESS" data-label="Businesses" aria-selected="false">Businesses</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div class="outstanding-filter-control">
+                    <span class="outstanding-filter-label" id="estateTenantsStatusLabel">Status</span>
+                    <div class="custom-select" id="estateTenantsStatusSelect">
+                      <button type="button" class="custom-select__trigger" id="estateTenantsStatusTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="estateTenantsStatusLabel estateTenantsStatusDisplay">
+                        <span class="custom-select__value" id="estateTenantsStatusDisplay">Active</span>
+                        <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                      </button>
+                      <input type="hidden" id="estateTenantsStatusFilter" value="Active">
+                      <ul class="custom-select__menu" id="estateTenantsStatusMenu" role="listbox" hidden>
+                        <li class="custom-select__option" role="option" data-value="" data-label="All statuses" aria-selected="false">All statuses</li>
+                        <li class="custom-select__option custom-select__option--selected" role="option" data-value="Active" data-label="Active" aria-selected="true">Active</li>
+                        <li class="custom-select__option" role="option" data-value="Notice" data-label="Notice" aria-selected="false">Notice</li>
+                        <li class="custom-select__option" role="option" data-value="Inactive" data-label="Inactive" aria-selected="false">Inactive</li>
+                        <li class="custom-select__option" role="option" data-value="Unassigned" data-label="Unassigned" aria-selected="false">Unassigned</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <button type="button" class="clear-filters" id="clearEstateTenantsFilters" disabled>Clear filters</button>
+                </div>
+                <div class="estate-tenants-card__table-wrap">
+                  <table class="estate-tenants-table">
+                    <thead>
+                      <tr>
+                        <th>Unit</th>
+                        <th>Tenant</th>
+                        <th class="text-right">Monthly Rent</th>
+                        <th>Status</th>
+                        <th>Deposit</th>
+                      </tr>
+                    </thead>
+                    <tbody id="estateTenantsTable"></tbody>
+                  </table>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Receipts View -->
+      <div id="view-receipts" class="view">
+        <div class="page-content">
+          <section class="card receipts-table-card outstanding-report-card">
+            <div class="outstanding-report-card__header">
+              <div>
+                <h2 class="card__title">Payments</h2>
+              </div>
+            </div>
+
+            <div class="outstanding-filters outstanding-filters--receipts">
+              <label class="outstanding-search" for="receiptSearch">
+                <span class="material-symbols-outlined">search</span>
+                <input id="receiptSearch" type="search" placeholder="Search tenant, receipt no., unit…">
+              </label>
+              <div class="outstanding-filter-control">
+                <span class="outstanding-filter-label" id="receiptEstateLabel">Estate</span>
+                <div class="custom-select" id="receiptEstateSelect">
+                  <button type="button" class="custom-select__trigger" id="receiptEstateTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="receiptEstateLabel receiptEstateDisplay">
+                    <span class="custom-select__value" id="receiptEstateDisplay">All estates</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="receiptEstateFilter" value="">
+                  <ul class="custom-select__menu" id="receiptEstateMenu" role="listbox" hidden>
+                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="All estates" aria-selected="true">All estates</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="outstanding-filter-control">
+                <span class="outstanding-filter-label" id="receiptMethodLabel">Method</span>
+                <div class="custom-select" id="receiptMethodSelect">
+                  <button type="button" class="custom-select__trigger" id="receiptMethodTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="receiptMethodLabel receiptMethodDisplay">
+                    <span class="custom-select__value" id="receiptMethodDisplay">All methods</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="receiptMethodFilter" value="">
+                  <ul class="custom-select__menu" id="receiptMethodMenu" role="listbox" hidden>
+                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="All methods" aria-selected="true">All methods</li>
+                  </ul>
+                </div>
+              </div>
+              <button type="button" class="clear-filters" id="receiptClearFilters" disabled>Clear filters</button>
+              <div class="outstanding-filter-control">
+                <label class="outstanding-filter-label" for="receiptDateFromDisplay">From</label>
+                <div class="datepicker" id="receiptDateFromPicker">
+                  <button type="button" class="datepicker__trigger" id="receiptDateFromTrigger" aria-haspopup="dialog" aria-expanded="false">
+                    <span class="material-symbols-outlined icon icon--input">calendar_today</span>
+                    <span class="datepicker__value" id="receiptDateFromDisplay">Select date</span>
+                  </button>
+                  <input type="hidden" id="receiptDateFrom" value="">
+                  <div class="datepicker__popover" id="receiptDateFromPopover" role="dialog" aria-label="Choose start date" hidden>
+                    <div class="datepicker__header">
+                      <button type="button" class="datepicker__nav-btn" id="receiptDateFromPrev" aria-label="Previous month"><span class="material-symbols-outlined">chevron_left</span></button>
+                      <span class="datepicker__month-label" id="receiptDateFromMonthLabel"></span>
+                      <button type="button" class="datepicker__nav-btn" id="receiptDateFromNext" aria-label="Next month"><span class="material-symbols-outlined">chevron_right</span></button>
+                    </div>
+                    <div class="datepicker__toolbar">
+                      <input type="text" class="datepicker__field" id="receiptDateFromField" readonly>
+                      <button type="button" class="datepicker__today-btn" id="receiptDateFromToday">Today</button>
+                    </div>
+                    <div class="datepicker__weekdays"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
+                    <div class="datepicker__grid" id="receiptDateFromGrid"></div>
+                    <div class="datepicker__footer">
+                      <button type="button" class="datepicker__btn datepicker__btn--cancel" id="receiptDateFromCancel">Cancel</button>
+                      <button type="button" class="datepicker__btn datepicker__btn--apply" id="receiptDateFromApply">Apply</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="outstanding-filter-control">
+                <label class="outstanding-filter-label" for="receiptDateToDisplay">To</label>
+                <div class="datepicker" id="receiptDateToPicker">
+                  <button type="button" class="datepicker__trigger" id="receiptDateToTrigger" aria-haspopup="dialog" aria-expanded="false">
+                    <span class="material-symbols-outlined icon icon--input">calendar_today</span>
+                    <span class="datepicker__value" id="receiptDateToDisplay">Select date</span>
+                  </button>
+                  <input type="hidden" id="receiptDateTo" value="">
+                  <div class="datepicker__popover" id="receiptDateToPopover" role="dialog" aria-label="Choose end date" hidden>
+                    <div class="datepicker__header">
+                      <button type="button" class="datepicker__nav-btn" id="receiptDateToPrev" aria-label="Previous month"><span class="material-symbols-outlined">chevron_left</span></button>
+                      <span class="datepicker__month-label" id="receiptDateToMonthLabel"></span>
+                      <button type="button" class="datepicker__nav-btn" id="receiptDateToNext" aria-label="Next month"><span class="material-symbols-outlined">chevron_right</span></button>
+                    </div>
+                    <div class="datepicker__toolbar">
+                      <input type="text" class="datepicker__field" id="receiptDateToField" readonly>
+                      <button type="button" class="datepicker__today-btn" id="receiptDateToToday">Today</button>
+                    </div>
+                    <div class="datepicker__weekdays"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
+                    <div class="datepicker__grid" id="receiptDateToGrid"></div>
+                    <div class="datepicker__footer">
+                      <button type="button" class="datepicker__btn datepicker__btn--cancel" id="receiptDateToCancel">Cancel</button>
+                      <button type="button" class="datepicker__btn datepicker__btn--apply" id="receiptDateToApply">Apply</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="outstanding-filter-control">
+                <label class="outstanding-filter-label" for="receiptAmountMin">Min amount</label>
+                <input type="text" id="receiptAmountMin" class="outstanding-filter-input" placeholder="UGX" inputmode="numeric">
+              </div>
+              <div class="outstanding-filter-control">
+                <label class="outstanding-filter-label" for="receiptAmountMax">Max amount</label>
+                <input type="text" id="receiptAmountMax" class="outstanding-filter-input" placeholder="UGX" inputmode="numeric">
+              </div>
+            </div>
+
+            <div class="table-wrap outstanding-table-wrap">
+              <table class="receipts-table">
+                <thead>
+                  <tr>
+                    <th aria-sort="descending"><button type="button" class="outstanding-column-sort" data-sort-key="date"><span>Date</span><span class="material-symbols-outlined">arrow_downward</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="tenant"><span>Tenant Name</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="unit"><span>Unit</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="estate"><span>Estate</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th class="text-right" aria-sort="none"><button type="button" class="outstanding-column-sort outstanding-column-sort--right" data-sort-key="amount"><span>Amount (UGX)</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="method"><span>Method</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="receipt"><span>Receipt No.</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                  </tr>
+                </thead>
+                <tbody id="receiptsTable"></tbody>
+              </table>
+            </div>
+
+            <footer class="outstanding-report-card__footer">
+              <span id="receiptsCount">0 receipts</span>
+            </footer>
+          </section>
+        </div>
+      </div>
+
+      <!-- Monthly Collection Summary View -->
+      <div id="view-monthly-collection" class="view">
+        <div class="page-content mc-page">
+          <header class="page-header page-header--actions mc-page__header">
+            <div>
+              <h1 class="page-header__title">Monthly Collection Summary</h1>
+            </div>
+            <div class="page-header__actions mc-page__controls">
+              <div class="mc-year-select">
+                <label class="mc-year-select__label" for="mcYearTrigger">Year</label>
+                <div class="custom-select" id="mcYearSelect">
+                  <button type="button" class="custom-select__trigger" id="mcYearTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="mcYearLabel mcYearDisplay">
+                    <span class="custom-select__value" id="mcYearDisplay">2026</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="mcYear" value="2026">
+                  <ul class="custom-select__menu" id="mcYearMenu" role="listbox" hidden></ul>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <!-- Monthly overview: 12 cards -->
+          <section class="mc-panel" id="mcOverviewPanel">
+            <div class="mc-month-cards" id="mcMonthCards" aria-label="Monthly collection totals"></div>
+          </section>
+
+          <!-- Month breakdown (always visible) -->
+          <section class="card mc-drill-panel" id="mcMonthDrill">
+            <div class="mc-drill-panel__header">
+              <div>
+                <h2 class="mc-drill-panel__title" id="mcMonthDrillTitle">March 2026</h2>
+              </div>
+              <div class="mc-drill-panel__summary">
+                <strong class="mc-drill-panel__total" id="mcMonthDrillTotal">UGX 0</strong>
+                <p class="mc-drill-panel__meta" id="mcMonthDrillMeta">collected across 0 estates</p>
+              </div>
+            </div>
+
+            <div class="mc-month-stats">
+              <article class="mc-month-stat">
+                <span class="mc-month-stat__icon">
+                  <span class="material-symbols-outlined">groups</span>
+                </span>
+                <div class="mc-month-stat__content">
+                  <span class="mc-month-stat__label" id="mcTenantsPaidLabel">Tenants Paid</span>
+                  <span class="mc-month-stat__value" id="mcTenantsPaid">—</span>
+                  <span class="mc-month-stat__meta" id="mcTenantsPaidMeta">—</span>
+                </div>
+              </article>
+            </div>
+
+            <div class="mc-estate-breakdown" id="mcEstateBreakdown" aria-label="Collection by estate"></div>
+          </section>
+
+          <!-- Annual matrix grid -->
+          <section class="card mc-panel mc-annual-card" id="mcAnnualPanel">
+            <div class="mc-annual-card__header">
+              <div>
+                <h2 class="card__title" id="mcAnnualTitle">2026 Year Breakdown</h2>
+              </div>
+            </div>
+            <div class="table-wrap mc-annual-wrap">
+              <table class="mc-annual-grid" id="mcAnnualGrid">
+                <thead>
+                  <tr>
+                    <th class="mc-annual-grid__estate-col">Estate</th>
+                    <th>jan</th>
+                    <th>feb</th>
+                    <th>mar</th>
+                    <th>apr</th>
+                    <th>may</th>
+                    <th>jun</th>
+                    <th>jul</th>
+                    <th>aug</th>
+                    <th>sep</th>
+                    <th>oct</th>
+                    <th>nov</th>
+                    <th>dec</th>
+                    <th class="mc-annual-grid__year-col">Year</th>
+                  </tr>
+                </thead>
+                <tbody id="mcAnnualGridBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- Bank Statement Review View -->
+      <div id="view-bank-statement-review" class="view">
+        <div class="page-content statement-page">
+          <!-- Upload widget -->
+          <section class="card statement-upload-card">
+            <div class="statement-dropzone" id="statementDropzone" role="button" tabindex="0" aria-label="Upload bank statement">
+              <span class="material-symbols-outlined statement-dropzone__icon">cloud_upload</span>
+              <span class="statement-dropzone__title">Upload bank statement</span>
+              <span class="statement-dropzone__hint">PDF, JPG, or PNG</span>
+              <input type="file" id="statementFileInput" class="statement-dropzone__input" accept=".pdf,.png,.jpg,.jpeg" hidden>
+            </div>
+
+            <div class="statement-file-chip" id="statementFileChip" hidden>
+              <span class="material-symbols-outlined statement-file-chip__icon">description</span>
+              <div class="statement-file-chip__info">
+                <span class="statement-file-chip__name" id="statementFileName"></span>
+                <span class="statement-file-chip__meta" id="statementFileMeta">Statement selected</span>
+              </div>
+              <button type="button" class="btn btn--outline statement-file-chip__review" id="statementReviewBtn" hidden>Review</button>
+              <button type="button" class="statement-file-chip__remove" id="statementRemoveBtn">Remove</button>
+            </div>
+          </section>
+
+          <!-- Draft review table -->
+          <section class="card statement-draft-card" id="statementDraftCard" hidden>
+            <div class="statement-draft-card__header">
+              <div>
+                <h2 class="card__title">Extracted transactions</h2>
+                <p class="statement-draft-card__subtitle" id="statementDraftSource">From: —</p>
+              </div>
+              <div class="statement-card-header-actions">
+                <button type="button" class="btn btn--primary" id="approveAllBtn">Approve All Valid</button>
+                <button type="button" class="card-collapse-toggle" data-collapse-toggle aria-expanded="true" aria-label="Collapse table">
+                  <span class="material-symbols-outlined">expand_less</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table class="payments-table statement-draft-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Tenant Name</th>
+                    <th>Unit</th>
+                    <th>Estate</th>
+                    <th class="text-right">Amount (UGX)</th>
+                    <th>Method</th>
+                    <th>Receipt No.</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="statementDraftBody"></tbody>
+              </table>
+            </div>
+
+            <footer class="outstanding-report-card__footer">
+              <span id="statementDraftCount">Showing 0 draft rows</span>
+            </footer>
+          </section>
+
+          <!-- Reviewed statements history -->
+          <section class="card statement-history-card">
+            <div class="statement-history-card__header">
+              <div>
+                <h2 class="card__title">Reviewed statements</h2>
+                <p class="statement-history-card__subtitle">A record of statements you have reviewed.</p>
+              </div>
+              <button type="button" class="card-collapse-toggle" data-collapse-toggle aria-expanded="true" aria-label="Collapse table">
+                <span class="material-symbols-outlined">expand_less</span>
+              </button>
+            </div>
+
+            <div class="table-wrap">
+              <table class="payments-table statement-history-table">
+                <thead>
+                  <tr>
+                    <th>File Name</th>
+                    <th>Date Reviewed</th>
+                    <th class="text-right">Transactions</th>
+                    <th class="text-right">Approved</th>
+                    <th class="text-right">Rejected</th>
+                    <th class="text-right">Total Approved (UGX)</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="statementHistoryBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- Custom Reports View -->
+      <div id="view-custom-reports" class="view">
+        <div class="page-content custom-reports-page">
+          <section class="card cr-builder">
+            <div class="cr-builder__header">
+              <h2 class="card__title">Build your report</h2>
+            </div>
+
+            <div class="cr-filters">
+              <div class="cr-filter">
+                <label class="cr-filter__label" id="crBaseLabel">Report Type</label>
+                <div class="custom-select" id="crBaseSelect">
+                  <button type="button" class="custom-select__trigger" id="crBaseTrigger" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="custom-select__value" id="crBaseDisplay">Payments</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="crBase" value="payments">
+                  <ul class="custom-select__menu" id="crBaseMenu" role="listbox" hidden>
+                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="payments" data-label="Payments" aria-selected="true">Payments</li>
+                    <li class="custom-select__option" role="option" data-value="tenants" data-label="Tenants" aria-selected="false">Tenants</li>
+                    <li class="custom-select__option" role="option" data-value="receipts" data-label="Receipts" aria-selected="false">Receipts</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="cr-filter">
+                <label class="cr-filter__label">Estate</label>
+                <div class="multi-select" id="crEstateSelect">
+                  <button type="button" class="multi-select__trigger" id="crEstateTrigger" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="multi-select__value" id="crEstateDisplay">All estates</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="crEstate" value="">
+                  <div class="multi-select__menu" id="crEstateMenu" hidden></div>
+                </div>
+              </div>
+
+              <div class="cr-filter">
+                <label class="cr-filter__label" id="crUnitLabel">House / Unit</label>
+                <div class="custom-select" id="crUnitSelect">
+                  <button type="button" class="custom-select__trigger" id="crUnitTrigger" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="custom-select__value" id="crUnitDisplay">All units</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="crUnit" value="">
+                  <ul class="custom-select__menu" id="crUnitMenu" role="listbox" hidden>
+                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="All units" aria-selected="true">All units</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="cr-filter">
+                <label class="cr-filter__label" id="crYearLabel">Financial Year</label>
+                <div class="custom-select" id="crYearSelect">
+                  <button type="button" class="custom-select__trigger" id="crYearTrigger" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="custom-select__value" id="crYearDisplay">All years</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="crYear" value="">
+                  <ul class="custom-select__menu" id="crYearMenu" role="listbox" hidden>
+                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="All years" aria-selected="true">All years</li>
+                    <li class="custom-select__option" role="option" data-value="2024" data-label="2024" aria-selected="false">2024</li>
+                    <li class="custom-select__option" role="option" data-value="2025" data-label="2025" aria-selected="false">2025</li>
+                    <li class="custom-select__option" role="option" data-value="2026" data-label="2026" aria-selected="false">2026</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="cr-filter">
+                <label class="cr-filter__label">Pending Months</label>
+                <div class="multi-select" id="crPendingSelect">
+                  <button type="button" class="multi-select__trigger" id="crPendingTrigger" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="multi-select__value" id="crPendingDisplay">All months</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="crPending" value="">
+                  <div class="multi-select__menu" id="crPendingMenu" hidden></div>
+                </div>
+              </div>
+
+              <div class="cr-filter">
+                <label class="cr-filter__label">Months Covered</label>
+                <div class="multi-select" id="crCoveredSelect">
+                  <button type="button" class="multi-select__trigger" id="crCoveredTrigger" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="multi-select__value" id="crCoveredDisplay">All months</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="crCovered" value="">
+                  <div class="multi-select__menu" id="crCoveredMenu" hidden></div>
+                </div>
+              </div>
+
+              <div class="cr-filter">
+                <label class="cr-filter__label" id="crSecurityLabel">Security Deposit</label>
+                <div class="custom-select" id="crSecuritySelect">
+                  <button type="button" class="custom-select__trigger" id="crSecurityTrigger" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="custom-select__value" id="crSecurityDisplay">All</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="crSecurity" value="">
+                  <ul class="custom-select__menu" id="crSecurityMenu" role="listbox" hidden>
+                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="All" aria-selected="true">All</li>
+                    <li class="custom-select__option" role="option" data-value="Paid" data-label="Paid" aria-selected="false">Paid</li>
+                    <li class="custom-select__option" role="option" data-value="Pending" data-label="Unpaid" aria-selected="false">Unpaid</li>
+                    <li class="custom-select__option" role="option" data-value="Partial" data-label="Partial" aria-selected="false">Partial</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="cr-filter">
+                <label class="cr-filter__label" id="crMethodLabel">Deposit Channel</label>
+                <div class="custom-select" id="crMethodSelect">
+                  <button type="button" class="custom-select__trigger" id="crMethodTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="crMethodLabel crMethodDisplay">
+                    <span class="custom-select__value" id="crMethodDisplay">All channels</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="crMethod" value="">
+                  <ul class="custom-select__menu" id="crMethodMenu" role="listbox" hidden>
+                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="All channels" aria-selected="true">All channels</li>
+                    <li class="custom-select__option" role="option" data-value="bank" data-label="Bank Deposit" aria-selected="false">
+                      <span class="material-symbols-outlined icon icon--method">account_balance</span>
+                      Bank Deposit
+                    </li>
+                    <li class="custom-select__option" role="option" data-value="mobile" data-label="Mobile Money" aria-selected="false">
+                      <span class="material-symbols-outlined icon icon--method">smartphone</span>
+                      Mobile Money
+                    </li>
+                    <li class="custom-select__option" role="option" data-value="agb" data-label="Agency Banking" aria-selected="false">
+                      <span class="material-symbols-outlined icon icon--method">storefront</span>
+                      Agency Banking
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="cr-filter">
+                <label class="cr-filter__label" id="crStatusLabel">Tenant Status</label>
+                <div class="custom-select" id="crStatusSelect">
+                  <button type="button" class="custom-select__trigger" id="crStatusTrigger" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="custom-select__value" id="crStatusDisplay">All</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="crStatus" value="">
+                  <ul class="custom-select__menu" id="crStatusMenu" role="listbox" hidden>
+                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="All" aria-selected="true">All</li>
+                    <li class="custom-select__option" role="option" data-value="Active" data-label="Active" aria-selected="false">Active</li>
+                    <li class="custom-select__option" role="option" data-value="Inactive" data-label="Inactive" aria-selected="false">Inactive</li>
+                    <li class="custom-select__option" role="option" data-value="Notice" data-label="On Notice" aria-selected="false">On Notice</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="cr-filter">
+                <label class="cr-filter__label" id="crDeliveryLabel">Receipt Delivery</label>
+                <div class="custom-select" id="crDeliverySelect">
+                  <button type="button" class="custom-select__trigger" id="crDeliveryTrigger" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="custom-select__value" id="crDeliveryDisplay">All</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="crDelivery" value="">
+                  <ul class="custom-select__menu" id="crDeliveryMenu" role="listbox" hidden>
+                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="All" aria-selected="true">All</li>
+                    <li class="custom-select__option" role="option" data-value="sent" data-label="Sent" aria-selected="false">Sent</li>
+                    <li class="custom-select__option" role="option" data-value="pending" data-label="Pending" aria-selected="false">Pending</li>
+                    <li class="custom-select__option" role="option" data-value="failed" data-label="Failed" aria-selected="false">Failed</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="cr-filter">
+                <label class="cr-filter__label" for="crTenantName">Tenant Name</label>
+                <input type="text" id="crTenantName" class="cr-filter__input" placeholder="Search by name...">
+              </div>
+
+              <div class="cr-filter">
+                <label class="cr-filter__label" for="crPhone">Phone Number</label>
+                <input type="text" id="crPhone" class="cr-filter__input" placeholder="+256 778 319 822">
+              </div>
+            </div>
+
+            <div class="cr-date-row">
+              <div class="cr-filter">
+                <label class="cr-filter__label" for="crDateStartDisplay">Start Date</label>
+                <div class="datepicker" id="crDateStartPicker">
+                  <button type="button" class="datepicker__trigger" id="crDateStartTrigger" aria-haspopup="dialog" aria-expanded="false">
+                    <span class="material-symbols-outlined icon icon--input">calendar_today</span>
+                    <span class="datepicker__value" id="crDateStartDisplay">Select date</span>
+                  </button>
+                  <input type="hidden" id="crDateStart" value="">
+                  <div class="datepicker__popover" id="crDateStartPopover" role="dialog" aria-label="Choose start date" hidden>
+                    <div class="datepicker__header">
+                      <button type="button" class="datepicker__nav-btn" id="crDateStartPrev" aria-label="Previous month"><span class="material-symbols-outlined">chevron_left</span></button>
+                      <span class="datepicker__month-label" id="crDateStartMonthLabel"></span>
+                      <button type="button" class="datepicker__nav-btn" id="crDateStartNext" aria-label="Next month"><span class="material-symbols-outlined">chevron_right</span></button>
+                    </div>
+                    <div class="datepicker__toolbar">
+                      <input type="text" class="datepicker__field" id="crDateStartField" readonly>
+                      <button type="button" class="datepicker__today-btn" id="crDateStartToday">Today</button>
+                    </div>
+                    <div class="datepicker__weekdays"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
+                    <div class="datepicker__grid" id="crDateStartGrid"></div>
+                    <div class="datepicker__footer">
+                      <button type="button" class="datepicker__btn datepicker__btn--cancel" id="crDateStartCancel">Cancel</button>
+                      <button type="button" class="datepicker__btn datepicker__btn--apply" id="crDateStartApply">Apply</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="cr-filter">
+                <label class="cr-filter__label" for="crDateEndDisplay">End Date</label>
+                <div class="datepicker" id="crDateEndPicker">
+                  <button type="button" class="datepicker__trigger" id="crDateEndTrigger" aria-haspopup="dialog" aria-expanded="false">
+                    <span class="material-symbols-outlined icon icon--input">calendar_today</span>
+                    <span class="datepicker__value" id="crDateEndDisplay">Select date</span>
+                  </button>
+                  <input type="hidden" id="crDateEnd" value="">
+                  <div class="datepicker__popover" id="crDateEndPopover" role="dialog" aria-label="Choose end date" hidden>
+                    <div class="datepicker__header">
+                      <button type="button" class="datepicker__nav-btn" id="crDateEndPrev" aria-label="Previous month"><span class="material-symbols-outlined">chevron_left</span></button>
+                      <span class="datepicker__month-label" id="crDateEndMonthLabel"></span>
+                      <button type="button" class="datepicker__nav-btn" id="crDateEndNext" aria-label="Next month"><span class="material-symbols-outlined">chevron_right</span></button>
+                    </div>
+                    <div class="datepicker__toolbar">
+                      <input type="text" class="datepicker__field" id="crDateEndField" readonly>
+                      <button type="button" class="datepicker__today-btn" id="crDateEndToday">Today</button>
+                    </div>
+                    <div class="datepicker__weekdays"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
+                    <div class="datepicker__grid" id="crDateEndGrid"></div>
+                    <div class="datepicker__footer">
+                      <button type="button" class="datepicker__btn datepicker__btn--cancel" id="crDateEndCancel">Cancel</button>
+                      <button type="button" class="datepicker__btn datepicker__btn--apply" id="crDateEndApply">Apply</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="cr-quick-dates">
+                <button type="button" class="cr-quick-date" data-range="this-month">This Month</button>
+                <button type="button" class="cr-quick-date" data-range="last-month">Last Month</button>
+                <button type="button" class="cr-quick-date" data-range="ytd">Year to Date</button>
+              </div>
+            </div>
+
+            <div class="cr-numeric-row">
+              <div class="cr-filter cr-filter--compound">
+                <label class="cr-filter__label" id="crOutstandingOpLabel">Outstanding Amount</label>
+                <div class="cr-compound">
+                  <div class="custom-select cr-compound__select" id="crOutstandingOpSelect">
+                    <button type="button" class="custom-select__trigger" id="crOutstandingOpTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="crOutstandingOpLabel crOutstandingOpDisplay">
+                      <span class="custom-select__value" id="crOutstandingOpDisplay">Greater than</span>
+                      <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                    </button>
+                    <input type="hidden" id="crOutstandingOp" value="gt">
+                    <ul class="custom-select__menu" id="crOutstandingOpMenu" role="listbox" hidden>
+                      <li class="custom-select__option custom-select__option--selected" role="option" data-value="gt" data-label="Greater than" aria-selected="true">Greater than</li>
+                      <li class="custom-select__option" role="option" data-value="lt" data-label="Less than" aria-selected="false">Less than</li>
+                      <li class="custom-select__option" role="option" data-value="eq" data-label="Equals" aria-selected="false">Equals</li>
+                    </ul>
+                  </div>
+                  <input type="text" id="crOutstandingVal" class="cr-filter__input" placeholder="e.g. 1000000" inputmode="numeric">
+                </div>
+              </div>
+              <div class="cr-filter">
+                <label class="cr-filter__label" for="crAmountMin">Payment Amount Min</label>
+                <input type="text" id="crAmountMin" class="cr-filter__input" placeholder="Min (UGX)" inputmode="numeric">
+              </div>
+              <div class="cr-filter">
+                <label class="cr-filter__label" for="crAmountMax">Payment Amount Max</label>
+                <input type="text" id="crAmountMax" class="cr-filter__input" placeholder="Max (UGX)" inputmode="numeric">
+              </div>
+            </div>
+
+            <div class="cr-name-row">
+              <label class="cr-filter__label" for="crReportName">Report Name</label>
+              <input type="text" id="crReportName" class="cr-filter__input cr-name-row__input" placeholder="Enter a name for this report..." required>
+            </div>
+
+            <div class="cr-actions">
+              <button type="button" class="btn btn--primary btn--icon" id="crGenerateBtn">
+                <span class="material-symbols-outlined icon icon--btn">play_arrow</span>
+                Generate
+              </button>
+              <button type="button" class="btn btn--outline" id="crClearBtn">Clear All</button>
+            </div>
+          </section>
+
+          <section class="card cr-saved" id="crSavedCard">
+            <div class="cr-saved__header">
+              <h2 class="card__title">Generated Reports</h2>
+            </div>
+            <div class="cr-saved__list" id="crSavedList">
+              <p class="cr-empty-msg">No reports yet. Name your report, set filters, and click Generate.</p>
+            </div>
+            <div class="cr-view-panel" id="crViewPanel" hidden>
+              <div class="cr-view-panel__header">
+                <div>
+                  <h3 class="cr-view-panel__title" id="crViewTitle">—</h3>
+                  <p class="cr-view-panel__meta" id="crViewMeta">—</p>
+                </div>
+                <button type="button" class="cr-view-panel__close" id="crViewClose" aria-label="Close report view">
+                  <span class="material-symbols-outlined">close</span>
+                </button>
+              </div>
+              <div class="cr-empty-state" id="crViewEmpty" hidden>
+                <span class="material-symbols-outlined cr-empty-state__icon">search_off</span>
+                <p class="cr-empty-state__text">No results match these filters.</p>
+              </div>
+              <div class="table-wrap cr-table-wrap" id="crTableWrap" hidden>
+                <table class="outstanding-table cr-table" id="crTable">
+                  <thead id="crTableHead"></thead>
+                  <tbody id="crTableBody"></tbody>
+                </table>
+              </div>
+              <footer class="outstanding-report-card__footer" id="crResultsFooter" hidden>
+                <span id="crResultsCount">Showing 0 rows</span>
+              </footer>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Receipt Detail Modal -->
+  <div class="receipt-modal" id="receiptModal" hidden aria-hidden="true">
+    <div class="receipt-modal__backdrop" id="receiptModalBackdrop"></div>
+    <button type="button" class="receipt-modal__close" id="receiptModalClose" aria-label="Close receipt">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    <div class="receipt-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="receiptModalTitle">
+      <div class="receipt-paper">
+        <div class="receipt-paper__body">
+          <div class="receipt-paper__top">
+            <div class="receipt-paper__company">
+              <h2 class="receipt-paper__company-name" id="receiptModalTitle">KIMUJO HOLDINGS LIMITED</h2>
+              <p class="receipt-paper__company-address">P.O. Box 27917, Kampala (U)</p>
+            </div>
+            <div class="receipt-paper__meta">
+              <div class="receipt-paper__stamp">RECEIPT</div>
+              <div class="receipt-paper__date-row">
+                <span class="receipt-paper__date-label">Date</span>
+                <span id="receiptModalDate">&nbsp;</span>
+              </div>
+            </div>
+          </div>
+
+          <p class="receipt-paper__number">No. <span id="receiptModalNo">&nbsp;</span></p>
+
+          <div class="receipt-paper__field">
+            <span class="receipt-paper__label">Received with thanks from</span>
+            <span class="receipt-paper__line" id="receiptModalFrom">&nbsp;</span>
+          </div>
+
+          <div class="receipt-paper__field">
+            <span class="receipt-paper__label">The sum of shillings</span>
+            <span class="receipt-paper__line" id="receiptModalWords">&nbsp;</span>
+          </div>
+
+          <div class="receipt-paper__field">
+            <span class="receipt-paper__label">Being payment for</span>
+            <span class="receipt-paper__line" id="receiptModalPurpose">&nbsp;</span>
+          </div>
+
+          <div class="receipt-paper__field">
+            <span class="receipt-paper__label">Cash / Cheque No.</span>
+            <span class="receipt-paper__line" id="receiptModalRef">&nbsp;</span>
+          </div>
+
+          <div class="receipt-paper__amount-row">
+            <div class="receipt-paper__amount-col">
+              <div class="receipt-paper__amount-box">
+                Shs. = <span id="receiptModalAmount">&nbsp;</span> /=
+              </div>
+              <p class="receipt-paper__thanks">WITH THANKS</p>
+            </div>
+            <div class="receipt-paper__signed">
+              <div class="receipt-paper__signed-row">
+                <span class="receipt-paper__signed-label">Balance</span>
+                <span class="receipt-paper__line receipt-paper__line--inline" id="receiptModalBalance">NIL</span>
+              </div>
+              <div class="receipt-paper__signed-row">
+                <span class="receipt-paper__signed-label">Signed:</span>
+                <span class="receipt-paper__line receipt-paper__line--inline receipt-paper__line--signature">&nbsp;</span>
+              </div>
+              <span class="receipt-paper__signed-for">For: KIMUJO HOLDINGS LIMITED</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="receipt-modal__actions">
+        <button type="button" class="btn btn--green-outline btn--icon" id="receiptDownloadPdfBtn">
+          <span class="material-symbols-outlined icon icon--btn">download</span>
+          Download PDF
+        </button>
+        <button type="button" class="btn btn--primary btn--icon" id="receiptPrintBtn">
+          <span class="material-symbols-outlined icon icon--btn">print</span>
+          Print Receipt
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Tenant Modal -->
+  <div class="receipt-modal tenant-create-modal" id="addTenantModal" hidden aria-hidden="true">
+    <div class="receipt-modal__backdrop" id="addTenantModalBackdrop"></div>
+    <button type="button" class="receipt-modal__close" id="addTenantModalClose" aria-label="Close add tenant form">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    <div class="receipt-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="addTenantModalTitle">
+      <form class="tenant-create-card" id="addTenantForm">
+        <header class="tenant-create-card__header">
+          <span class="tenant-create-card__icon material-symbols-outlined" aria-hidden="true">person_add</span>
+          <div>
+            <h2 class="tenant-create-card__title" id="addTenantModalTitle">Add tenant</h2>
+            <p class="tenant-create-card__subtitle">Choose an estate first; the room list will show only rooms that are currently available.</p>
+          </div>
+        </header>
+
+        <div class="tenant-create-card__body">
+          <p class="tenant-create-form__message" id="addTenantFormMessage" role="alert" aria-live="polite" hidden></p>
+
+          <section class="tenant-create-card__section" aria-labelledby="addTenantPersonalTitle">
+            <h3 class="tenant-create-card__section-title" id="addTenantPersonalTitle">Tenant details</h3>
+
+            <div class="tenant-type-toggle" role="group" aria-label="Tenant type">
+              <button type="button" class="tenant-type-toggle__btn tenant-type-toggle__btn--active" id="addTenantTypeIndividual" data-tenant-type="INDIVIDUAL" aria-pressed="true">Individual</button>
+              <button type="button" class="tenant-type-toggle__btn" id="addTenantTypeBusiness" data-tenant-type="BUSINESS" aria-pressed="false">Business</button>
+            </div>
+            <input type="hidden" id="addTenantType" name="tenantType" value="INDIVIDUAL">
+
+            <div id="addTenantIndividualFields">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="addTenantFirstName">First name <span class="form-label__required" aria-hidden="true">*</span></label>
+                  <input class="form-input" id="addTenantFirstName" name="firstName" type="text" autocomplete="given-name" maxlength="80" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="addTenantLastName">Last name <span class="form-label__required" aria-hidden="true">*</span></label>
+                  <input class="form-input" id="addTenantLastName" name="lastName" type="text" autocomplete="family-name" maxlength="80" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="addTenantMiddleName">Middle name</label>
+                <input class="form-input" id="addTenantMiddleName" name="middleName" type="text" autocomplete="additional-name" maxlength="80">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="addTenantNationalId">National id no <span class="form-label__required" aria-hidden="true">*</span></label>
+                <input class="form-input" id="addTenantNationalId" name="nationalIdNumber" type="text" autocomplete="off" maxlength="20" autocapitalize="characters" spellcheck="false" required>
+                <p class="tenant-create-form__hint">This cannot be changed after the tenant is saved.</p>
+              </div>
+            </div>
+
+            <div id="addTenantBusinessFields" hidden>
+              <div class="form-group">
+                <label class="form-label" for="addTenantBusinessName">Business name <span class="form-label__required" aria-hidden="true">*</span></label>
+                <input class="form-input" id="addTenantBusinessName" name="businessName" type="text" autocomplete="organization" maxlength="120" placeholder="e.g. Opportunity Bank, Ugachick">
+                <p class="tenant-create-form__hint">Use the registered or trading name shown on receipts and statements.</p>
+              </div>
+            </div>
+
+            <div class="form-group tenant-create-card__phone-group">
+              <label class="form-label" for="addTenantPhone">Phone number <span class="form-label__required" aria-hidden="true">*</span></label>
+              <div class="phone-field">
+                <div class="custom-select phone-field__country-select" id="addTenantPhoneCountrySelect">
+                  <button type="button" class="custom-select__trigger" id="addTenantPhoneCountryTrigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Country">
+                    <span class="custom-select__value" id="addTenantPhoneCountryDisplay">🇺🇬 +256</span>
+                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                  </button>
+                  <input type="hidden" id="addTenantPhoneCountry" name="phoneCountryCode" value="256">
+                  <ul class="custom-select__menu" id="addTenantPhoneCountryMenu" role="listbox" hidden></ul>
+                </div>
+                <input class="phone-field__number" id="addTenantPhone" name="phoneNumber" type="tel" autocomplete="tel-national" inputmode="tel" placeholder="700 000 000" maxlength="15" required>
+              </div>
+            </div>
+          </section>
+
+          <section class="tenant-create-card__section" aria-labelledby="addTenantAssignmentTitle">
+            <h3 class="tenant-create-card__section-title" id="addTenantAssignmentTitle">Property assignment</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="addTenantEstate">Estate <span class="form-label__required" aria-hidden="true">*</span></label>
+                <div class="form-select-wrap">
+                  <select class="form-select" id="addTenantEstate" name="estateId" required disabled>
+                    <option value="">Loading estates…</option>
+                  </select>
+                  <span class="material-symbols-outlined icon icon--select" aria-hidden="true">expand_more</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="addTenantRoom">Available room <span class="form-label__required" aria-hidden="true">*</span></label>
+                <div class="form-select-wrap">
+                  <select class="form-select" id="addTenantRoom" name="unitId" required disabled>
+                    <option value="">Choose an estate first</option>
+                  </select>
+                  <span class="material-symbols-outlined icon icon--select" aria-hidden="true">expand_more</span>
+                </div>
+                <p class="tenant-create-form__hint" id="addTenantRoomHint">Rooms refresh whenever the estate changes.</p>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="addTenantMoveInDate">Move-in date <span class="form-label__required" aria-hidden="true">*</span></label>
+                <input class="form-input" id="addTenantMoveInDate" name="moveInDate" type="date" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="addTenantMonthlyRent">Monthly rent (UGX) <span class="form-label__required" aria-hidden="true">*</span></label>
+                <input class="form-input" id="addTenantMonthlyRent" name="monthlyRent" type="text" inputmode="numeric" autocomplete="off" placeholder="Set when a room is selected" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="addTenantSecurityDeposit">Security deposit required (UGX) <span class="form-label__required" aria-hidden="true">*</span></label>
+              <input class="form-input" id="addTenantSecurityDeposit" name="securityDeposit" type="text" inputmode="numeric" autocomplete="off" placeholder="Defaults to one month's rent" required>
+            </div>
+          </section>
+        </div>
+
+        <footer class="tenant-create-card__actions">
+          <button type="button" class="btn btn--outline" id="addTenantCancel">Cancel</button>
+          <button type="submit" class="btn btn--primary btn--icon" id="addTenantSave">
+            <span class="material-symbols-outlined icon icon--btn">person_add</span>
+            Add tenant
+          </button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tenant Profile Modal -->
+  <div class="tenant-modal" id="tenantModal" hidden aria-hidden="true">
+    <div class="tenant-modal__backdrop" id="tenantModalBackdrop"></div>
+    <button type="button" class="receipt-modal__close" id="tenantModalClose" aria-label="Close tenant profile">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    <div class="tenant-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="tenantModalName">
+      <div class="tenant-profile">
+        <div class="tenant-profile__header">
+          <span class="tenant-profile__avatar" id="tenantProfileAvatar">FM</span>
+          <div>
+            <h2 class="tenant-profile__name" id="tenantModalName">—</h2>
+            <span class="badge" id="tenantProfileStatus">Active</span>
+          </div>
+        </div>
+
+        <section class="tenant-profile__section">
+          <h3 class="tenant-profile__section-title">Basic Information</h3>
+          <div class="tenant-profile__grid">
+            <div class="tenant-profile__field">
+              <span class="tenant-profile__label">Tenant ID</span>
+              <span class="tenant-profile__value" id="tpTenantId">—</span>
+            </div>
+            <div class="tenant-profile__field" id="tpTenantTypeField">
+              <span class="tenant-profile__label">Tenant type</span>
+              <span class="tenant-profile__value" id="tpTenantType">—</span>
+            </div>
+            <div class="tenant-profile__field" id="tpStatusField" hidden>
+              <span class="tenant-profile__label">Status</span>
+              <span class="tenant-profile__value" id="tpStatus">—</span>
+            </div>
+            <div class="tenant-profile__field" id="tpBusinessNameField" hidden>
+              <span class="tenant-profile__label">Business name</span>
+              <span class="tenant-profile__value" id="tpBusinessName">—</span>
+            </div>
+            <div class="tenant-profile__field" id="tpIndividualNameField">
+              <span class="tenant-profile__label">Full name</span>
+              <span class="tenant-profile__value" id="tpIndividualName">—</span>
+            </div>
+            <div class="tenant-profile__field" id="tpNationalIdField">
+              <span class="tenant-profile__label">National id no</span>
+              <span class="tenant-profile__value" id="tpNationalId">—</span>
+            </div>
+            <div class="tenant-profile__field">
+              <span class="tenant-profile__label">Phone Number</span>
+              <span class="tenant-profile__value" id="tpPhone">—</span>
+            </div>
+            <div class="tenant-profile__field">
+              <span class="tenant-profile__label">Alternative Phone</span>
+              <span class="tenant-profile__value" id="tpAltPhone">—</span>
+            </div>
+            <div class="tenant-profile__field">
+              <span class="tenant-profile__label">Date Became Tenant</span>
+              <span class="tenant-profile__value" id="tpDateBecame">—</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="tenant-profile__section">
+          <h3 class="tenant-profile__section-title">Property Assignment</h3>
+          <div class="tenant-profile__grid">
+            <div class="tenant-profile__field">
+              <span class="tenant-profile__label">Estate</span>
+              <span class="tenant-profile__value" id="tpEstate">—</span>
+            </div>
+            <div class="tenant-profile__field">
+              <span class="tenant-profile__label">House Number</span>
+              <span class="tenant-profile__value" id="tpHouse">—</span>
+            </div>
+            <div class="tenant-profile__field">
+              <span class="tenant-profile__label">Move-in Date</span>
+              <span class="tenant-profile__value" id="tpMoveIn">—</span>
+            </div>
+            <div class="tenant-profile__field" id="tpMoveOutField" hidden>
+              <span class="tenant-profile__label">Move-out Date</span>
+              <span class="tenant-profile__value" id="tpMoveOut">—</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="tenant-profile__section">
+          <h3 class="tenant-profile__section-title">Rent Setup</h3>
+          <div class="tenant-profile__grid">
+            <div class="tenant-profile__field">
+              <span class="tenant-profile__label">Monthly Rent</span>
+              <span class="tenant-profile__value" id="tpRent">—</span>
+            </div>
+            <div class="tenant-profile__field">
+              <span class="tenant-profile__label">Security Deposit Required</span>
+              <span class="tenant-profile__value" id="tpDepositRequired">—</span>
+            </div>
+            <div class="tenant-profile__field">
+              <span class="tenant-profile__label">Security Deposit Paid</span>
+              <span class="tenant-profile__value" id="tpDepositPaid">—</span>
+            </div>
+            <div class="tenant-profile__field">
+              <span class="tenant-profile__label">Rent Due Day</span>
+              <span class="tenant-profile__value" id="tpDueDay">—</span>
+            </div>
+            <div class="tenant-profile__field">
+              <span class="tenant-profile__label">Grace Period (Days)</span>
+              <span class="tenant-profile__value" id="tpGrace">—</span>
+            </div>
+            <div class="tenant-profile__field">
+              <span class="tenant-profile__label">Currency</span>
+              <span class="tenant-profile__value">UGX</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="tenant-profile__section">
+          <h3 class="tenant-profile__section-title">Notes</h3>
+          <div class="tenant-profile__notes" id="tpNotes">No notes.</div>
+        </section>
+      </div>
+
+      <div class="tenant-modal__actions" id="tenantProfileActions">
+        <button type="button" class="btn btn--primary btn--icon" id="tenantEditBtn">
+          <span class="material-symbols-outlined icon icon--btn">edit</span>
+          Edit Tenant
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export tenants modal -->
+  <div class="tenant-modal" id="exportTenantsModal" hidden aria-hidden="true">
+    <div class="tenant-modal__backdrop" id="exportTenantsModalBackdrop"></div>
+    <button type="button" class="receipt-modal__close" id="exportTenantsModalClose" aria-label="Close export dialog">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    <div class="tenant-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="exportTenantsModalTitle">
+      <div class="export-modal">
+        <h2 class="export-modal__title" id="exportTenantsModalTitle">Export tenants report</h2>
+        <p class="export-modal__subtitle" id="exportTenantsModalSubtitle">100 tenants</p>
+
+        <fieldset class="export-format-options">
+          <legend class="export-format-options__legend">Export format</legend>
+          <label class="export-format-option">
+            <input type="radio" name="tenantsExportFormat" value="csv" checked>
+            <span class="export-format-option__card">
+              <span class="material-symbols-outlined export-format-option__icon" aria-hidden="true">table</span>
+              <span class="export-format-option__text">
+                <span class="export-format-option__label">CSV</span>
+                <span class="export-format-option__desc">Text file for spreadsheets</span>
+              </span>
+            </span>
+          </label>
+          <label class="export-format-option">
+            <input type="radio" name="tenantsExportFormat" value="excel">
+            <span class="export-format-option__card">
+              <span class="material-symbols-outlined export-format-option__icon" aria-hidden="true">grid_on</span>
+              <span class="export-format-option__text">
+                <span class="export-format-option__label">Excel</span>
+                <span class="export-format-option__desc">.xls spreadsheet</span>
+              </span>
+            </span>
+          </label>
+          <label class="export-format-option">
+            <input type="radio" name="tenantsExportFormat" value="pdf">
+            <span class="export-format-option__card">
+              <span class="material-symbols-outlined export-format-option__icon" aria-hidden="true">picture_as_pdf</span>
+              <span class="export-format-option__text">
+                <span class="export-format-option__label">PDF</span>
+                <span class="export-format-option__desc">Print to PDF</span>
+              </span>
+            </span>
+          </label>
+        </fieldset>
+      </div>
+
+      <div class="tenant-modal__actions">
+        <button type="button" class="btn btn--outline" id="exportTenantsCancel">Cancel</button>
+        <button type="button" class="btn btn--primary btn--icon" id="exportTenantsConfirm">
+          <span class="material-symbols-outlined icon icon--btn">download</span>
+          Export
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment success modal -->
+  <div class="tenant-modal" id="paymentSuccessModal" hidden aria-hidden="true">
+    <div class="tenant-modal__backdrop" id="paymentSuccessBackdrop"></div>
+    <button type="button" class="receipt-modal__close" id="paymentSuccessClose" aria-label="Close">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    <div class="tenant-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="paymentSuccessTitle">
+      <div class="payment-success">
+        <span class="material-symbols-outlined payment-success__icon" aria-hidden="true">check_circle</span>
+        <h2 class="payment-success__title" id="paymentSuccessTitle">Payment recorded</h2>
+
+        <div class="payment-success__receipt">
+          <span class="payment-success__receipt-label">Receipt No.</span>
+          <span class="payment-success__receipt-no" id="paymentSuccessReceiptNo">—</span>
+        </div>
+
+        <dl class="payment-success__details">
+          <div class="payment-success__detail">
+            <dt>Tenant</dt>
+            <dd id="paymentSuccessTenant">—</dd>
+          </div>
+          <div class="payment-success__detail">
+            <dt>Amount</dt>
+            <dd id="paymentSuccessAmount">—</dd>
+          </div>
+          <div class="payment-success__detail">
+            <dt>Bank reference</dt>
+            <dd id="paymentSuccessBankRef">—</dd>
+          </div>
+          <div class="payment-success__detail">
+            <dt>Months covered</dt>
+            <dd id="paymentSuccessMonths">—</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="tenant-modal__actions tenant-modal__actions--center">
+        <button type="button" class="btn btn--primary" id="paymentSuccessDone">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="vendor/chart.js/chart.umd.min.js"></script>
+  <script src="vendor/html2pdf.js/html2pdf.bundle.min.js"></script>
+  <script src="js/phone.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

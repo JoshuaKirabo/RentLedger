@@ -1,0 +1,53 @@
+{
+  "name": "rent-ledger",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Rent collection desktop app",
+  "main": "electron/main.js",
+  "scripts": {
+    "postinstall": "npm rebuild better-sqlite3",
+    "start": "node server/index.js",
+    "dev": "nodemon --watch server --watch shared server/index.js",
+    "electron": "electron .",
+    "electron:dev": "concurrently -k \"npm run dev\" \"cross-env ELECTRON_DEV=1 wait-on http://127.0.0.1:3000/api/health && electron .\"",
+    "rebuild:electron": "electron-rebuild",
+    "dist:win": "electron-rebuild && electron-builder --win nsis"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0",
+    "cross-env": "^7.0.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "electron-rebuild": "^3.2.9",
+    "nodemon": "^3.0.0",
+    "wait-on": "^8.0.0"
+  },
+  "build": {
+    "appId": "com.kimujo.rentledger",
+    "productName": "Rent Ledger",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "server/**/*",
+      "shared/**/*",
+      "client/**/*",
+      "!scripts/**/*"
+    ],
+    "win": {
+      "target": ["nsis"]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
