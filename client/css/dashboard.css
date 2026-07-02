@@ -25,6 +25,9 @@
   --gray-50: #f6f3f2;
   --page-bg: #FAF9F6;
   --surface: #FAF9F6;
+  --mac-window-controls-height: 56px;
+  --mac-window-content-offset: 32px;
+  --mac-window-drag-height: 36px;
 
   --white: #ffffff;
   --sidebar-width: 280px;
@@ -88,6 +91,33 @@ body {
 .app {
   display: flex;
   min-height: 100vh;
+}
+
+.window-drag-region {
+  display: none;
+}
+
+html.is-electron.platform-darwin .window-drag-region {
+  display: block;
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 84px;
+  height: var(--mac-window-drag-height);
+  z-index: 60;
+  -webkit-app-region: drag;
+}
+
+html.is-electron.platform-darwin .main {
+  padding-top: var(--mac-window-content-offset);
+}
+
+html.is-electron.platform-darwin .sidebar {
+  padding-top: var(--mac-window-controls-height);
+}
+
+html.is-electron.platform-darwin .sidebar__toggle {
+  top: var(--mac-window-controls-height);
 }
 
 /* ── Sidebar ── */

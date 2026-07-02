@@ -6,6 +6,8 @@ const path = require("path");
 
 const IS_DEV = process.env.ELECTRON_DEV === "1";
 const PORT = process.env.PORT || 3000;
+const DB_FILENAME = "kimujjo_holdings_database.db";
+const IS_MAC = process.platform === "darwin";
 
 let mainWindow = null;
 
@@ -13,8 +15,24 @@ function setDataDir() {
   process.env.RENTLEDGER_DATA_DIR = path.join(app.getPath("userData"), "data");
 }
 
+function installDatabaseIfMissing() {
+  const dataDir = process.env.RENTLEDGER_DATA_DIR;
+  const targetDb = path.join(dataDir, DB_FILENAME);
+  if (fs.existsSync(targetDb)) return;
+
+  const bundledDb = app.isPackaged
+    ? path.join(process.resourcesPath, "data", DB_FILENAME)
+    : path.join(__dirname, "..", "data", DB_FILENAME);
+
+  if (!fs.existsSync(bundledDb)) return;
+
+  fs.mkdirSync(dataDir, { recursive: true });
+  fs.copyFileSync(bundledDb, targetDb);
+}
+
 async function createWindow() {
   setDataDir();
+  installDatabaseIfMissing();
 
   if (!IS_DEV) {
     const { startServer } = require("../server/index");
@@ -28,6 +46,13 @@ async function createWindow() {
     minHeight: 600,
     title: "Rent Ledger",
     autoHideMenuBar: true,
+    backgroundColor: "#FAF9F6",
+    ...(IS_MAC
+      ? {
+          titleBarStyle: "hiddenInset",
+          trafficLightPosition: { x: 18, y: 18 },
+        }
+      : {}),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

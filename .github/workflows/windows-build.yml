@@ -1,0 +1,49 @@
+name: Build Windows App
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-windows:
+    name: Bundle Windows installer
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Prepare bundled database
+        run: |
+          New-Item -ItemType Directory -Force -Path data | Out-Null
+          if (-not (Test-Path data/kimujjo_holdings_database.db)) {
+            Copy-Item data/backups/kimujjo_holdings_database.before-real-import-20260626-101246.db data/kimujjo_holdings_database.db
+          }
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows installer
+        run: npm run dist:win
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: rent-ledger-windows
+          path: |
+            dist/**/*.exe
+            dist/**/*.blockmap
+            dist/**/*.yml
+          if-no-files-found: error

@@ -38,7 +38,14 @@
       "server/**/*",
       "shared/**/*",
       "client/**/*",
+      "sql/**/*",
       "!scripts/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "data/kimujjo_holdings_database.db",
+        "to": "data/kimujjo_holdings_database.db"
+      }
     ],
     "win": {
       "target": ["nsis"]
