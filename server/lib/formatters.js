@@ -87,7 +87,7 @@ function formatTenantId(id) {
 }
 
 function ordinalDay(day) {
-  const value = Number(day) || 5;
+  const value = Number(day) || 1;
   const suffix = value % 100 >= 11 && value % 100 <= 13
     ? "th"
     : ({ 1: "st", 2: "nd", 3: "rd" }[value % 10] || "th");
@@ -218,10 +218,10 @@ function toApiTenants(rows) {
     const monthlyRent = row.expected_monthly_rent || 0;
     const depositExpected = row.security_deposit_expected || 0;
     const depositReceived = row.security_deposit_received || 0;
-    const rentDueDay = Number(row.rent_due_day) || 5;
+    const rentDueDay = Number(row.rent_due_day) || 1;
     const gracePeriodDays = Number(row.grace_period_days) || 5;
     const moveOutIso = row.end_date || row.scheduled_move_out_date || null;
-    const house = row.house_number || "—";
+    const house = isCaretakerRow(row) ? "" : (row.house_number || "—");
 
     const displayName = tenantDisplayName(row);
 

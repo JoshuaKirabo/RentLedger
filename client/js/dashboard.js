@@ -1071,20 +1071,13 @@
   }
 
   const ESTATE_IMAGES = {
-    Kibby: "assets/estate-property.png",
-    Nancy: "assets/estate-nancy.png",
-    Moriah: "assets/estate-moriah.png",
     "Moriah Kikaya": "assets/estate-moriah.png",
-    Ebenezer: "assets/estate-ebenezer.png",
     "Ebenezer Kawempe": "assets/estate-ebenezer.png",
-    Gashy: "assets/estate-gashy.png",
-    Ntinda: "assets/estate-ntinda.png",
     "Horeb Ntinda": "assets/estate-ntinda.png",
     Kibuli: "assets/estate-property.png",
     Nansana: "assets/estate-nancy.png",
     "Goshen Kawempe": "assets/estate-gashy.png",
     "Salem Maganjo": "assets/estate-chibi.png",
-    Chibi: "assets/estate-chibi.png",
   };
 
   function getEstateImage(estateName) {
@@ -1958,7 +1951,7 @@
     setTenantProfileHtml("tpRent", tenantProfileAmountInput("tpMonthlyRentInput", tenant.monthlyRent));
     setTenantProfileHtml("tpDepositRequired", tenantProfileAmountInput("tpDepositRequiredInput", tenant.depositRequiredAmount || tenant.monthlyRent));
     setTenantProfileHtml("tpDepositPaid", tenantProfileAmountInput("tpDepositPaidInput", tenant.depositPaidAmount || 0, true));
-    setTenantProfileHtml("tpDueDay", tenantProfileNumberInput("tpRentDueDayInput", tenant.rentDueDay || 5, 1, 31));
+    setTenantProfileHtml("tpDueDay", tenantProfileNumberInput("tpRentDueDayInput", tenant.rentDueDay || 1, 1, 31));
     setTenantProfileHtml("tpGrace", tenantProfileNumberInput("tpGracePeriodInput", tenant.gracePeriodDays || 5, 0, 31));
     setTenantProfileHtml("tpNotes", `<textarea class="tenant-profile__textarea" id="tpNotesInput">${escapeHtml(tenant.notes || "")}</textarea>`);
 

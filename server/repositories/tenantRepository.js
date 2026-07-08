@@ -474,7 +474,7 @@ function updateTenantProfile(tenantId, data) {
     0,
     securityDepositExpected
   );
-  const rentDueDay = parseSmallInteger(data.rentDueDay ?? current.rent_due_day ?? 5, "Rent due day", 1, 31);
+  const rentDueDay = parseSmallInteger(data.rentDueDay ?? current.rent_due_day ?? 1, "Rent due day", 1, 31);
   const gracePeriodDays = parseSmallInteger(data.gracePeriodDays ?? current.grace_period_days ?? 5, "Grace period", 0, 31);
   const requestedStatus = String(data.status || (current.is_active ? "Active" : "Inactive")).trim().toUpperCase();
   if (!["ACTIVE", "INACTIVE"].includes(requestedStatus)) {

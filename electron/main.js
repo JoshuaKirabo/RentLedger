@@ -15,19 +15,48 @@ function setDataDir() {
   process.env.RENTLEDGER_DATA_DIR = path.join(app.getPath("userData"), "data");
 }
 
+function bundledDatabasePath() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, "data", DB_FILENAME)
+    : path.join(__dirname, "..", "data", DB_FILENAME);
+}
+
+function looksLikeSeedDatabase(dbPath) {
+  if (!fs.existsSync(dbPath)) return false;
+
+  const sample = fs.readFileSync(dbPath).subarray(0, 512 * 1024).toString("latin1");
+  return (
+    sample.includes("Kibby")
+    || sample.includes("Nancy")
+    || sample.includes("Gashy")
+    || sample.includes("Chibi")
+    || sample.includes("+256700555001")
+  );
+}
+
 function installDatabaseIfMissing() {
   const dataDir = process.env.RENTLEDGER_DATA_DIR;
   const targetDb = path.join(dataDir, DB_FILENAME);
-  if (fs.existsSync(targetDb)) return;
+  const bundledDb = bundledDatabasePath();
 
-  const bundledDb = app.isPackaged
-    ? path.join(process.resourcesPath, "data", DB_FILENAME)
-    : path.join(__dirname, "..", "data", DB_FILENAME);
-
-  if (!fs.existsSync(bundledDb)) return;
+  if (!fs.existsSync(bundledDb)) {
+    console.warn(`Bundled database not found at ${bundledDb}`);
+    return;
+  }
 
   fs.mkdirSync(dataDir, { recursive: true });
-  fs.copyFileSync(bundledDb, targetDb);
+
+  if (!fs.existsSync(targetDb)) {
+    fs.copyFileSync(bundledDb, targetDb);
+    return;
+  }
+
+  if (looksLikeSeedDatabase(targetDb)) {
+    const backupPath = path.join(dataDir, `${DB_FILENAME}.seed-backup`);
+    fs.copyFileSync(targetDb, backupPath);
+    fs.copyFileSync(bundledDb, targetDb);
+    console.warn(`Replaced seed database with bundled real data. Backup: ${backupPath}`);
+  }
 }
 
 async function createWindow() {

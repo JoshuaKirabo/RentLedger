@@ -1,5 +1,7 @@
 "use strict";
 
+const OUTSTANDING_START_MONTH = "2025-12";
+
 function formatRentMonthLabel(rentMonth) {
   const d = new Date(`${rentMonth}-01T12:00:00`);
   if (Number.isNaN(d.getTime())) return rentMonth;
@@ -22,7 +24,7 @@ function currentRentMonth(date = new Date()) {
 }
 
 function dueDateForMonth(rentMonth) {
-  return `${rentMonth}-05`;
+  return `${rentMonth}-01`;
 }
 
 function monthFromDate(isoDate) {
@@ -30,6 +32,7 @@ function monthFromDate(isoDate) {
 }
 
 module.exports = {
+  OUTSTANDING_START_MONTH,
   formatRentMonthLabel,
   nextRentMonth,
   currentRentMonth,

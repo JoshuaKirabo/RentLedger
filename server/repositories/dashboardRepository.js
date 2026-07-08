@@ -2,27 +2,39 @@
 
 const { open, applyScheduledMoveOuts } = require("../db/connection");
 const { TENANT_DISPLAY_NAME_SQL } = require("../db/tenantSql");
+const { OUTSTANDING_START_MONTH } = require("../lib/rentMonths");
 
 function syncScheduledMoveOuts() {
   applyScheduledMoveOuts(open());
 }
 
-// Current-month expected/collected rent, plus outstanding rent due through the
-// current month. Expected rent is the sum of active tenants' monthly rent for
-// this rent month; outstanding remains cumulative arrears through this month.
+// Current-month expected/collected rent, plus outstanding rent due from
+// OUTSTANDING_START_MONTH through the current month.
 function getRentTotals(rentMonth) {
   syncScheduledMoveOuts();
   return open().prepare(`
     SELECT
       COALESCE(SUM(CASE WHEN ro.rent_month = ? THEN ro.amount_due ELSE 0 END), 0) AS expected,
       COALESCE(SUM(CASE WHEN ro.rent_month = ? THEN ro.allocated_amount ELSE 0 END), 0) AS collected,
-      COALESCE(SUM(CASE WHEN ro.rent_month <= ? THEN ro.amount_due - ro.allocated_amount ELSE 0 END), 0) AS outstanding
+      COALESCE(SUM(
+        CASE
+          WHEN ro.rent_month >= ? AND ro.rent_month <= ?
+            THEN ro.amount_due - ro.allocated_amount
+          ELSE 0
+        END
+      ), 0) AS outstanding
     FROM rent_obligations ro
     JOIN tenancy_assignments ta
       ON ta.tenancy_id = ro.tenancy_id
      AND ta.end_date IS NULL
     WHERE ro.rent_month <= ?
-  `).get(rentMonth, rentMonth, rentMonth, rentMonth);
+  `).get(
+    rentMonth,
+    rentMonth,
+    OUTSTANDING_START_MONTH,
+    rentMonth,
+    rentMonth
+  );
 }
 
 // Rent collected (posted payments) within a calendar year.
@@ -78,9 +90,10 @@ function getPendingRentMonthsCount(upToMonth) {
     JOIN tenancy_assignments ta
       ON ta.tenancy_id = ro.tenancy_id
      AND ta.end_date IS NULL
-    WHERE ro.rent_month <= ?
+    WHERE ro.rent_month >= ?
+      AND ro.rent_month <= ?
       AND ro.allocated_amount < ro.amount_due
-  `).get(upToMonth);
+  `).get(OUTSTANDING_START_MONTH, upToMonth);
   return row?.total || 0;
 }
 
@@ -142,10 +155,11 @@ function getOutstandingRentObligations(upToMonth) {
     JOIN tenants t ON t.tenant_id = ta.tenant_id
     JOIN units u ON u.unit_id = ta.unit_id
     JOIN estates e ON e.estate_id = u.estate_id
-    WHERE ro.rent_month <= ?
+    WHERE ro.rent_month >= ?
+      AND ro.rent_month <= ?
       AND ro.allocated_amount < ro.amount_due
     ORDER BY t.tenant_id, ro.rent_month
-  `).all(upToMonth);
+  `).all(OUTSTANDING_START_MONTH, upToMonth);
 }
 
 module.exports = {

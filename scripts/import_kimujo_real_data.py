@@ -396,7 +396,7 @@ def date_for_month(rent_month: str) -> str:
 
 
 def due_date_for_month(rent_month: str) -> str:
-    return f"{rent_month}-05"
+    return f"{rent_month}-01"
 
 
 def build_reference(prefix: str, raw: str | None, fallback: str, used: set[str]) -> str:
@@ -418,11 +418,7 @@ def receipt_number(counter: int) -> str:
 
 
 def load_schema_ddl() -> str:
-    sql = SQL_PATH.read_text()
-    marker = "-- Estate and unit seed data"
-    if marker not in sql:
-        raise RuntimeError(f"Could not find seed marker in {SQL_PATH}")
-    return sql.split(marker, 1)[0]
+    return SQL_PATH.read_text()
 
 
 def backup_database() -> str | None:

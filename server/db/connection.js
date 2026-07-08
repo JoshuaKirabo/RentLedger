@@ -4,7 +4,8 @@ const fs = require("fs");
 const path = require("path");
 const Database = require("better-sqlite3");
 const { PROJECT_ROOT, getDbPath, ensureDataDir } = require("../config/paths");
-const { migrateTenantTypes } = require("./tenantViews");
+const { migrateTenantTypes, recreateTenantDirectoryViews } = require("./tenantViews");
+const { OUTSTANDING_START_MONTH } = require("../lib/rentMonths");
 
 let _db = null;
 
@@ -100,7 +101,7 @@ function migrateTenantProfileFields(db) {
   addColumnIfMissing(db, "tenants", "alt_phone_number", "alt_phone_number TEXT");
   addColumnIfMissing(db, "tenants", "national_id_number", "national_id_number TEXT");
   addColumnIfMissing(db, "tenants", "notes", "notes TEXT NOT NULL DEFAULT 'No notes.'");
-  addColumnIfMissing(db, "tenancy_assignments", "rent_due_day", "rent_due_day INTEGER NOT NULL DEFAULT 5");
+  addColumnIfMissing(db, "tenancy_assignments", "rent_due_day", "rent_due_day INTEGER NOT NULL DEFAULT 1");
   addColumnIfMissing(db, "tenancy_assignments", "grace_period_days", "grace_period_days INTEGER NOT NULL DEFAULT 5");
   addColumnIfMissing(db, "tenancy_assignments", "scheduled_move_out_date", "scheduled_move_out_date TEXT");
   db.exec(`
@@ -182,6 +183,16 @@ function recreateTenantInputView(db) {
   `);
 }
 
+function waiveArrearsBeforeOutstandingStart(db) {
+  db.prepare(`
+    UPDATE rent_obligations
+    SET allocated_amount = amount_due,
+        status = 'PAID'
+    WHERE rent_month < ?
+      AND status <> 'PAID'
+  `).run(OUTSTANDING_START_MONTH);
+}
+
 function migrate(db) {
   const hasSchema = db.prepare(
     "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'tenants'"
@@ -191,6 +202,9 @@ function migrate(db) {
     const sqlPath = path.join(PROJECT_ROOT, "sql", "kimujo_property_management.sql");
     const sql = fs.readFileSync(sqlPath, "utf8");
     db.exec(sql);
+    console.warn(
+      "Initialized an empty database schema. Import real data or install the bundled database before use."
+    );
   }
 
   // Older application databases may pre-date this constraint. Keep the
@@ -203,6 +217,7 @@ function migrate(db) {
   migrateReceiptNumberFormat(db);
   migrateTenantProfileFields(db);
   recreateTenantInputView(db);
+  waiveArrearsBeforeOutstandingStart(db);
   migrateTenantTypes(db);
   applyScheduledMoveOuts(db);
 }
