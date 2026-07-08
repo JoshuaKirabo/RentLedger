@@ -2093,6 +2093,9 @@
   let addTenantModalInitialized = false;
   let addTenantRequestSequence = 0;
   let addTenantUnits = [];
+  let addTenantEstateControl = null;
+  let addTenantRoomControl = null;
+  let addTenantMoveInDateControl = null;
   let addTenantPhoneCountryControl = null;
   let lastAddTenantTrigger = null;
 
@@ -2122,15 +2125,15 @@
     return formatAddTenantErrorMessage(error?.message, "Could not add tenant. Please try again.");
   }
 
-  function setSelectPlaceholder(select, text, disabled = true) {
-    if (!select) return;
-    select.replaceChildren();
-    const option = document.createElement("option");
-    option.value = "";
-    option.textContent = text;
-    select.append(option);
-    select.value = "";
-    select.disabled = disabled;
+  function setAddTenantCustomSelectOptions(control, options, placeholder, disabled = false) {
+    control?.setOptions(
+      [{ value: "", label: placeholder }].concat(options),
+      { value: "", disabled }
+    );
+  }
+
+  function setAddTenantCustomSelectPlaceholder(control, text, disabled = true) {
+    setAddTenantCustomSelectOptions(control, [], text, disabled);
   }
 
   function setAddTenantRoomHint(message) {
@@ -2218,11 +2221,10 @@
     setAddTenantMessage("");
     setAddTenantType("INDIVIDUAL");
 
-    const moveInDate = document.getElementById("addTenantMoveInDate");
-    if (moveInDate) moveInDate.value = localTodayIso();
+    addTenantMoveInDateControl?.setDate(localTodayIso());
     addTenantPhoneCountryControl?.setValue("256");
-    setSelectPlaceholder(document.getElementById("addTenantEstate"), "Loading estates…");
-    setSelectPlaceholder(document.getElementById("addTenantRoom"), "Choose an estate first");
+    setAddTenantCustomSelectPlaceholder(addTenantEstateControl, "Loading estates...");
+    setAddTenantCustomSelectPlaceholder(addTenantRoomControl, "Choose an estate first");
     setAddTenantRoomHint("Rooms refresh whenever the estate changes.");
   }
 
@@ -2236,34 +2238,32 @@
   }
 
   async function loadAddTenantEstates() {
-    const estateSelect = document.getElementById("addTenantEstate");
-    if (!estateSelect) return;
+    if (!addTenantEstateControl) return;
 
     try {
       const response = await RentLedgerApi.get("/api/tenants/available-units");
       const estates = Array.isArray(response?.estates) ? response.estates : [];
-      estateSelect.replaceChildren();
 
-      const placeholder = document.createElement("option");
-      placeholder.value = "";
-      placeholder.textContent = "Select an estate";
-      estateSelect.append(placeholder);
-
-      estates.forEach((estate) => {
+      const estateOptions = estates.map((estate) => {
         const availableRooms = Number(estate.availableRooms) || 0;
-        const option = document.createElement("option");
-        option.value = String(estate.estateId);
-        option.textContent = `${estateShortName(estate.estateName)} — ${availableRooms} room${availableRooms === 1 ? "" : "s"} available`;
-        estateSelect.append(option);
+        return {
+          value: String(estate.estateId),
+          label: `${estateShortName(estate.estateName)} - ${availableRooms} room${availableRooms === 1 ? "" : "s"} available`,
+        };
       });
 
-      estateSelect.disabled = estates.length === 0;
+      setAddTenantCustomSelectOptions(
+        addTenantEstateControl,
+        estateOptions,
+        estates.length ? "Select an estate" : "No active estates available",
+        estates.length === 0
+      );
+
       if (!estates.length) {
-        placeholder.textContent = "No active estates available";
         setAddTenantRoomHint("There are no active estates to choose from.");
       }
     } catch (err) {
-      setSelectPlaceholder(estateSelect, "Could not load estates");
+      setAddTenantCustomSelectPlaceholder(addTenantEstateControl, "Could not load estates");
       setAddTenantRoomHint("Room availability could not be loaded.");
       setAddTenantMessage(formatAddTenantErrorMessage(
         `Could not load availability: ${err.message}`,
@@ -2273,7 +2273,6 @@
   }
 
   async function loadAddTenantRooms(estateId) {
-    const roomSelect = document.getElementById("addTenantRoom");
     const rentInput = document.getElementById("addTenantMonthlyRent");
     const depositInput = document.getElementById("addTenantSecurityDeposit");
     const requestId = ++addTenantRequestSequence;
@@ -2283,12 +2282,12 @@
     if (depositInput) depositInput.value = "";
 
     if (!estateId) {
-      setSelectPlaceholder(roomSelect, "Choose an estate first");
+      setAddTenantCustomSelectPlaceholder(addTenantRoomControl, "Choose an estate first");
       setAddTenantRoomHint("Rooms refresh whenever the estate changes.");
       return;
     }
 
-    setSelectPlaceholder(roomSelect, "Loading available rooms…");
+    setAddTenantCustomSelectPlaceholder(addTenantRoomControl, "Loading available rooms...");
     setAddTenantRoomHint("Checking the latest room availability…");
 
     try {
@@ -2296,26 +2295,24 @@
       if (requestId !== addTenantRequestSequence) return;
 
       addTenantUnits = Array.isArray(response?.units) ? response.units : [];
-      roomSelect.replaceChildren();
-      const placeholder = document.createElement("option");
-      placeholder.value = "";
-      placeholder.textContent = addTenantUnits.length ? "Select an available room" : "No rooms currently available";
-      roomSelect.append(placeholder);
+      const roomOptions = addTenantUnits.map((unit) => ({
+        value: String(unit.unitId),
+        label: `${unit.unitNumber} - UGX ${Number(unit.listedMonthlyRent).toLocaleString("en-UG")}`,
+      }));
 
-      addTenantUnits.forEach((unit) => {
-        const option = document.createElement("option");
-        option.value = String(unit.unitId);
-        option.textContent = `${unit.unitNumber} — UGX ${Number(unit.listedMonthlyRent).toLocaleString("en-UG")}`;
-        roomSelect.append(option);
-      });
+      setAddTenantCustomSelectOptions(
+        addTenantRoomControl,
+        roomOptions,
+        addTenantUnits.length ? "Select an available room" : "No rooms currently available",
+        addTenantUnits.length === 0
+      );
 
-      roomSelect.disabled = addTenantUnits.length === 0;
       setAddTenantRoomHint(addTenantUnits.length
         ? `${addTenantUnits.length} available room${addTenantUnits.length === 1 ? "" : "s"}. The list is checked again when you save.`
         : "This estate has no rooms currently available.");
     } catch (err) {
       if (requestId !== addTenantRequestSequence) return;
-      setSelectPlaceholder(roomSelect, "Could not load rooms");
+      setAddTenantCustomSelectPlaceholder(addTenantRoomControl, "Could not load rooms");
       setAddTenantRoomHint("Room availability could not be loaded. Try selecting the estate again.");
       setAddTenantMessage(formatAddTenantErrorMessage(
         `Could not load rooms: ${err.message}`,
@@ -2389,6 +2386,36 @@
       display: document.getElementById("addTenantPhoneCountryDisplay"),
       hidden: document.getElementById("addTenantPhoneCountry"),
     });
+    addTenantEstateControl = initCustomSelect({
+      container: document.getElementById("addTenantEstateSelect"),
+      trigger: document.getElementById("addTenantEstateTrigger"),
+      menu: document.getElementById("addTenantEstateMenu"),
+      display: document.getElementById("addTenantEstateDisplay"),
+      hidden: document.getElementById("addTenantEstate"),
+    });
+    addTenantRoomControl = initCustomSelect({
+      container: document.getElementById("addTenantRoomSelect"),
+      trigger: document.getElementById("addTenantRoomTrigger"),
+      menu: document.getElementById("addTenantRoomMenu"),
+      display: document.getElementById("addTenantRoomDisplay"),
+      hidden: document.getElementById("addTenantRoom"),
+    });
+    addTenantMoveInDateControl = initDatePicker({
+      picker: document.getElementById("addTenantMoveInDatePicker"),
+      trigger: document.getElementById("addTenantMoveInDateTrigger"),
+      popover: document.getElementById("addTenantMoveInDatePopover"),
+      display: document.getElementById("addTenantMoveInDateDisplay"),
+      hidden: document.getElementById("addTenantMoveInDate"),
+      field: document.getElementById("addTenantMoveInDateField"),
+      monthLabel: document.getElementById("addTenantMoveInDateMonthLabel"),
+      grid: document.getElementById("addTenantMoveInDateGrid"),
+      prevBtn: document.getElementById("addTenantMoveInDatePrev"),
+      nextBtn: document.getElementById("addTenantMoveInDateNext"),
+      todayBtn: document.getElementById("addTenantMoveInDateToday"),
+      cancelBtn: document.getElementById("addTenantMoveInDateCancel"),
+      applyBtn: document.getElementById("addTenantMoveInDateApply"),
+      initialDate: new Date(),
+    });
 
     addTenantButton?.addEventListener("click", openAddTenantModal);
     document.getElementById("addTenantTypeIndividual")?.addEventListener("click", () => {
@@ -2434,6 +2461,25 @@
         return;
       }
 
+      if (!estateSelect?.value) {
+        setAddTenantMessage("Choose an estate before adding the tenant.");
+        document.getElementById("addTenantEstateTrigger")?.focus();
+        return;
+      }
+
+      if (!roomSelect?.value) {
+        setAddTenantMessage("Choose an available room before adding the tenant.");
+        document.getElementById("addTenantRoomTrigger")?.focus();
+        return;
+      }
+
+      const moveInDate = document.getElementById("addTenantMoveInDate")?.value || "";
+      if (!moveInDate) {
+        setAddTenantMessage("Choose a move-in date before adding the tenant.");
+        document.getElementById("addTenantMoveInDateTrigger")?.focus();
+        return;
+      }
+
       const monthlyRent = parseAddTenantAmount(document.getElementById("addTenantMonthlyRent")?.value);
       const securityDeposit = parseAddTenantAmount(document.getElementById("addTenantSecurityDeposit")?.value);
       if (!monthlyRent || !securityDeposit) {
@@ -2447,7 +2493,7 @@
         phoneNumber: normalizedPhone,
         estateId: estateSelect?.value,
         unitId: roomSelect?.value,
-        moveInDate: document.getElementById("addTenantMoveInDate")?.value,
+        moveInDate,
         monthlyRent,
         securityDeposit,
       };
@@ -4377,24 +4423,120 @@
       <button type="button" class="draft-action draft-action--reject" data-action="reject" data-index="${index}">Reject</button>`;
   }
 
+  function renderDraftSelect(prefix, field, options, selectedValue, placeholder = "") {
+    const normalizedOptions = options.map((option) => {
+      if (typeof option === "string") return { value: option, label: option };
+      return {
+        value: String(option.value ?? ""),
+        label: String(option.label ?? option.value ?? ""),
+      };
+    });
+    const selected = normalizedOptions.find((option) => option.value === String(selectedValue ?? "")) ||
+      (placeholder ? null : normalizedOptions[0]);
+    const display = selected?.label || placeholder || "Select";
+    const value = selected?.value || "";
+    const optionItems = (placeholder ? [{ value: "", label: placeholder }].concat(normalizedOptions) : normalizedOptions)
+      .map((option) => {
+        const optionSelected = option.value === value;
+        return `<li class="custom-select__option${optionSelected ? " custom-select__option--selected" : ""}" role="option" data-value="${escapeHtml(option.value)}" data-label="${escapeHtml(option.label)}" aria-selected="${optionSelected ? "true" : "false"}">${escapeHtml(option.label)}</li>`;
+      })
+      .join("");
+
+    return `
+      <div class="custom-select draft-select" id="${prefix}Select">
+        <button type="button" class="custom-select__trigger" id="${prefix}Trigger" aria-haspopup="listbox" aria-expanded="false">
+          <span class="custom-select__value" id="${prefix}Display">${escapeHtml(display)}</span>
+          <span class="material-symbols-outlined icon icon--select" aria-hidden="true">expand_more</span>
+        </button>
+        <input type="hidden" id="${prefix}Input" data-field="${escapeHtml(field)}" value="${escapeHtml(value)}">
+        <ul class="custom-select__menu" id="${prefix}Menu" role="listbox" hidden>${optionItems}</ul>
+      </div>`;
+  }
+
+  function renderDraftDatePicker(prefix, isoValue) {
+    return `
+      <div class="datepicker draft-datepicker" id="${prefix}Picker">
+        <button type="button" class="datepicker__trigger" id="${prefix}Trigger" aria-haspopup="dialog" aria-expanded="false">
+          <span class="material-symbols-outlined icon icon--input" aria-hidden="true">calendar_today</span>
+          <span class="datepicker__value" id="${prefix}Display">Select date</span>
+        </button>
+        <input type="hidden" id="${prefix}Input" data-field="date" value="${escapeHtml(isoValue || "")}">
+        <div class="datepicker__popover" id="${prefix}Popover" role="dialog" aria-label="Choose transaction date" hidden>
+          <div class="datepicker__header">
+            <button type="button" class="datepicker__nav-btn" id="${prefix}Prev" aria-label="Previous month"><span class="material-symbols-outlined">chevron_left</span></button>
+            <span class="datepicker__month-label" id="${prefix}MonthLabel"></span>
+            <button type="button" class="datepicker__nav-btn" id="${prefix}Next" aria-label="Next month"><span class="material-symbols-outlined">chevron_right</span></button>
+          </div>
+          <div class="datepicker__toolbar">
+            <input type="text" class="datepicker__field" id="${prefix}Field" readonly>
+            <button type="button" class="datepicker__today-btn" id="${prefix}Today">Today</button>
+          </div>
+          <div class="datepicker__weekdays"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
+          <div class="datepicker__grid" id="${prefix}Grid"></div>
+          <div class="datepicker__footer">
+            <button type="button" class="datepicker__btn datepicker__btn--cancel" id="${prefix}Cancel">Cancel</button>
+            <button type="button" class="datepicker__btn datepicker__btn--apply" id="${prefix}Apply">Apply</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function initDraftEditingControls() {
+    document.querySelectorAll(".statement-draft-row--editing").forEach((row) => {
+      const index = row.dataset.index;
+      if (index == null) return;
+      const datePrefix = `draftDate${index}`;
+      const tenantPrefix = `draftTenant${index}`;
+      const methodPrefix = `draftMethod${index}`;
+
+      initDatePicker({
+        picker: document.getElementById(`${datePrefix}Picker`),
+        trigger: document.getElementById(`${datePrefix}Trigger`),
+        popover: document.getElementById(`${datePrefix}Popover`),
+        display: document.getElementById(`${datePrefix}Display`),
+        hidden: document.getElementById(`${datePrefix}Input`),
+        field: document.getElementById(`${datePrefix}Field`),
+        monthLabel: document.getElementById(`${datePrefix}MonthLabel`),
+        grid: document.getElementById(`${datePrefix}Grid`),
+        prevBtn: document.getElementById(`${datePrefix}Prev`),
+        nextBtn: document.getElementById(`${datePrefix}Next`),
+        todayBtn: document.getElementById(`${datePrefix}Today`),
+        cancelBtn: document.getElementById(`${datePrefix}Cancel`),
+        applyBtn: document.getElementById(`${datePrefix}Apply`),
+        placement: "below",
+      });
+
+      initCustomSelect({
+        container: document.getElementById(`${tenantPrefix}Select`),
+        trigger: document.getElementById(`${tenantPrefix}Trigger`),
+        menu: document.getElementById(`${tenantPrefix}Menu`),
+        display: document.getElementById(`${tenantPrefix}Display`),
+        hidden: document.getElementById(`${tenantPrefix}Input`),
+      });
+
+      initCustomSelect({
+        container: document.getElementById(`${methodPrefix}Select`),
+        trigger: document.getElementById(`${methodPrefix}Trigger`),
+        menu: document.getElementById(`${methodPrefix}Menu`),
+        display: document.getElementById(`${methodPrefix}Display`),
+        hidden: document.getElementById(`${methodPrefix}Input`),
+      });
+    });
+  }
+
   function renderDraftRow(row, index) {
     if (row.editing) {
-      const options = getStatementTenantOptions();
-      const tenantOptions = ['<option value="">— Select tenant —</option>']
-        .concat(options.map((opt) => `<option value="${escapeHtml(opt.name)}"${opt.name === row.tenantName ? " selected" : ""}>${escapeHtml(opt.name)}</option>`))
-        .join("");
-      const methodOptions = statementMethods
-        .map((m) => `<option value="${m}"${m === row.method ? " selected" : ""}>${m}</option>`)
-        .join("");
+      const tenantOptions = getStatementTenantOptions().map((opt) => ({ value: opt.name, label: opt.name }));
+      const methodOptions = statementMethods.map((method) => ({ value: method, label: method }));
       return `
         <tr class="statement-draft-row statement-draft-row--editing" data-index="${index}">
-          <td><input type="date" class="draft-input" data-field="date" value="${escapeHtml(row.date)}"></td>
-          <td><select class="draft-input draft-input--tenant" data-field="tenant">${tenantOptions}</select></td>
+          <td>${renderDraftDatePicker(`draftDate${index}`, row.date)}</td>
+          <td>${renderDraftSelect(`draftTenant${index}`, "tenant", tenantOptions, row.tenantName, "- Select tenant -")}</td>
           <td class="draft-cell-unit">${escapeHtml(row.unit) || "—"}</td>
           <td class="draft-cell-estate">${escapeHtml(estateShortName(row.estate)) || "—"}</td>
           <td class="text-right"><input type="text" class="draft-input draft-input--amount text-right" data-field="amount" inputmode="numeric" value="${escapeHtml(row.amount)}"></td>
           <td>
-            <select class="draft-input" data-field="method">${methodOptions}</select>
+            ${renderDraftSelect(`draftMethod${index}`, "method", methodOptions, row.method)}
           </td>
           <td>Pending</td>
           <td><span class="draft-pill ${draftStatusClass[row.status] || ""}">${row.status}</span></td>
@@ -4428,6 +4570,7 @@
     if (!body) return;
 
     body.innerHTML = draftRows.map((row, i) => renderDraftRow(row, i)).join("");
+    initDraftEditingControls();
 
     if (count) {
       const approved = draftRows.filter((r) => r.status === "Approved").length;
@@ -4802,11 +4945,13 @@
       pop.style.left = `${Math.round(offset)}px`;
       pop.style.right = "auto";
 
-      // Vertical: open upward by default, but flip below the trigger when
-      // there isn't enough room above and there is more room below.
+      // Vertical: open upward by default, but allow dense table controls to
+      // opt into a below-trigger popover.
       const spaceAbove = triggerRect.top;
       const spaceBelow = viewportHeight - triggerRect.bottom;
-      if (spaceAbove < popHeight + margin && spaceBelow > spaceAbove) {
+      const shouldOpenBelow = els.placement === "below" ||
+        (els.placement !== "above" && spaceAbove < popHeight + margin && spaceBelow > spaceAbove);
+      if (shouldOpenBelow) {
         pop.classList.add("datepicker__popover--below");
       }
     }
@@ -5963,60 +6108,102 @@
   function initCustomSelect(els) {
     if (!els.container || !els.menu) return;
 
-    const options = els.menu.querySelectorAll(".custom-select__option");
+    if (els.container.__rentLedgerCustomSelect) {
+      return els.container.__rentLedgerCustomSelect;
+    }
+
+    const refs = { ...els };
     let isOpen = false;
 
+    function getOptions() {
+      return [...refs.menu.querySelectorAll(".custom-select__option")];
+    }
+
     function close() {
-      els.menu.hidden = true;
-      els.trigger.setAttribute("aria-expanded", "false");
+      refs.menu.hidden = true;
+      refs.trigger.setAttribute("aria-expanded", "false");
       isOpen = false;
     }
 
     function open() {
-      els.menu.hidden = false;
-      els.trigger.setAttribute("aria-expanded", "true");
+      if (refs.trigger.disabled) return;
+      refs.menu.hidden = false;
+      refs.trigger.setAttribute("aria-expanded", "true");
       isOpen = true;
     }
 
-    function selectOption(option) {
-      const previousValue = els.hidden.value;
+    function syncSelection(value, fallbackLabel) {
+      const options = getOptions();
+      const option = options.find((item) => item.dataset.value === value);
       options.forEach((opt) => {
         const selected = opt === option;
         opt.classList.toggle("custom-select__option--selected", selected);
         opt.setAttribute("aria-selected", selected ? "true" : "false");
       });
 
-      els.display.textContent = option.dataset.triggerLabel || option.dataset.label;
-      els.hidden.value = option.dataset.value;
+      refs.hidden.value = option ? option.dataset.value : "";
+      refs.display.textContent = option?.dataset.triggerLabel || option?.dataset.label || fallbackLabel || "";
+    }
+
+    function selectOption(option) {
+      if (!option || refs.trigger.disabled || option.getAttribute("aria-disabled") === "true") return;
+
+      const previousValue = refs.hidden.value;
+      syncSelection(option.dataset.value, option.dataset.label);
       close();
 
-      if (previousValue !== els.hidden.value) {
-        els.hidden.dispatchEvent(new Event("change", { bubbles: true }));
+      if (previousValue !== refs.hidden.value) {
+        refs.hidden.dispatchEvent(new Event("change", { bubbles: true }));
       }
     }
 
-    els.trigger.addEventListener("click", () => {
+    refs.trigger.addEventListener("click", () => {
       isOpen ? close() : open();
     });
 
-    options.forEach((option) => {
-      option.addEventListener("click", () => selectOption(option));
+    refs.menu.addEventListener("click", (event) => {
+      const option = event.target.closest(".custom-select__option");
+      if (option && refs.menu.contains(option)) selectOption(option);
     });
 
     document.addEventListener("click", (e) => {
-      if (isOpen && !els.container.contains(e.target)) close();
+      if (isOpen && !refs.container.contains(e.target)) close();
     });
 
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && isOpen) close();
     });
 
-    return {
+    const api = {
       setValue(value) {
-        const option = [...options].find((item) => item.dataset.value === value);
+        const option = getOptions().find((item) => item.dataset.value === String(value ?? ""));
         if (option) selectOption(option);
       },
+      setOptions(options, config = {}) {
+        const selectedValue = String(config.value ?? refs.hidden.value ?? "");
+        const items = Array.isArray(options) ? options : [];
+        refs.menu.innerHTML = items.map((item) => {
+          const value = String(item.value ?? "");
+          const label = String(item.label ?? value);
+          const selected = value === selectedValue;
+          const triggerLabel = item.triggerLabel ? ` data-trigger-label="${escapeHtml(item.triggerLabel)}"` : "";
+          const disabled = item.disabled ? ' aria-disabled="true"' : "";
+          return `<li class="custom-select__option${selected ? " custom-select__option--selected" : ""}" role="option" data-value="${escapeHtml(value)}" data-label="${escapeHtml(label)}"${triggerLabel} aria-selected="${selected ? "true" : "false"}"${disabled}>${escapeHtml(label)}</li>`;
+        }).join("");
+        refs.trigger.disabled = Boolean(config.disabled);
+        syncSelection(selectedValue, items[0]?.label || "");
+      },
+      setDisabled(disabled) {
+        refs.trigger.disabled = Boolean(disabled);
+        if (disabled) close();
+      },
+      refresh() {
+        syncSelection(refs.hidden.value, refs.display.textContent);
+      },
     };
+
+    els.container.__rentLedgerCustomSelect = api;
+    return api;
   }
 
   // Restore the last-open view (runs after all module data has initialized).

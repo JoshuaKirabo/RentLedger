@@ -1452,6 +1452,16 @@ body.sidebar-open {
   color: var(--green-800);
 }
 
+.tenant-create-select .custom-select__menu {
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 110;
+}
+
+.tenant-create-datepicker .datepicker__popover {
+  z-index: 110;
+}
+
 .phone-field__number {
   flex: 1;
   min-width: 0;
@@ -1475,6 +1485,7 @@ body.sidebar-open {
   box-shadow: none;
 }
 
+.tenant-create-card .custom-select__trigger:disabled,
 .tenant-create-card .form-select:disabled,
 .tenant-create-card .form-input:disabled {
   cursor: not-allowed;
@@ -4743,6 +4754,37 @@ body.sidebar-open {
 
 .statement-draft-row--editing td {
   vertical-align: middle;
+}
+
+.statement-draft-card .table-wrap:has(.statement-draft-row--editing) {
+  overflow: visible;
+}
+
+.draft-select,
+.draft-datepicker {
+  min-width: 170px;
+}
+
+.draft-select .custom-select__trigger,
+.draft-datepicker .datepicker__trigger {
+  min-height: 34px;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+.draft-select .custom-select__menu {
+  min-width: max(100%, 220px);
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 80;
+}
+
+.draft-datepicker .datepicker__popover {
+  z-index: 90;
+}
+
+.draft-select .custom-select__option {
+  font-size: 13px;
 }
 
 /* ── Custom Reports ── */

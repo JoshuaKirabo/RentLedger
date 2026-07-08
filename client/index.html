@@ -1627,29 +1627,60 @@
             <h3 class="tenant-create-card__section-title" id="addTenantAssignmentTitle">Property assignment</h3>
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label" for="addTenantEstate">Estate <span class="form-label__required" aria-hidden="true">*</span></label>
-                <div class="form-select-wrap">
-                  <select class="form-select" id="addTenantEstate" name="estateId" required disabled>
-                    <option value="">Loading estates…</option>
-                  </select>
-                  <span class="material-symbols-outlined icon icon--select" aria-hidden="true">expand_more</span>
+                <label class="form-label" id="addTenantEstateLabel" for="addTenantEstateTrigger">Estate <span class="form-label__required" aria-hidden="true">*</span></label>
+                <div class="custom-select tenant-create-select" id="addTenantEstateSelect">
+                  <button type="button" class="custom-select__trigger" id="addTenantEstateTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="addTenantEstateLabel addTenantEstateDisplay" disabled>
+                    <span class="custom-select__value" id="addTenantEstateDisplay">Loading estates...</span>
+                    <span class="material-symbols-outlined icon icon--select" aria-hidden="true">expand_more</span>
+                  </button>
+                  <input type="hidden" id="addTenantEstate" name="estateId" value="">
+                  <ul class="custom-select__menu" id="addTenantEstateMenu" role="listbox" hidden>
+                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="Loading estates..." aria-selected="true">Loading estates...</li>
+                  </ul>
                 </div>
               </div>
               <div class="form-group">
-                <label class="form-label" for="addTenantRoom">Available room <span class="form-label__required" aria-hidden="true">*</span></label>
-                <div class="form-select-wrap">
-                  <select class="form-select" id="addTenantRoom" name="unitId" required disabled>
-                    <option value="">Choose an estate first</option>
-                  </select>
-                  <span class="material-symbols-outlined icon icon--select" aria-hidden="true">expand_more</span>
+                <label class="form-label" id="addTenantRoomLabel" for="addTenantRoomTrigger">Available room <span class="form-label__required" aria-hidden="true">*</span></label>
+                <div class="custom-select tenant-create-select" id="addTenantRoomSelect">
+                  <button type="button" class="custom-select__trigger" id="addTenantRoomTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="addTenantRoomLabel addTenantRoomDisplay" disabled>
+                    <span class="custom-select__value" id="addTenantRoomDisplay">Choose an estate first</span>
+                    <span class="material-symbols-outlined icon icon--select" aria-hidden="true">expand_more</span>
+                  </button>
+                  <input type="hidden" id="addTenantRoom" name="unitId" value="">
+                  <ul class="custom-select__menu" id="addTenantRoomMenu" role="listbox" hidden>
+                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="Choose an estate first" aria-selected="true">Choose an estate first</li>
+                  </ul>
                 </div>
                 <p class="tenant-create-form__hint" id="addTenantRoomHint">Rooms refresh whenever the estate changes.</p>
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label" for="addTenantMoveInDate">Move-in date <span class="form-label__required" aria-hidden="true">*</span></label>
-                <input class="form-input" id="addTenantMoveInDate" name="moveInDate" type="date" required>
+                <label class="form-label" for="addTenantMoveInDateTrigger">Move-in date <span class="form-label__required" aria-hidden="true">*</span></label>
+                <div class="datepicker tenant-create-datepicker" id="addTenantMoveInDatePicker">
+                  <button type="button" class="datepicker__trigger" id="addTenantMoveInDateTrigger" aria-haspopup="dialog" aria-expanded="false">
+                    <span class="material-symbols-outlined icon icon--input" aria-hidden="true">calendar_today</span>
+                    <span class="datepicker__value" id="addTenantMoveInDateDisplay">Select date</span>
+                  </button>
+                  <input type="hidden" id="addTenantMoveInDate" name="moveInDate" value="">
+                  <div class="datepicker__popover" id="addTenantMoveInDatePopover" role="dialog" aria-label="Choose move-in date" hidden>
+                    <div class="datepicker__header">
+                      <button type="button" class="datepicker__nav-btn" id="addTenantMoveInDatePrev" aria-label="Previous month"><span class="material-symbols-outlined">chevron_left</span></button>
+                      <span class="datepicker__month-label" id="addTenantMoveInDateMonthLabel"></span>
+                      <button type="button" class="datepicker__nav-btn" id="addTenantMoveInDateNext" aria-label="Next month"><span class="material-symbols-outlined">chevron_right</span></button>
+                    </div>
+                    <div class="datepicker__toolbar">
+                      <input type="text" class="datepicker__field" id="addTenantMoveInDateField" readonly>
+                      <button type="button" class="datepicker__today-btn" id="addTenantMoveInDateToday">Today</button>
+                    </div>
+                    <div class="datepicker__weekdays"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
+                    <div class="datepicker__grid" id="addTenantMoveInDateGrid"></div>
+                    <div class="datepicker__footer">
+                      <button type="button" class="datepicker__btn datepicker__btn--cancel" id="addTenantMoveInDateCancel">Cancel</button>
+                      <button type="button" class="datepicker__btn datepicker__btn--apply" id="addTenantMoveInDateApply">Apply</button>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div class="form-group">
                 <label class="form-label" for="addTenantMonthlyRent">Monthly rent (UGX) <span class="form-label__required" aria-hidden="true">*</span></label>
