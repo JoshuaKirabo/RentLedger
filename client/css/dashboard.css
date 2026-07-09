@@ -786,19 +786,19 @@ body.sidebar-open {
 .table-card__filter {
   width: 36px;
   height: 36px;
-  border: 1px solid var(--gray-200);
+  border: none;
   border-radius: var(--radius-sm);
-  background: var(--surface);
+  background: var(--gray-700);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--gray-500);
+  color: var(--white);
   transition: background 0.15s;
 }
 
 .table-card__filter:hover {
-  background: var(--gray-50);
+  background: var(--gray-900);
 }
 
 
@@ -1024,20 +1024,20 @@ body.sidebar-open {
 .table-tool-btn {
   width: 36px;
   height: 36px;
-  border: 1px solid var(--gray-200);
+  border: none;
   border-radius: var(--radius-sm);
-  background: var(--surface);
+  background: var(--gray-700);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--gray-500);
+  color: var(--white);
   transition: background 0.15s;
 }
 
 .table-tool-btn:hover {
-  background: var(--gray-50);
-  color: var(--gray-700);
+  background: var(--gray-900);
+  color: var(--white);
 }
 
 .table-tool-btn .material-symbols-outlined {
@@ -1194,19 +1194,19 @@ body.sidebar-open {
   min-width: 36px;
   height: 36px;
   padding: 0 10px;
-  border: 1px solid var(--gray-200);
+  border: none;
   border-radius: var(--radius-sm);
-  background: var(--surface);
+  background: var(--gray-700);
   font-family: var(--font);
   font-size: 13px;
   font-weight: 500;
-  color: var(--gray-700);
+  color: var(--white);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
 .pagination__btn:hover:not(:disabled):not(.pagination__btn--active) {
-  background: var(--gray-50);
+  background: var(--gray-900);
 }
 
 .pagination__btn:disabled {
@@ -1216,7 +1216,6 @@ body.sidebar-open {
 
 .pagination__btn--active {
   background: var(--green-800);
-  border-color: var(--green-800);
   color: var(--white);
 }
 
@@ -2262,20 +2261,20 @@ body.sidebar-open {
 
 .datepicker__today-btn {
   padding: 6px 10px;
-  border: 1px solid var(--gray-200);
+  border: none;
   border-radius: 8px;
-  background: var(--surface);
+  background: var(--gray-700);
   font-family: var(--font);
   font-size: 12px;
   font-weight: 600;
-  color: var(--gray-700);
+  color: var(--white);
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s;
 }
 
 .datepicker__today-btn:hover {
-  background: var(--gray-50);
+  background: var(--gray-900);
 }
 
 .datepicker__weekdays {
@@ -2375,18 +2374,18 @@ body.sidebar-open {
 }
 
 .datepicker__btn--cancel {
-  background: var(--surface);
-  border: 1px solid var(--gray-200);
-  color: var(--gray-700);
+  background: var(--gray-700);
+  border: none;
+  color: var(--white);
 }
 
 .datepicker__btn--cancel:hover {
-  background: var(--gray-50);
+  background: var(--gray-900);
 }
 
 .datepicker__btn--apply {
   background: var(--green-800);
-  border: 1px solid var(--green-800);
+  border: none;
   color: var(--white);
 }
 
@@ -2443,23 +2442,22 @@ body.sidebar-open {
 }
 
 .btn--outline {
-  background: var(--blue-50);
-  color: var(--blue-600);
-  border: 1px solid #c2d9f7;
+  background: var(--white);
+  color: var(--green-800);
+  border: 1px solid var(--green-800);
 }
 
 .btn--outline:hover {
-  background: #dceaff;
+  background: var(--green-50);
 }
 
 .btn--green-outline {
-  background: var(--green-50);
-  color: var(--green-800);
-  border: 1px solid var(--green-700);
+  background: var(--green-800);
+  color: var(--white);
 }
 
 .btn--green-outline:hover {
-  background: var(--green-100);
+  background: var(--green-900);
 }
 
 .btn--primary {
@@ -2862,22 +2860,21 @@ body.sidebar-open {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--gray-200);
+  border: none;
   border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--gray-700);
+  background: var(--gray-700);
+  color: var(--white);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  transition: background 0.15s, box-shadow 0.15s;
 }
 
 .outstanding-action-menu__trigger:hover {
-  background: var(--gray-50);
-  border-color: var(--gray-300);
+  background: var(--gray-900);
 }
 
 .outstanding-action-menu__trigger:focus-visible,
 .outstanding-action-menu__trigger[aria-expanded="true"] {
-  border-color: var(--green-800);
+  background: var(--green-800);
   outline: none;
   box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.1);
 }
@@ -4247,6 +4244,178 @@ body.sidebar-open {
   #view-estate-detail.view--active .estate-tenants-card {
     flex: 0 0 auto;
   }
+}
+
+/* ── Estate edit (houses) ── */
+
+.estate-houses-card {
+  padding: 20px 22px;
+}
+
+.estate-houses-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.estate-houses-card__meta {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--gray-500);
+}
+
+.estate-houses-card__table-wrap {
+  margin-top: 16px;
+  overflow-x: auto;
+}
+
+.estate-houses-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.estate-houses-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gray-500);
+  border-bottom: 1px solid var(--gray-200);
+  background: var(--gray-50);
+}
+
+.estate-houses-table td {
+  padding: 13px 12px;
+  font-size: 14px;
+  color: var(--gray-900);
+  border-bottom: 1px solid var(--gray-100);
+  vertical-align: middle;
+}
+
+.estate-houses-table tr:last-child td {
+  border-bottom: none;
+}
+
+.estate-houses-table .text-right {
+  text-align: right;
+}
+
+.estate-houses-table__name {
+  font-weight: 600;
+}
+
+.estate-houses-table__muted {
+  color: var(--gray-500);
+}
+
+.estate-houses-table__empty {
+  padding: 28px 12px;
+  text-align: center;
+  color: var(--gray-500);
+  font-size: 13px;
+}
+
+.estate-houses-table__actions {
+  display: inline-flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.estate-houses-table__actions .btn {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.estate-houses-table__actions [data-house-action="edit"] {
+  min-width: 64px;
+}
+
+.estate-houses-table__actions [data-house-action="toggle"] {
+  min-width: 150px;
+}
+
+.btn--sm {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.btn--ghost {
+  background: var(--gray-700);
+  color: var(--white);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: var(--gray-900);
+}
+
+.btn--ghost:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn--danger {
+  background: var(--red-600);
+  color: var(--white);
+}
+
+.btn--danger:hover:not(:disabled) {
+  background: #b02a37;
+}
+
+.btn--danger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.unit-form__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.unit-form__actions-primary {
+  display: inline-flex;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.unit-availability-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.unit-availability-toggle input {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--green-800);
+  cursor: pointer;
+}
+
+.unit-availability-toggle__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.unit-availability-toggle__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.unit-availability-toggle__hint {
+  font-size: 12px;
+  color: var(--gray-500);
 }
 
 /* Badge variants */

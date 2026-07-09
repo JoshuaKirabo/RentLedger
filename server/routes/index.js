@@ -6,6 +6,7 @@ const tenantsRoutes = require("./tenants");
 const paymentsRoutes = require("./payments");
 const receiptsRoutes = require("./receipts");
 const dashboardRoutes = require("./dashboard");
+const estatesRoutes = require("./estates");
 
 const router = express.Router();
 
@@ -14,5 +15,6 @@ router.use("/tenants", tenantsRoutes);
 router.use("/payments", paymentsRoutes);
 router.use("/receipts", receiptsRoutes);
 router.use("/dashboard", dashboardRoutes);
+router.use("/estates", estatesRoutes);
 
 module.exports = router;

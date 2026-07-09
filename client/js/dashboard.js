@@ -14,6 +14,7 @@
     tenants: document.getElementById("view-tenants"),
     estates: document.getElementById("view-estates"),
     "estate-detail": document.getElementById("view-estate-detail"),
+    "estate-edit": document.getElementById("view-estate-edit"),
     "monthly-collection": document.getElementById("view-monthly-collection"),
     "bank-statement-review": document.getElementById("view-bank-statement-review"),
     "custom-reports": document.getElementById("view-custom-reports"),
@@ -92,6 +93,14 @@
         return;
       }
       renderEstateDetail(currentEstateDetailName);
+    }
+
+    if (viewId === "estate-edit") {
+      if (!currentEstateEditName) {
+        showView("estates");
+        return;
+      }
+      renderEstateEdit(currentEstateEditName);
     }
 
     if (viewId === "bank-statement-review") {
@@ -1389,7 +1398,7 @@
     });
 
     document.getElementById("estateDetailRecordPayment")?.addEventListener("click", () => {
-      navigateToView("payment-entry");
+      if (currentEstateDetailName) openEstateEdit(currentEstateDetailName);
     });
 
     const openTenantFromRow = (row) => {
@@ -1666,6 +1675,347 @@
     }
 
     renderEstateCollectionChart(estateName);
+  }
+
+  /* ── Estate edit (houses) ── */
+
+  let currentEstateEditName = null;
+  let currentEstateEditId = null;
+  let estateEditInitialized = false;
+  let estateEditUnits = [];
+  let editingUnitId = null;
+  let lastUnitModalTrigger = null;
+
+  const ESTATE_EDIT_KEY = "rentledger:estateEditName";
+
+  try {
+    currentEstateEditName = localStorage.getItem(ESTATE_EDIT_KEY) || null;
+  } catch (_) {}
+
+  function findEstateIdByName(estateName) {
+    const match = tenantsDirectory.find((tenant) => tenant.estate === estateName && tenant.estateId);
+    return match ? match.estateId : null;
+  }
+
+  function openEstateEdit(estateName) {
+    if (!estateName) return;
+    currentEstateEditName = estateName;
+    try {
+      localStorage.setItem(ESTATE_EDIT_KEY, estateName);
+    } catch (_) {}
+    navigateToView("estate-edit");
+  }
+
+  function parseUnitAmount(value) {
+    const digits = String(value || "").replace(/[^\d]/g, "");
+    const amount = Number(digits);
+    return Number.isSafeInteger(amount) && amount > 0 ? amount : 0;
+  }
+
+  function renderEstateHousesTable() {
+    const tableBody = document.getElementById("estateHousesTable");
+    const meta = document.getElementById("estateHousesMeta");
+    const units = estateEditUnits;
+
+    const occupied = units.filter((unit) => unit.occupied).length;
+    const vacant = units.filter((unit) => unit.isActive && !unit.occupied).length;
+    if (meta) {
+      meta.textContent = `${units.length} house${units.length === 1 ? "" : "s"} · ${occupied} occupied · ${vacant} vacant`;
+    }
+
+    if (!tableBody) return;
+    if (!units.length) {
+      tableBody.innerHTML = `
+        <tr><td colspan="5" class="estate-houses-table__empty">No houses yet. Use “Add house” to create the first one.</td></tr>`;
+      return;
+    }
+
+    tableBody.innerHTML = units
+      .map((unit) => {
+        const availabilityBadge = unit.occupied
+          ? '<span class="badge badge--paid">Occupied</span>'
+          : unit.isActive
+            ? '<span class="badge badge--active">Available</span>'
+            : '<span class="badge badge--inactive">Unavailable</span>';
+        const occupant = unit.occupied
+          ? escapeHtml(unit.tenantName || "—")
+          : '<span class="estate-houses-table__muted">Vacant</span>';
+        const toggleLabel = unit.isActive ? "Mark unavailable" : "Mark available";
+        const toggleDisabled = unit.occupied ? "disabled" : "";
+        return `
+          <tr data-unit-id="${escapeHtml(String(unit.unitId))}">
+            <td><span class="estate-houses-table__name">${escapeHtml(unit.unitNumber)}</span></td>
+            <td class="text-right">${formatUgx(unit.listedMonthlyRent)}</td>
+            <td>${availabilityBadge}</td>
+            <td>${occupant}</td>
+            <td class="text-right">
+              <div class="estate-houses-table__actions">
+                <button type="button" class="btn btn--outline btn--sm" data-house-action="edit">Edit</button>
+                <button type="button" class="btn btn--ghost btn--sm" data-house-action="toggle" ${toggleDisabled}>${toggleLabel}</button>
+              </div>
+            </td>
+          </tr>`;
+      })
+      .join("");
+  }
+
+  async function renderEstateEdit(estateName) {
+    initEstateEditOnce();
+    if (!estateName) return;
+
+    const display = parseEstateDisplay(estateName);
+    const titleEl = document.getElementById("estateEditTitle");
+    if (titleEl) titleEl.textContent = `Edit ${display.name}`;
+    const detailCrumb = document.getElementById("estateEditBackDetail");
+    if (detailCrumb) detailCrumb.textContent = display.name;
+
+    const estateId = findEstateIdByName(estateName);
+    currentEstateEditId = estateId;
+
+    const tableBody = document.getElementById("estateHousesTable");
+    const meta = document.getElementById("estateHousesMeta");
+    const addBtn = document.getElementById("estateHousesAdd");
+
+    if (!estateId) {
+      if (tableBody) {
+        tableBody.innerHTML = `
+          <tr><td colspan="5" class="estate-houses-table__empty">Could not identify this estate.</td></tr>`;
+      }
+      if (meta) meta.textContent = "—";
+      if (addBtn) addBtn.disabled = true;
+      return;
+    }
+    if (addBtn) addBtn.disabled = false;
+
+    if (tableBody) {
+      tableBody.innerHTML = `
+        <tr><td colspan="5" class="estate-houses-table__empty">
+          <span class="loading-spinner" role="status" aria-label="Loading houses">
+            <img src="assets/spinner.svg" alt="">Loading houses...
+          </span>
+        </td></tr>`;
+    }
+
+    try {
+      const data = await RentLedgerApi.get(`/api/estates/${encodeURIComponent(estateId)}/units`);
+      estateEditUnits = Array.isArray(data.units) ? data.units : [];
+    } catch (err) {
+      estateEditUnits = [];
+      if (tableBody) {
+        tableBody.innerHTML = `
+          <tr><td colspan="5" class="estate-houses-table__empty">Houses could not be loaded. Please try again.</td></tr>`;
+      }
+      if (meta) meta.textContent = "—";
+      return;
+    }
+
+    renderEstateHousesTable();
+  }
+
+  function setUnitFormMessage(message) {
+    const el = document.getElementById("unitFormMessage");
+    if (!el) return;
+    if (message) {
+      el.textContent = message;
+      el.hidden = false;
+    } else {
+      el.textContent = "";
+      el.hidden = true;
+    }
+  }
+
+  function closeUnitModal() {
+    const modal = document.getElementById("unitModal");
+    if (!modal) return;
+    modal.hidden = true;
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+    lastUnitModalTrigger?.focus();
+  }
+
+  function openUnitModal(unit) {
+    const modal = document.getElementById("unitModal");
+    if (!modal) return;
+    lastUnitModalTrigger = document.activeElement;
+    editingUnitId = unit ? unit.unitId : null;
+
+    setUnitFormMessage("");
+    const numberInput = document.getElementById("unitNumber");
+    const rentInput = document.getElementById("unitRent");
+    const availabilityRow = document.getElementById("unitAvailabilityRow");
+    const isActiveInput = document.getElementById("unitIsActive");
+    const availabilityHint = document.getElementById("unitAvailabilityHint");
+    const title = document.getElementById("unitModalTitle");
+    const subtitle = document.getElementById("unitModalSubtitle");
+    const saveLabel = document.getElementById("unitSaveLabel");
+    const deleteBtn = document.getElementById("unitDelete");
+
+    if (deleteBtn) {
+      deleteBtn.hidden = !unit;
+      deleteBtn.disabled = Boolean(unit && unit.occupied);
+      deleteBtn.title = unit && unit.occupied
+        ? "Occupied houses cannot be removed."
+        : "";
+    }
+
+    if (unit) {
+      if (title) title.textContent = "Edit house";
+      if (subtitle) subtitle.textContent = "Update this house's number, rent, or availability.";
+      if (saveLabel) saveLabel.textContent = "Save changes";
+      if (numberInput) numberInput.value = unit.unitNumber || "";
+      if (rentInput) rentInput.value = unit.listedMonthlyRent ? String(unit.listedMonthlyRent) : "";
+      if (availabilityRow) availabilityRow.hidden = false;
+      if (isActiveInput) {
+        isActiveInput.checked = Boolean(unit.isActive);
+        isActiveInput.disabled = Boolean(unit.occupied);
+      }
+      if (availabilityHint) {
+        availabilityHint.textContent = unit.occupied
+          ? "Occupied houses stay available until the tenant moves out."
+          : "Turn off to hide this house from new tenant assignments.";
+      }
+    } else {
+      if (title) title.textContent = "Add house";
+      if (subtitle) subtitle.textContent = "Add a house to this estate.";
+      if (saveLabel) saveLabel.textContent = "Add house";
+      if (numberInput) numberInput.value = "";
+      if (rentInput) rentInput.value = "";
+      if (availabilityRow) availabilityRow.hidden = true;
+      if (isActiveInput) {
+        isActiveInput.checked = true;
+        isActiveInput.disabled = false;
+      }
+    }
+
+    modal.hidden = false;
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    numberInput?.focus();
+  }
+
+  async function submitUnitForm() {
+    const saveBtn = document.getElementById("unitSave");
+    const numberInput = document.getElementById("unitNumber");
+    const rentInput = document.getElementById("unitRent");
+    const isActiveInput = document.getElementById("unitIsActive");
+
+    const unitNumber = String(numberInput?.value || "").trim();
+    if (unitNumber.length < 2) {
+      setUnitFormMessage("Enter a house number with at least 2 characters.");
+      numberInput?.focus();
+      return;
+    }
+
+    const listedMonthlyRent = parseUnitAmount(rentInput?.value);
+    if (!listedMonthlyRent) {
+      setUnitFormMessage("Enter the listed monthly rent as a whole UGX amount.");
+      rentInput?.focus();
+      return;
+    }
+
+    const payload = { unitNumber, listedMonthlyRent };
+    if (editingUnitId) payload.isActive = isActiveInput?.checked ? 1 : 0;
+
+    setUnitFormMessage("");
+    if (saveBtn) saveBtn.disabled = true;
+    try {
+      if (editingUnitId) {
+        await RentLedgerApi.put(`/api/estates/units/${encodeURIComponent(editingUnitId)}`, payload);
+      } else {
+        if (!currentEstateEditId) throw new Error("Could not identify this estate.");
+        await RentLedgerApi.post(`/api/estates/${encodeURIComponent(currentEstateEditId)}/units`, payload);
+      }
+      closeUnitModal();
+      await renderEstateEdit(currentEstateEditName);
+    } catch (err) {
+      setUnitFormMessage(err.message || "Could not save the house. Please try again.");
+    } finally {
+      if (saveBtn) saveBtn.disabled = false;
+    }
+  }
+
+  async function toggleUnitAvailability(unit, btn) {
+    if (unit.occupied) return;
+    if (btn) btn.disabled = true;
+    try {
+      await RentLedgerApi.put(`/api/estates/units/${encodeURIComponent(unit.unitId)}`, {
+        isActive: unit.isActive ? 0 : 1,
+      });
+    } catch (_) {
+      if (btn) btn.disabled = false;
+    }
+    await renderEstateEdit(currentEstateEditName);
+  }
+
+  function initUnitModalOnce() {
+    const modal = document.getElementById("unitModal");
+    const form = document.getElementById("unitForm");
+    if (!modal || !form || modal.dataset.init) return;
+    modal.dataset.init = "1";
+
+    document.getElementById("unitModalClose")?.addEventListener("click", closeUnitModal);
+    document.getElementById("unitCancel")?.addEventListener("click", closeUnitModal);
+    document.getElementById("unitModalBackdrop")?.addEventListener("click", closeUnitModal);
+    document.getElementById("unitDelete")?.addEventListener("click", deleteCurrentUnit);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !modal.hidden) closeUnitModal();
+    });
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitUnitForm();
+    });
+  }
+
+  async function deleteCurrentUnit() {
+    if (!editingUnitId) return;
+    const unit = estateEditUnits.find((item) => Number(item.unitId) === Number(editingUnitId));
+    if (unit && unit.occupied) return;
+
+    const label = unit ? unit.unitNumber : "this house";
+    if (!window.confirm(`Remove ${label}? This cannot be undone.`)) return;
+
+    const deleteBtn = document.getElementById("unitDelete");
+    setUnitFormMessage("");
+    if (deleteBtn) deleteBtn.disabled = true;
+    try {
+      await RentLedgerApi.del(`/api/estates/units/${encodeURIComponent(editingUnitId)}`);
+      closeUnitModal();
+      await renderEstateEdit(currentEstateEditName);
+    } catch (err) {
+      setUnitFormMessage(err.message || "Could not remove the house. Please try again.");
+      if (deleteBtn) deleteBtn.disabled = false;
+    }
+  }
+
+  function initEstateEditOnce() {
+    if (estateEditInitialized) return;
+    estateEditInitialized = true;
+
+    document.getElementById("estateEditBackEstates")?.addEventListener("click", () => {
+      navigateToView("estates");
+    });
+    document.getElementById("estateEditBackDetail")?.addEventListener("click", () => {
+      if (currentEstateEditName) openEstateDetail(currentEstateEditName);
+      else navigateToView("estates");
+    });
+
+    document.getElementById("estateHousesAdd")?.addEventListener("click", () => openUnitModal(null));
+
+    const table = document.getElementById("estateHousesTable");
+    table?.addEventListener("click", (event) => {
+      const actionBtn = event.target.closest("[data-house-action]");
+      if (!actionBtn) return;
+      const row = actionBtn.closest("tr[data-unit-id]");
+      if (!row) return;
+      const unitId = Number(row.dataset.unitId);
+      const unit = estateEditUnits.find((item) => Number(item.unitId) === unitId);
+      if (!unit) return;
+      if (actionBtn.dataset.houseAction === "edit") openUnitModal(unit);
+      else if (actionBtn.dataset.houseAction === "toggle") toggleUnitAvailability(unit, actionBtn);
+    });
+
+    initUnitModalOnce();
   }
 
   function initTenantsDirectoryOnce() {
@@ -2942,6 +3292,9 @@
     }
     if (document.getElementById("view-estate-detail")?.classList.contains("view--active") && currentEstateDetailName) {
       renderEstateDetail(currentEstateDetailName);
+    }
+    if (document.getElementById("view-estate-edit")?.classList.contains("view--active") && currentEstateEditName) {
+      renderEstateEdit(currentEstateEditName);
     }
     if (document.getElementById("view-outstanding-balances")?.classList.contains("view--active")) {
       renderOutstandingReport();

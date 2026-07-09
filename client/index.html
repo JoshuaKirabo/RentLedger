@@ -1004,8 +1004,8 @@
                 View all tenants
               </button>
               <button type="button" class="btn btn--primary" id="estateDetailRecordPayment">
-                <span class="material-symbols-outlined" aria-hidden="true">add</span>
-                Record payment
+                <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                Edit Estate
               </button>
             </div>
           </header>
@@ -1139,6 +1139,51 @@
               </article>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Estate Edit View -->
+      <div id="view-estate-edit" class="view">
+        <div class="page-content">
+          <header class="page-header estate-detail__header">
+            <div>
+              <nav class="estate-detail__breadcrumb" aria-label="Breadcrumb">
+                <button type="button" class="estate-detail__crumb-link" id="estateEditBackEstates">Estates</button>
+                <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                <button type="button" class="estate-detail__crumb-link" id="estateEditBackDetail">Estate</button>
+                <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                <span class="estate-detail__crumb-current">Edit</span>
+              </nav>
+              <h1 class="page-header__title" id="estateEditTitle">Edit Estate</h1>
+            </div>
+          </header>
+
+          <section class="card estate-houses-card">
+            <div class="card__header estate-houses-card__header">
+              <div>
+                <h2 class="card__title">Houses</h2>
+                <p class="estate-houses-card__meta" id="estateHousesMeta">0 houses</p>
+              </div>
+              <button type="button" class="btn btn--primary" id="estateHousesAdd">
+                <span class="material-symbols-outlined" aria-hidden="true">add_home</span>
+                Add house
+              </button>
+            </div>
+            <div class="estate-houses-card__table-wrap">
+              <table class="estate-houses-table">
+                <thead>
+                  <tr>
+                    <th>House</th>
+                    <th class="text-right">Listed Rent</th>
+                    <th>Availability</th>
+                    <th>Occupant</th>
+                    <th class="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="estateHousesTable"></tbody>
+              </table>
+            </div>
+          </section>
         </div>
       </div>
 
@@ -2010,6 +2055,62 @@
             <span class="material-symbols-outlined icon icon--btn">person_add</span>
             Add tenant
           </button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- House (Unit) Add/Edit Modal -->
+  <div class="receipt-modal tenant-create-modal" id="unitModal" hidden aria-hidden="true">
+    <div class="receipt-modal__backdrop" id="unitModalBackdrop"></div>
+    <button type="button" class="receipt-modal__close" id="unitModalClose" aria-label="Close house form">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    <div class="receipt-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="unitModalTitle">
+      <form class="tenant-create-card" id="unitForm">
+        <header class="tenant-create-card__header">
+          <span class="tenant-create-card__icon material-symbols-outlined" aria-hidden="true">home_work</span>
+          <div>
+            <h2 class="tenant-create-card__title" id="unitModalTitle">Add house</h2>
+            <p class="tenant-create-card__subtitle" id="unitModalSubtitle">Add a house to this estate.</p>
+          </div>
+        </header>
+
+        <div class="tenant-create-card__body">
+          <p class="tenant-create-form__message" id="unitFormMessage" role="alert" aria-live="polite" hidden></p>
+
+          <div class="form-group">
+            <label class="form-label" for="unitNumber">House number <span class="form-label__required" aria-hidden="true">*</span></label>
+            <input class="form-input" id="unitNumber" name="unitNumber" type="text" autocomplete="off" maxlength="30" autocapitalize="characters" spellcheck="false" placeholder="e.g. HOUSE 1, ROOM A2" required>
+            <p class="tenant-create-form__hint">Saved in uppercase. Must be unique within the estate.</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="unitRent">Listed monthly rent (UGX) <span class="form-label__required" aria-hidden="true">*</span></label>
+            <input class="form-input" id="unitRent" name="listedMonthlyRent" type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 300000" required>
+          </div>
+
+          <label class="unit-availability-toggle" id="unitAvailabilityRow" hidden>
+            <input type="checkbox" id="unitIsActive" checked>
+            <span class="unit-availability-toggle__text">
+              <span class="unit-availability-toggle__title">Available for tenants</span>
+              <span class="unit-availability-toggle__hint" id="unitAvailabilityHint">Turn off to hide this house from new tenant assignments.</span>
+            </span>
+          </label>
+        </div>
+
+        <footer class="tenant-create-card__actions unit-form__actions">
+          <button type="button" class="btn btn--danger btn--icon unit-form__delete" id="unitDelete" hidden>
+            <span class="material-symbols-outlined icon icon--btn">delete</span>
+            Remove house
+          </button>
+          <div class="unit-form__actions-primary">
+            <button type="button" class="btn btn--outline" id="unitCancel">Cancel</button>
+            <button type="submit" class="btn btn--primary btn--icon" id="unitSave">
+              <span class="material-symbols-outlined icon icon--btn">save</span>
+              <span id="unitSaveLabel">Add house</span>
+            </button>
+          </div>
         </footer>
       </form>
     </div>

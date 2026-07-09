@@ -46,5 +46,6 @@
     get(path) { return request(path); },
     post(path, data) { return request(path, { method: "POST", body: JSON.stringify(data) }); },
     put(path, data) { return request(path, { method: "PUT", body: JSON.stringify(data) }); },
+    del(path) { return request(path, { method: "DELETE" }); },
   };
 })();
