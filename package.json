@@ -29,7 +29,7 @@
   },
   "build": {
     "appId": "com.kimujo.rentledger",
-    "productName": "Rent Ledger",
+    "productName": "RentLedger",
     "directories": {
       "output": "dist"
     },

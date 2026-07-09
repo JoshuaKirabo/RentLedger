@@ -82,7 +82,7 @@ async function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    title: "Rent Ledger",
+    title: "RentLedger",
     autoHideMenuBar: true,
     backgroundColor: "#FAF9F6",
     ...(IS_MAC

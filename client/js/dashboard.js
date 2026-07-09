@@ -19,21 +19,7 @@
     "custom-reports": document.getElementById("view-custom-reports"),
   };
 
-  const pageTitles = {
-    dashboard: "Dashboard",
-    "payment-entry": "Record a Payment",
-    "outstanding-balances": "Outstanding Balances",
-    "waive-balance": "Waive a Balance",
-    "waived-payments": "Waived Payments",
-    "pending-deposits": "Pending Security Deposits",
-    receipts: "Payments",
-    tenants: "Tenants",
-    estates: "Estates",
-    "estate-detail": "Estate",
-    "monthly-collection": "Monthly Collection Summary",
-    "bank-statement-review": "Bank Statement Review",
-    "custom-reports": "Custom Reports",
-  };
+  const APP_TITLE = "RentLedger";
 
   const navLinks = document.querySelectorAll(".sidebar__nav .sidebar__link[data-view]");
   const paymentsNavGroup = document.getElementById("paymentsNavGroup");
@@ -69,7 +55,7 @@
     outstandingNavToggle?.classList.toggle("sidebar__link--active", outstandingViewActive);
     if (outstandingViewActive) setOutstandingNavOpen(true);
 
-    document.title = pageTitles[viewId] || "Dashboard";
+    document.title = APP_TITLE;
 
     if (viewId === "dashboard" && !chartInitialized) {
       initChart();
