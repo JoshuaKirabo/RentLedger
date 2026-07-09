@@ -538,8 +538,8 @@
           <header class="page-header page-header--actions">
             <div>
               <button type="button" class="waived-payments-back" id="waiveBalanceBack">
-                <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-                Outstanding Balances
+                <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                <span class="waived-payments-back__label">Outstanding Balances</span>
               </button>
               <h1 class="page-header__title">Waive a Balance</h1>
               <p class="page-header__subtitle">Remove unpaid rent from a tenant's outstanding balance.</p>
@@ -673,12 +673,12 @@
 
       <!-- Waived Payments View -->
       <div id="view-waived-payments" class="view">
-        <div class="page-content waived-payments-page">
+        <div class="page-content outstanding-page waived-payments-page">
           <header class="page-header page-header--actions">
             <div>
               <button type="button" class="waived-payments-back" id="waivedPaymentsBack">
-                <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-                Outstanding Balances
+                <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                <span class="waived-payments-back__label">Outstanding Balances</span>
               </button>
               <h1 class="page-header__title">Waived Payments</h1>
               <p class="page-header__subtitle">Balances removed from tenant arrears.</p>
@@ -692,13 +692,13 @@
           </header>
 
           <section class="metrics metrics--outstanding" aria-label="Waived payment summary">
-            <article class="card outstanding-stat-card outstanding-stat-card--amount">
+            <article class="card outstanding-stat-card outstanding-stat-card--waived">
               <div>
                 <span class="outstanding-stat-card__label">Total waived</span>
                 <strong class="outstanding-stat-card__value" id="waivedPaymentsTotal">UGX 0</strong>
                 <span class="outstanding-stat-card__hint">Across all approved waivers</span>
               </div>
-              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--danger">
+              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--success">
                 <span class="material-symbols-outlined">money_off</span>
               </span>
             </article>
@@ -709,7 +709,7 @@
                 <strong class="outstanding-stat-card__value" id="waivedPaymentsCount">0</strong>
                 <span class="outstanding-stat-card__hint">Approved balance adjustments</span>
               </div>
-              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--blue">
+              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--neutral">
                 <span class="material-symbols-outlined">receipt_long</span>
               </span>
             </article>
@@ -729,11 +729,18 @@
           <section class="card outstanding-report-card waived-payments-card">
             <div class="outstanding-report-card__header">
               <div>
-                <h2 class="card__title">Waiver history</h2>
+                <h2 class="card__title">Waiver History</h2>
               </div>
             </div>
 
-            <div class="table-wrap outstanding-table-wrap">
+            <div class="outstanding-filters waived-payments-filters">
+              <label class="outstanding-search" for="waivedPaymentsSearch">
+                <span class="material-symbols-outlined">search</span>
+                <input id="waivedPaymentsSearch" type="search" placeholder="Search name, house number, or reason">
+              </label>
+            </div>
+
+            <div class="table-wrap outstanding-table-wrap waived-payments-table-wrap">
               <table class="outstanding-table waived-payments-table">
                 <thead>
                   <tr>

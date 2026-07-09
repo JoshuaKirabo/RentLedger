@@ -368,9 +368,22 @@
     return `UGX ${Number(amount).toLocaleString("en-UG")}`;
   }
 
+  function getFilteredWaivedPayments() {
+    const search = document.getElementById("waivedPaymentsSearch")?.value.trim().toLowerCase() || "";
+    if (!search) return waivedPayments;
+
+    return waivedPayments.filter((row) =>
+      [row.tenantName, row.tenantId, row.estate, row.house, row.rentMonth, row.reason, row.approvedBy, row.date]
+        .join(" ")
+        .toLowerCase()
+        .includes(search)
+    );
+  }
+
   function renderWaivedPaymentsScreen() {
     const total = waivedPayments.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
     const tenantCount = new Set(waivedPayments.map((row) => row.tenantId || row.tenantName).filter(Boolean)).size;
+    const filtered = getFilteredWaivedPayments();
     const table = document.getElementById("waivedPaymentsTable");
     const countEl = document.getElementById("waivedPaymentsTableCount");
 
@@ -380,7 +393,11 @@
     if (totalEl) totalEl.textContent = formatOutstandingAmount(total);
     if (recordsEl) recordsEl.textContent = String(waivedPayments.length);
     if (tenantsEl) tenantsEl.textContent = String(tenantCount);
-    if (countEl) countEl.textContent = `Showing ${waivedPayments.length} waived payment${waivedPayments.length === 1 ? "" : "s"}`;
+    if (countEl) {
+      countEl.textContent = filtered.length === waivedPayments.length
+        ? `Showing ${filtered.length} waived payment${filtered.length === 1 ? "" : "s"}`
+        : `Showing ${filtered.length} of ${waivedPayments.length} waived payments`;
+    }
 
     if (!table) return;
     if (!waivedPayments.length) {
@@ -391,7 +408,15 @@
       return;
     }
 
-    table.innerHTML = waivedPayments
+    if (!filtered.length) {
+      table.innerHTML = `
+        <tr class="outstanding-empty">
+          <td colspan="8"><span class="material-symbols-outlined">search_off</span>No waived payments match your search.</td>
+        </tr>`;
+      return;
+    }
+
+    table.innerHTML = filtered
       .map((row) => `
         <tr>
           <td>${escapeHtml(row.date || "—")}</td>
@@ -403,11 +428,13 @@
           <td><span class="house-number">${escapeHtml(row.house || "—")}</span></td>
           <td>${escapeHtml(row.rentMonth || "—")}</td>
           <td class="text-right"><span class="waived-payment-amount">${formatOutstandingAmount(row.amount || 0)}</span></td>
-          <td>${escapeHtml(row.reason || "—")}</td>
+          <td><span class="waived-payment-reason" title="${escapeHtml(row.reason || "")}">${escapeHtml(row.reason || "—")}</span></td>
           <td>${escapeHtml(row.approvedBy || "—")}</td>
         </tr>`)
       .join("");
   }
+
+  document.getElementById("waivedPaymentsSearch")?.addEventListener("input", renderWaivedPaymentsScreen);
 
   function outstandingSortValue(tenant, key) {
     if (key === "pendingMonths") return new Date(`1 ${tenant.pendingMonths[0]}`).getTime();

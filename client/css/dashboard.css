@@ -2781,6 +2781,11 @@ body.sidebar-open {
   background: linear-gradient(135deg, var(--surface) 0%, #fff7f6 100%);
 }
 
+.outstanding-stat-card--waived {
+  border-color: var(--green-100);
+  background: linear-gradient(135deg, var(--surface) 0%, var(--green-50) 100%);
+}
+
 .outstanding-stat-card__label {
   display: block;
   margin-bottom: 8px;
@@ -2806,6 +2811,10 @@ body.sidebar-open {
   color: var(--red-600);
 }
 
+.outstanding-stat-card--waived .outstanding-stat-card__value {
+  color: var(--green-800);
+}
+
 .outstanding-stat-card__hint {
   display: block;
   margin-top: 8px;
@@ -2827,6 +2836,10 @@ body.sidebar-open {
 
 .outstanding-stat-card__icon--danger {
   color: var(--red-600);
+}
+
+.outstanding-stat-card__icon--success {
+  color: var(--green-700);
 }
 
 .outstanding-stat-card__icon--blue {
@@ -3056,6 +3069,7 @@ body.sidebar-open {
 }
 
 .outstanding-table th {
+  height: 39px;
   padding: 0 16px;
   border-bottom: 1px solid var(--gray-200);
   background: var(--gray-50);
@@ -3066,6 +3080,7 @@ body.sidebar-open {
   text-align: left;
   text-transform: uppercase;
   white-space: nowrap;
+  vertical-align: middle;
 }
 
 .outstanding-table th:first-child,
@@ -3157,12 +3172,19 @@ body.sidebar-open {
 .waive-balance-back:focus-visible {
   color: var(--green-900);
   outline: none;
+}
+
+.waived-payments-back:hover .waived-payments-back__label,
+.waived-payments-back:focus-visible .waived-payments-back__label,
+.waive-balance-back:hover .waived-payments-back__label,
+.waive-balance-back:focus-visible .waived-payments-back__label {
   text-decoration: underline;
 }
 
 .waived-payments-back .material-symbols-outlined,
 .waive-balance-back .material-symbols-outlined {
   font-size: 18px;
+  text-decoration: none;
 }
 
 .waive-balance-layout {
@@ -3324,14 +3346,125 @@ body.sidebar-open {
   line-height: 1.5;
 }
 
+.waived-payments-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.waived-payments-page .page-header,
+.waived-payments-page .metrics--outstanding {
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.waived-payments-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.waived-payments-filters {
+  grid-template-columns: 1fr;
+  padding-top: 0;
+  flex-shrink: 0;
+}
+
+.waived-payments-filters .outstanding-search {
+  max-width: none;
+}
+
+.waived-payments-card > .outstanding-report-card__header {
+  flex-shrink: 0;
+  padding: 20px 24px 16px;
+}
+
+.waived-payments-card > .outstanding-report-card__header .card__title {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.waived-payments-card > .outstanding-report-card__footer {
+  flex-shrink: 0;
+}
+
+.waived-payments-table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 0;
+}
+
 .waived-payments-table {
-  min-width: 1040px;
+  table-layout: fixed;
+  width: 100%;
+  min-width: 0;
+}
+
+.waived-payments-table th,
+.waived-payments-table td {
+  width: 12.5%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.waive-balances-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.waive-balances-table th:nth-child(1),
+.waive-balances-table td:nth-child(1) { width: 20%; }
+.waive-balances-table th:nth-child(2),
+.waive-balances-table td:nth-child(2) { width: 16%; }
+.waive-balances-table th:nth-child(3),
+.waive-balances-table td:nth-child(3) { width: 12%; }
+.waive-balances-table th:nth-child(4),
+.waive-balances-table td:nth-child(4) { width: 16%; }
+.waive-balances-table th:nth-child(5),
+.waive-balances-table td:nth-child(5) { width: 18%; }
+.waive-balances-table th:nth-child(6),
+.waive-balances-table td:nth-child(6) { width: 18%; }
+
+.waived-payment-reason {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  color: var(--gray-700);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+  white-space: normal;
 }
 
 .waived-payment-amount {
   color: var(--green-800);
   font-weight: 700;
   white-space: nowrap;
+}
+
+/* Lock the waived payments screen; only the history card scrolls. */
+.main:has(#view-waived-payments.view--active) {
+  height: 100vh;
+  overflow: hidden;
+}
+
+#view-waived-payments.view--active {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#view-waived-payments.view--active > .waived-payments-page {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .outstanding-tenant__name {
