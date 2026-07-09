@@ -8,6 +8,7 @@ const IS_DEV = process.env.ELECTRON_DEV === "1";
 const PORT = process.env.PORT || 3000;
 const DB_FILENAME = "kimujjo_holdings_database.db";
 const IS_MAC = process.platform === "darwin";
+const MIN_IMPORTED_DATABASE_BYTES = 600 * 1024;
 
 let mainWindow = null;
 
@@ -21,17 +22,25 @@ function bundledDatabasePath() {
     : path.join(__dirname, "..", "data", DB_FILENAME);
 }
 
-function looksLikeSeedDatabase(dbPath) {
+function hasSqliteHeader(dbPath) {
+  const header = Buffer.alloc(16);
+  const fd = fs.openSync(dbPath, "r");
+  try {
+    fs.readSync(fd, header, 0, header.length, 0);
+  } finally {
+    fs.closeSync(fd);
+  }
+
+  return header.toString("latin1") === "SQLite format 3\u0000";
+}
+
+function looksLikeLegacyBundledDatabase(dbPath) {
   if (!fs.existsSync(dbPath)) return false;
 
-  const sample = fs.readFileSync(dbPath).subarray(0, 512 * 1024).toString("latin1");
-  return (
-    sample.includes("Kibby")
-    || sample.includes("Nancy")
-    || sample.includes("Gashy")
-    || sample.includes("Chibi")
-    || sample.includes("+256700555001")
-  );
+  const { size } = fs.statSync(dbPath);
+  return size > 0
+    && size < MIN_IMPORTED_DATABASE_BYTES
+    && hasSqliteHeader(dbPath);
 }
 
 function installDatabaseIfMissing() {
@@ -51,11 +60,11 @@ function installDatabaseIfMissing() {
     return;
   }
 
-  if (looksLikeSeedDatabase(targetDb)) {
-    const backupPath = path.join(dataDir, `${DB_FILENAME}.seed-backup`);
+  if (looksLikeLegacyBundledDatabase(targetDb)) {
+    const backupPath = path.join(dataDir, `${DB_FILENAME}.legacy-backup`);
     fs.copyFileSync(targetDb, backupPath);
     fs.copyFileSync(bundledDb, targetDb);
-    console.warn(`Replaced seed database with bundled real data. Backup: ${backupPath}`);
+    console.warn(`Replaced legacy bundled database with current data. Backup: ${backupPath}`);
   }
 }
 

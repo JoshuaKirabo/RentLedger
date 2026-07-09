@@ -3,7 +3,10 @@ node_modules/
 dist/
 .cursor/
 data/*.db
+!data/kimujjo_holdings_database.db
 data/*.db-wal
 data/*.db-shm
 data/*.db-journal
 data/*.xlsx
+data/backups/*.db
+data/backups/*.db-*

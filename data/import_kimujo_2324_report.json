@@ -1,7 +1,7 @@
 {
   "source_workbook": "/Volumes/T7 Shield/kimujo 2324.xlsx",
   "database": "/Users/joshuakirabo/Desktop/Code/Rent Collection App/data/kimujjo_holdings_database.db",
-  "backup_database": "/Users/joshuakirabo/Desktop/Code/Rent Collection App/data/backups/kimujjo_holdings_database.before-real-import-20260626-101246.db",
+  "backup_database": null,
   "imported_at": "2026-06-26T10:12:46",
   "counts": {
     "estates": 7,
