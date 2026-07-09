@@ -1710,6 +1710,7 @@
   let currentEstateEditId = null;
   let estateEditInitialized = false;
   let estateEditUnits = [];
+  let estateCaretakerPhoneCountryControl = null;
   let editingUnitId = null;
   let lastUnitModalTrigger = null;
 
@@ -1731,6 +1732,225 @@
       localStorage.setItem(ESTATE_EDIT_KEY, estateName);
     } catch (_) {}
     navigateToView("estate-edit");
+  }
+
+  function setEstateCaretakerMessage(message) {
+    const el = document.getElementById("estateCaretakerMessage");
+    if (!el) return;
+    if (message) {
+      el.textContent = message;
+      el.hidden = false;
+    } else {
+      el.textContent = "";
+      el.hidden = true;
+    }
+  }
+
+  function splitPhoneForCaretakerInput(value) {
+    const normalized = window.PhoneNumbers.normalizeE164(value);
+    if (!normalized) return { dialCode: "256", local: "" };
+
+    const countries = window.PhoneNumbers.COUNTRY_DIAL_CODES || [];
+    const sorted = countries.slice().sort((a, b) => b.code.length - a.code.length);
+    const digits = normalized.slice(1);
+    const match = sorted.find((country) => digits.startsWith(country.code));
+    if (!match) return { dialCode: "256", local: digits };
+
+    return {
+      dialCode: match.code,
+      local: digits.slice(match.code.length),
+    };
+  }
+
+  function getEstateCaretakerPhoneNumber() {
+    const countrySelect = document.getElementById("estateCaretakerPhoneCountry");
+    const phoneInput = document.getElementById("estateCaretakerPhone");
+    const dialCode = countrySelect?.value || "256";
+    const localValue = phoneInput?.value || "";
+    return window.PhoneNumbers.combineE164(dialCode, localValue)
+      || window.PhoneNumbers.normalizeE164(localValue);
+  }
+
+  function renderEstateCaretakerDisplay(estateName) {
+    const nameEl = document.getElementById("estateCaretakerDisplayName");
+    const phoneEl = document.getElementById("estateCaretakerDisplayPhone");
+    const editBtn = document.getElementById("estateCaretakerEdit");
+    if (!nameEl) return;
+
+    const caretaker = getEstateCaretaker(estateName);
+    const name = String(caretaker?.name || "").trim();
+    const hasCaretaker = Boolean(caretaker && name && name !== "—");
+    const displayName = hasCaretaker ? name.replace(/\s+caretaker\s*$/i, "").trim() : "";
+
+    if (hasCaretaker && displayName) {
+      nameEl.textContent = displayName;
+      nameEl.classList.remove("estate-caretaker-display__name--empty");
+    } else {
+      nameEl.textContent = "Not assigned";
+      nameEl.classList.add("estate-caretaker-display__name--empty");
+    }
+
+    const phone = hasCaretaker ? formatPhone(caretaker.phone) : "";
+    if (phoneEl) {
+      if (phone && phone !== "—") {
+        phoneEl.textContent = phone;
+        phoneEl.hidden = false;
+      } else {
+        phoneEl.textContent = "";
+        phoneEl.hidden = true;
+      }
+    }
+
+    if (editBtn) {
+      editBtn.setAttribute("aria-label", hasCaretaker ? "Edit caretaker" : "Add caretaker");
+    }
+  }
+
+  function populateEstateCaretakerForm(estateName) {
+    const nameInput = document.getElementById("estateCaretakerName");
+    const phoneInput = document.getElementById("estateCaretakerPhone");
+    const title = document.getElementById("caretakerModalTitle");
+    const subtitle = document.getElementById("caretakerModalSubtitle");
+    if (!nameInput || !phoneInput) return;
+
+    setEstateCaretakerMessage("");
+    const caretaker = getEstateCaretaker(estateName);
+    const name = String(caretaker?.name || "").trim();
+    const hasCaretaker = Boolean(caretaker && name && name !== "—");
+
+    nameInput.value = hasCaretaker ? name.replace(/\s+caretaker\s*$/i, "").trim() : "";
+
+    const phoneParts = splitPhoneForCaretakerInput(caretaker?.phone || "");
+    estateCaretakerPhoneCountryControl?.setValue(phoneParts.dialCode);
+    phoneInput.value = phoneParts.local;
+
+    if (title) title.textContent = hasCaretaker ? "Edit caretaker" : "Add caretaker";
+    if (subtitle) {
+      subtitle.textContent = hasCaretaker
+        ? "Update the caretaker shown on the estate page."
+        : "Add the caretaker shown on the estate page.";
+    }
+  }
+
+  function closeCaretakerModal() {
+    const modal = document.getElementById("caretakerModal");
+    if (!modal) return;
+    modal.hidden = true;
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+    setEstateCaretakerMessage("");
+  }
+
+  function openCaretakerModal() {
+    if (!currentEstateEditName || !currentEstateEditId) return;
+    const modal = document.getElementById("caretakerModal");
+    if (!modal) return;
+
+    populateEstateCaretakerForm(currentEstateEditName);
+    modal.hidden = false;
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    document.getElementById("estateCaretakerName")?.focus();
+  }
+
+  async function submitEstateCaretakerForm() {
+    const saveBtn = document.getElementById("estateCaretakerSave");
+    const nameInput = document.getElementById("estateCaretakerName");
+
+    const name = String(nameInput?.value || "").trim();
+    if (!name) {
+      setEstateCaretakerMessage("Enter the caretaker's name.");
+      nameInput?.focus();
+      return;
+    }
+
+    const phoneNumber = getEstateCaretakerPhoneNumber();
+    if (!/^\+2567\d{8}$/.test(phoneNumber)) {
+      setEstateCaretakerMessage("Enter a valid phone number in +256 format.");
+      document.getElementById("estateCaretakerPhone")?.focus();
+      return;
+    }
+
+    if (!currentEstateEditId) {
+      setEstateCaretakerMessage("Could not identify this estate.");
+      return;
+    }
+
+    setEstateCaretakerMessage("");
+    if (saveBtn) saveBtn.disabled = true;
+    try {
+      await RentLedgerApi.put(`/api/estates/${encodeURIComponent(currentEstateEditId)}/caretaker`, {
+        name,
+        phoneNumber,
+      });
+      await refreshFromApi();
+      closeCaretakerModal();
+      renderEstateCaretakerDisplay(currentEstateEditName);
+    } catch (err) {
+      setEstateCaretakerMessage(formatAddTenantErrorMessage(err?.message, "Could not save the caretaker. Please try again."));
+    } finally {
+      if (saveBtn) saveBtn.disabled = false;
+    }
+  }
+
+  function initEstateCaretakerFormOnce() {
+    const form = document.getElementById("caretakerForm");
+    const modal = document.getElementById("caretakerModal");
+    if (!form || !modal || form.dataset.init) return;
+    form.dataset.init = "1";
+
+    const menu = document.getElementById("estateCaretakerPhoneCountryMenu");
+    const display = document.getElementById("estateCaretakerPhoneCountryDisplay");
+    const hidden = document.getElementById("estateCaretakerPhoneCountry");
+    const countries = window.PhoneNumbers?.COUNTRY_DIAL_CODES || [];
+    if (menu) {
+      menu.replaceChildren();
+      countries.forEach((country, index) => {
+        const label = window.PhoneNumbers.formatCountryOption(country);
+        const triggerLabel = window.PhoneNumbers.formatCountryTrigger(country);
+        const flag = window.PhoneNumbers.countryFlag(country.iso);
+        const option = document.createElement("li");
+        option.className = `custom-select__option${index === 0 ? " custom-select__option--selected" : ""}`;
+        option.role = "option";
+        option.dataset.value = country.code;
+        option.dataset.label = label;
+        option.dataset.triggerLabel = triggerLabel;
+        option.setAttribute("aria-selected", index === 0 ? "true" : "false");
+        option.innerHTML = `
+          <span class="phone-field__country-main">
+            <span class="phone-field__flag" aria-hidden="true">${flag}</span>
+            <span class="phone-field__country-name">${country.name}</span>
+          </span>
+          <span class="phone-field__dial-code">${country.label}</span>`;
+        menu.append(option);
+      });
+      if (countries[0]) {
+        const defaultLabel = window.PhoneNumbers.formatCountryTrigger(countries[0]);
+        if (display) display.textContent = defaultLabel;
+        if (hidden) hidden.value = countries[0].code;
+      }
+    }
+
+    estateCaretakerPhoneCountryControl = initCustomSelect({
+      container: document.getElementById("estateCaretakerPhoneCountrySelect"),
+      trigger: document.getElementById("estateCaretakerPhoneCountryTrigger"),
+      menu: document.getElementById("estateCaretakerPhoneCountryMenu"),
+      display: document.getElementById("estateCaretakerPhoneCountryDisplay"),
+      hidden: document.getElementById("estateCaretakerPhoneCountry"),
+    });
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitEstateCaretakerForm();
+    });
+
+    document.getElementById("estateCaretakerEdit")?.addEventListener("click", openCaretakerModal);
+    document.getElementById("caretakerModalClose")?.addEventListener("click", closeCaretakerModal);
+    document.getElementById("estateCaretakerCancel")?.addEventListener("click", closeCaretakerModal);
+    document.getElementById("caretakerModalBackdrop")?.addEventListener("click", closeCaretakerModal);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !modal.hidden) closeCaretakerModal();
+    });
   }
 
   function parseUnitAmount(value) {
@@ -1798,10 +2018,12 @@
 
     const estateId = findEstateIdByName(estateName);
     currentEstateEditId = estateId;
+    renderEstateCaretakerDisplay(estateName);
 
     const tableBody = document.getElementById("estateHousesTable");
     const meta = document.getElementById("estateHousesMeta");
     const addBtn = document.getElementById("estateHousesAdd");
+    const caretakerEditBtn = document.getElementById("estateCaretakerEdit");
 
     if (!estateId) {
       if (tableBody) {
@@ -1810,9 +2032,11 @@
       }
       if (meta) meta.textContent = "—";
       if (addBtn) addBtn.disabled = true;
+      if (caretakerEditBtn) caretakerEditBtn.disabled = true;
       return;
     }
     if (addBtn) addBtn.disabled = false;
+    if (caretakerEditBtn) caretakerEditBtn.disabled = false;
 
     if (tableBody) {
       tableBody.innerHTML = `
@@ -2018,6 +2242,8 @@
   function initEstateEditOnce() {
     if (estateEditInitialized) return;
     estateEditInitialized = true;
+
+    initEstateCaretakerFormOnce();
 
     document.getElementById("estateEditBackEstates")?.addEventListener("click", () => {
       navigateToView("estates");

@@ -55,3 +55,11 @@
   font-display: swap;
   src: url("../fonts/plus-jakarta-sans/plus-jakarta-sans-400-italic.ttf") format("truetype");
 }
+
+@font-face {
+  font-family: "Lato";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../fonts/lato/lato-700-normal.ttf") format("truetype");
+}

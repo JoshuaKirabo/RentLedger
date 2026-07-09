@@ -2,6 +2,7 @@
 
 const express = require("express");
 const estateRepository = require("../repositories/estateRepository");
+const { toApiTenants } = require("../lib/formatters");
 
 const router = express.Router();
 
@@ -11,6 +12,15 @@ function handleError(res, err) {
   }
   return res.status(500).json({ error: err.message });
 }
+
+router.put("/:estateId/caretaker", (req, res) => {
+  try {
+    const caretaker = estateRepository.upsertEstateCaretaker(req.params.estateId, req.body || {});
+    return res.json({ caretaker: toApiTenants([caretaker])[0] });
+  } catch (err) {
+    return handleError(res, err);
+  }
+});
 
 router.get("/:estateId/units", (req, res) => {
   try {

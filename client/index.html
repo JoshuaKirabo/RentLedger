@@ -1165,10 +1165,27 @@
             </div>
           </header>
 
+          <section class="card estate-caretaker-card">
+            <div class="card__header estate-caretaker-card__header">
+              <div>
+                <h2 class="card__title">CARETAKER</h2>
+              </div>
+            </div>
+            <div class="estate-caretaker-display">
+              <div class="estate-caretaker-display__row">
+                <span class="estate-caretaker-display__name" id="estateCaretakerDisplayName">Not assigned</span>
+                <button type="button" class="estate-caretaker-display__edit" id="estateCaretakerEdit" aria-label="Edit caretaker">
+                  <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                </button>
+              </div>
+              <p class="estate-caretaker-display__phone" id="estateCaretakerDisplayPhone" hidden></p>
+            </div>
+          </section>
+
           <section class="card estate-houses-card">
             <div class="card__header estate-houses-card__header">
               <div>
-                <h2 class="card__title">Houses</h2>
+                <h2 class="card__title">HOUSES</h2>
                 <p class="estate-houses-card__meta" id="estateHousesMeta">0 houses</p>
               </div>
               <button type="button" class="btn btn--primary" id="estateHousesAdd">
@@ -2061,6 +2078,57 @@
           <button type="submit" class="btn btn--primary btn--icon" id="addTenantSave">
             <span class="material-symbols-outlined icon icon--btn">person_add</span>
             Add tenant
+          </button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- Caretaker Edit Modal -->
+  <div class="receipt-modal tenant-create-modal" id="caretakerModal" hidden aria-hidden="true">
+    <div class="receipt-modal__backdrop" id="caretakerModalBackdrop"></div>
+    <button type="button" class="receipt-modal__close" id="caretakerModalClose" aria-label="Close caretaker form">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    <div class="receipt-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="caretakerModalTitle">
+      <form class="tenant-create-card" id="caretakerForm">
+        <header class="tenant-create-card__header">
+          <span class="tenant-create-card__icon material-symbols-outlined" aria-hidden="true">badge</span>
+          <div>
+            <h2 class="tenant-create-card__title" id="caretakerModalTitle">Edit caretaker</h2>
+            <p class="tenant-create-card__subtitle" id="caretakerModalSubtitle">Update the caretaker shown on the estate page.</p>
+          </div>
+        </header>
+
+        <div class="tenant-create-card__body">
+          <p class="tenant-create-form__message" id="estateCaretakerMessage" role="alert" aria-live="polite" hidden></p>
+
+          <div class="form-group">
+            <label class="form-label" for="estateCaretakerName">Name <span class="form-label__required" aria-hidden="true">*</span></label>
+            <input class="form-input" id="estateCaretakerName" name="name" type="text" autocomplete="name" maxlength="120">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="estateCaretakerPhone">Phone number <span class="form-label__required" aria-hidden="true">*</span></label>
+            <div class="phone-field">
+              <div class="custom-select phone-field__country-select" id="estateCaretakerPhoneCountrySelect">
+                <button type="button" class="custom-select__trigger" id="estateCaretakerPhoneCountryTrigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Country">
+                  <span class="custom-select__value" id="estateCaretakerPhoneCountryDisplay">🇺🇬 +256</span>
+                  <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                </button>
+                <input type="hidden" id="estateCaretakerPhoneCountry" name="phoneCountryCode" value="256">
+                <ul class="custom-select__menu" id="estateCaretakerPhoneCountryMenu" role="listbox" hidden></ul>
+              </div>
+              <input class="phone-field__number" id="estateCaretakerPhone" name="phoneNumber" type="tel" autocomplete="tel-national" inputmode="tel" placeholder="700 000 000" maxlength="15">
+            </div>
+          </div>
+        </div>
+
+        <footer class="tenant-create-card__actions">
+          <button type="button" class="btn btn--outline" id="estateCaretakerCancel">Cancel</button>
+          <button type="submit" class="btn btn--primary btn--icon" id="estateCaretakerSave">
+            <span class="material-symbols-outlined icon icon--btn">save</span>
+            <span id="estateCaretakerSaveLabel">Save</span>
           </button>
         </footer>
       </form>
