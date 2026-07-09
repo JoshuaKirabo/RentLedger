@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RentLedger — Dashboard</title>
+  <title>Dashboard</title>
   <link rel="stylesheet" href="css/fonts.css">
   <link rel="stylesheet" href="css/dashboard.css">
 </head>
@@ -30,21 +30,47 @@
           <span class="material-symbols-outlined icon icon--nav">dashboard</span>
           <span class="sidebar__link-text">Dashboard</span>
         </a>
-        <a href="#" class="sidebar__link" data-view="payment-entry" data-label="Payment Entry">
-          <span class="material-symbols-outlined icon icon--nav">payments</span>
-          <span class="sidebar__link-text">Payment Entry</span>
-        </a>
-        <a href="#" class="sidebar__link" data-view="outstanding-balances" data-label="Outstanding Balances">
-          <span class="material-symbols-outlined icon icon--nav">schedule</span>
-          <span class="sidebar__link-text">Outstanding Balances</span>
-        </a>
+        <div class="sidebar__group" id="paymentsNavGroup">
+          <button type="button" class="sidebar__link sidebar__link--parent" id="paymentsNavToggle" aria-expanded="false" aria-controls="paymentsNavSubmenu" data-label="Payments">
+            <span class="material-symbols-outlined icon icon--nav">payments</span>
+            <span class="sidebar__link-text">Payments</span>
+            <span class="material-symbols-outlined sidebar__parent-arrow" aria-hidden="true">keyboard_arrow_down</span>
+          </button>
+          <div class="sidebar__submenu" id="paymentsNavSubmenu">
+            <a href="#" class="sidebar__link sidebar__sub-link" data-view="receipts" data-label="View All Payments">
+              <span class="material-symbols-outlined icon icon--nav">receipt_long</span>
+              <span class="sidebar__link-text">View All Payments</span>
+            </a>
+            <a href="#" class="sidebar__link sidebar__sub-link" data-view="payment-entry" data-label="Record a Payment">
+              <span class="material-symbols-outlined icon icon--nav">add_card</span>
+              <span class="sidebar__link-text">Record a Payment</span>
+            </a>
+          </div>
+        </div>
+        <div class="sidebar__group" id="outstandingNavGroup">
+          <button type="button" class="sidebar__link sidebar__link--parent" id="outstandingNavToggle" aria-expanded="false" aria-controls="outstandingNavSubmenu" data-label="Outstanding Balances">
+            <span class="material-symbols-outlined icon icon--nav">schedule</span>
+            <span class="sidebar__link-text">Outstanding Balances</span>
+            <span class="material-symbols-outlined sidebar__parent-arrow" aria-hidden="true">keyboard_arrow_down</span>
+          </button>
+          <div class="sidebar__submenu" id="outstandingNavSubmenu">
+            <a href="#" class="sidebar__link sidebar__sub-link" data-view="outstanding-balances" data-label="View Outstanding Balances">
+              <span class="material-symbols-outlined icon icon--nav">list_alt</span>
+              <span class="sidebar__link-text">View Outstanding Balances</span>
+            </a>
+            <a href="#" class="sidebar__link sidebar__sub-link" data-view="waived-payments" data-label="View Waived Payments">
+              <span class="material-symbols-outlined icon icon--nav">visibility</span>
+              <span class="sidebar__link-text">View Waived Payments</span>
+            </a>
+            <a href="#" class="sidebar__link sidebar__sub-link" data-view="waive-balance" data-label="Waive a Balance">
+              <span class="material-symbols-outlined icon icon--nav">money_off</span>
+              <span class="sidebar__link-text">Waive a Balance</span>
+            </a>
+          </div>
+        </div>
         <a href="#" class="sidebar__link" data-view="pending-deposits" data-label="Pending Security Deposits">
           <span class="material-symbols-outlined icon icon--nav">lock</span>
           <span class="sidebar__link-text">Pending Security Deposits</span>
-        </a>
-        <a href="#" class="sidebar__link" data-view="receipts" data-label="Payments">
-          <span class="material-symbols-outlined icon icon--nav">receipt_long</span>
-          <span class="sidebar__link-text">Payments</span>
         </a>
         <a href="#" class="sidebar__link" data-view="tenants" data-label="Tenants">
           <span class="material-symbols-outlined icon icon--nav">group</span>
@@ -184,13 +210,13 @@
         </div>
       </div>
 
-      <!-- Payment Entry View -->
+      <!-- Record a Payment View -->
       <div id="view-payment-entry" class="view">
         <div class="page-content">
           <div class="payment-layout">
             <article class="card payment-form-card">
               <div class="payment-form-card__header">
-                <h2 class="card__title">Record New Payment</h2>
+                <h2 class="card__title">Record a Payment</h2>
               </div>
 
               <form class="payment-form" id="paymentForm">
@@ -368,7 +394,7 @@
                 <strong class="outstanding-stat-card__value" id="outstandingTenants">0</strong>
                 <span class="outstanding-stat-card__hint">Require follow-up or a payment</span>
               </div>
-              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--blue">
+              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--neutral">
                 <span class="material-symbols-outlined">group</span>
               </span>
             </article>
@@ -389,6 +415,62 @@
             <div class="outstanding-report-card__header">
               <div>
                 <h2 class="card__title">Unpaid rent by tenant</h2>
+              </div>
+              <div class="outstanding-action-menu" id="outstandingBalanceActionMenuControl">
+                <button type="button" class="outstanding-action-menu__trigger" id="outstandingBalanceActionTrigger" aria-haspopup="menu" aria-expanded="false" aria-label="Open balance actions">
+                  <span class="material-symbols-outlined" aria-hidden="true">settings</span>
+                </button>
+                <input type="hidden" id="outstandingBalanceAction" value="">
+                <ul class="custom-select__menu outstanding-action-menu__menu" id="outstandingBalanceActionMenu" role="menu" hidden>
+                  <li role="none">
+                    <button type="button" class="custom-select__option outstanding-action-menu__item" role="menuitem" data-balance-action="waive">
+                      <span class="material-symbols-outlined icon icon--method" aria-hidden="true">money_off</span>
+                      Waive a Balance
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button type="button" class="custom-select__option outstanding-action-menu__item" role="menuitem" data-balance-action="view-waived">
+                      <span class="material-symbols-outlined icon icon--method" aria-hidden="true">visibility</span>
+                      View Waived Payments
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button type="button" class="custom-select__option outstanding-action-menu__item" role="menuitem" data-balance-action="record-payment">
+                      <span class="material-symbols-outlined icon icon--method" aria-hidden="true">payments</span>
+                      Record Payment
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button type="button" class="custom-select__option outstanding-action-menu__item" role="menuitem" data-balance-action="payment-plan">
+                      <span class="material-symbols-outlined icon icon--method" aria-hidden="true">event_repeat</span>
+                      Create Payment Plan
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button type="button" class="custom-select__option outstanding-action-menu__item" role="menuitem" data-balance-action="send-reminder">
+                      <span class="material-symbols-outlined icon icon--method" aria-hidden="true">notifications</span>
+                      Send Payment Reminder
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button type="button" class="custom-select__option outstanding-action-menu__item" role="menuitem" data-balance-action="mark-disputed">
+                      <span class="material-symbols-outlined icon icon--method" aria-hidden="true">report</span>
+                      Mark as Disputed
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button type="button" class="custom-select__option outstanding-action-menu__item" role="menuitem" data-balance-action="follow-up-note">
+                      <span class="material-symbols-outlined icon icon--method" aria-hidden="true">note_add</span>
+                      Add Follow-up Note
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button type="button" class="custom-select__option outstanding-action-menu__item" role="menuitem" data-balance-action="export-list">
+                      <span class="material-symbols-outlined icon icon--method" aria-hidden="true">download</span>
+                      Export Outstanding List
+                    </button>
+                  </li>
+                </ul>
               </div>
             </div>
 
@@ -447,6 +529,232 @@
             </footer>
           </section>
 
+        </div>
+      </div>
+
+      <!-- Waive Balance View -->
+      <div id="view-waive-balance" class="view">
+        <div class="page-content waive-balance-page">
+          <header class="page-header page-header--actions">
+            <div>
+              <button type="button" class="waived-payments-back" id="waiveBalanceBack">
+                <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+                Outstanding Balances
+              </button>
+              <h1 class="page-header__title">Waive a Balance</h1>
+              <p class="page-header__subtitle">Remove unpaid rent from a tenant's outstanding balance.</p>
+            </div>
+            <div class="page-header__actions">
+              <button type="button" class="btn btn--outline btn--icon" id="viewWaivedPaymentsLink">
+                <span class="material-symbols-outlined icon icon--btn" aria-hidden="true">visibility</span>
+                View Waived Payments
+              </button>
+            </div>
+          </header>
+
+          <div class="waive-balance-layout">
+            <section class="card outstanding-report-card waive-balances-list-card">
+              <div class="outstanding-report-card__header">
+                <div>
+                  <h2 class="card__title">Outstanding balances</h2>
+                  <p class="waive-balances-list-card__hint">Select a balance to waive</p>
+                </div>
+              </div>
+
+              <div class="outstanding-filters waive-balances-filters">
+                <label class="outstanding-search" for="waiveBalancesSearch">
+                  <span class="material-symbols-outlined">search</span>
+                  <input id="waiveBalancesSearch" type="search" placeholder="Search name, house number, or phone">
+                </label>
+              </div>
+
+              <div class="table-wrap outstanding-table-wrap">
+                <table class="outstanding-table waive-balances-table">
+                  <thead>
+                    <tr>
+                      <th>Tenant name</th>
+                      <th>Estate</th>
+                      <th>House no.</th>
+                      <th>Phone number</th>
+                      <th>Pending months</th>
+                      <th class="text-right">Total outstanding</th>
+                    </tr>
+                  </thead>
+                  <tbody id="waiveBalancesTable"></tbody>
+                </table>
+              </div>
+
+              <footer class="outstanding-report-card__footer">
+                <span id="waiveBalancesTableCount">Showing 0 balances</span>
+              </footer>
+            </section>
+
+            <div class="waive-balance-detail">
+              <article class="card payment-form-card waive-balance-form-card">
+                <div class="waive-balance-form-empty" id="waiveBalanceFormEmpty">
+                  <span class="material-symbols-outlined icon icon--empty">touch_app</span>
+                  <p>Select a balance to waive</p>
+                </div>
+
+                <form class="payment-form" id="waiveBalanceForm" hidden>
+                  <div class="tenant-info" id="waiveTenantInfo">
+                    <div class="tenant-info__row">
+                      <span class="tenant-info__label">Tenant</span>
+                      <span class="tenant-info__value" id="waiveTenantName">—</span>
+                    </div>
+                    <div class="tenant-info__row">
+                      <span class="tenant-info__label">Estate</span>
+                      <span class="tenant-info__value" id="waiveTenantEstate">—</span>
+                    </div>
+                    <div class="tenant-info__row">
+                      <span class="tenant-info__label">House/Unit</span>
+                      <span class="tenant-info__value" id="waiveTenantUnit">—</span>
+                    </div>
+                    <div class="tenant-info__row">
+                      <span class="tenant-info__label">Total outstanding</span>
+                      <span class="tenant-info__value" id="waiveTenantOutstanding">—</span>
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group form-group--full">
+                      <label class="form-label" id="waiveRentMonthLabel">Rent months</label>
+                      <div class="multi-select" id="waiveRentMonthSelect">
+                        <button type="button" class="multi-select__trigger" id="waiveRentMonthTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="waiveRentMonthLabel waiveRentMonthDisplay" disabled>
+                          <span class="multi-select__value" id="waiveRentMonthDisplay">Select rent months</span>
+                          <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                        </button>
+                        <input type="hidden" id="waiveRentMonth" value="">
+                        <div class="multi-select__menu" id="waiveRentMonthMenu" hidden></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label" for="waiveAmount">Amount to waive (UGX)</label>
+                      <input type="text" id="waiveAmount" class="form-input form-input--readonly" value="0" readonly tabindex="-1" aria-readonly="true">
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="waiveReason">Reason <span class="form-label__required" aria-hidden="true">*</span></label>
+                    <textarea id="waiveReason" class="form-input form-textarea" rows="3" required placeholder="Explain why this balance is being waived..."></textarea>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="waiveApprovedBy">Approved by</label>
+                    <input type="text" id="waiveApprovedBy" class="form-input" autocomplete="off" placeholder="Name of person approving the waiver">
+                  </div>
+
+                  <div class="form-actions">
+                    <button type="button" class="btn btn--outline" id="waiveBalanceCancel">Cancel</button>
+                    <button type="submit" class="btn btn--primary" id="waiveBalanceSubmit" disabled>Waive Balance</button>
+                  </div>
+                </form>
+              </article>
+
+              <article class="card preview-card waive-balance-summary-card">
+                <div class="preview-card__header">
+                  <h2 class="card__title">Waiver summary</h2>
+                </div>
+
+                <div class="waive-balance-summary" id="waiveBalanceSummary">
+                  <p class="waive-balance-summary__empty">
+                    <span class="material-symbols-outlined icon icon--empty">touch_app</span>
+                    Select a balance to waive
+                  </p>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Waived Payments View -->
+      <div id="view-waived-payments" class="view">
+        <div class="page-content waived-payments-page">
+          <header class="page-header page-header--actions">
+            <div>
+              <button type="button" class="waived-payments-back" id="waivedPaymentsBack">
+                <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+                Outstanding Balances
+              </button>
+              <h1 class="page-header__title">Waived Payments</h1>
+              <p class="page-header__subtitle">Balances removed from tenant arrears.</p>
+            </div>
+            <div class="page-header__actions">
+              <button type="button" class="btn btn--outline btn--icon" id="waiveBalanceLink">
+                <span class="material-symbols-outlined icon icon--btn" aria-hidden="true">money_off</span>
+                Waive a Balance
+              </button>
+            </div>
+          </header>
+
+          <section class="metrics metrics--outstanding" aria-label="Waived payment summary">
+            <article class="card outstanding-stat-card outstanding-stat-card--amount">
+              <div>
+                <span class="outstanding-stat-card__label">Total waived</span>
+                <strong class="outstanding-stat-card__value" id="waivedPaymentsTotal">UGX 0</strong>
+                <span class="outstanding-stat-card__hint">Across all approved waivers</span>
+              </div>
+              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--danger">
+                <span class="material-symbols-outlined">money_off</span>
+              </span>
+            </article>
+
+            <article class="card outstanding-stat-card">
+              <div>
+                <span class="outstanding-stat-card__label">Waived records</span>
+                <strong class="outstanding-stat-card__value" id="waivedPaymentsCount">0</strong>
+                <span class="outstanding-stat-card__hint">Approved balance adjustments</span>
+              </div>
+              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--blue">
+                <span class="material-symbols-outlined">receipt_long</span>
+              </span>
+            </article>
+
+            <article class="card outstanding-stat-card">
+              <div>
+                <span class="outstanding-stat-card__label">Tenants affected</span>
+                <strong class="outstanding-stat-card__value" id="waivedPaymentsTenants">0</strong>
+                <span class="outstanding-stat-card__hint">Unique tenants with waived balances</span>
+              </div>
+              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--neutral">
+                <span class="material-symbols-outlined">group</span>
+              </span>
+            </article>
+          </section>
+
+          <section class="card outstanding-report-card waived-payments-card">
+            <div class="outstanding-report-card__header">
+              <div>
+                <h2 class="card__title">Waiver history</h2>
+              </div>
+            </div>
+
+            <div class="table-wrap outstanding-table-wrap">
+              <table class="outstanding-table waived-payments-table">
+                <thead>
+                  <tr>
+                    <th>Date waived</th>
+                    <th>Tenant name</th>
+                    <th>Estate</th>
+                    <th>House no.</th>
+                    <th>Rent month</th>
+                    <th class="text-right">Amount waived</th>
+                    <th>Reason</th>
+                    <th>Approved by</th>
+                  </tr>
+                </thead>
+                <tbody id="waivedPaymentsTable"></tbody>
+              </table>
+            </div>
+
+            <footer class="outstanding-report-card__footer">
+              <span id="waivedPaymentsTableCount">Showing 0 waived payments</span>
+            </footer>
+          </section>
         </div>
       </div>
 
@@ -1528,7 +1836,9 @@
               </div>
               <div class="receipt-paper__signed-row">
                 <span class="receipt-paper__signed-label">Signed:</span>
-                <span class="receipt-paper__line receipt-paper__line--inline receipt-paper__line--signature">&nbsp;</span>
+                <span class="receipt-paper__line receipt-paper__line--inline receipt-paper__line--signature">
+                  <img class="receipt-paper__signature" src="assets/signature.png" alt="">
+                </span>
               </div>
               <span class="receipt-paper__signed-for">For: KIMUJO HOLDINGS LIMITED</span>
             </div>
@@ -1593,7 +1903,7 @@
                 <input class="form-input" id="addTenantMiddleName" name="middleName" type="text" autocomplete="additional-name" maxlength="80">
               </div>
               <div class="form-group">
-                <label class="form-label" for="addTenantNationalId">National id no <span class="form-label__required" aria-hidden="true">*</span></label>
+                <label class="form-label" for="addTenantNationalId">National ID No. <span class="form-label__required" aria-hidden="true">*</span></label>
                 <input class="form-input" id="addTenantNationalId" name="nationalIdNumber" type="text" autocomplete="off" maxlength="20" autocapitalize="characters" spellcheck="false" required>
                 <p class="tenant-create-form__hint">This cannot be changed after the tenant is saved.</p>
               </div>
@@ -1745,7 +2055,7 @@
               <span class="tenant-profile__value" id="tpIndividualName">—</span>
             </div>
             <div class="tenant-profile__field" id="tpNationalIdField">
-              <span class="tenant-profile__label">National id no</span>
+              <span class="tenant-profile__label">National ID No.</span>
               <span class="tenant-profile__value" id="tpNationalId">—</span>
             </div>
             <div class="tenant-profile__field">

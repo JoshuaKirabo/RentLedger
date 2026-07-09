@@ -102,13 +102,17 @@ function getOutstandingBalances() {
           house: row.house_number,
           phone: row.phone_number,
           pendingMonths: [],
+          monthAmounts: {},
           outstanding: 0,
         };
         balancesByTenant.set(tenantId, balance);
       }
 
-      balance.pendingMonths.push(formatRentMonthLabel(row.rent_month));
-      balance.outstanding += Number(row.outstanding) || 0;
+      const monthLabel = formatRentMonthLabel(row.rent_month);
+      const monthOutstanding = Number(row.outstanding) || 0;
+      balance.pendingMonths.push(monthLabel);
+      balance.monthAmounts[monthLabel] = monthOutstanding;
+      balance.outstanding += monthOutstanding;
     });
 
   return [...balancesByTenant.values()].sort(

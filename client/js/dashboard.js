@@ -7,6 +7,8 @@
     dashboard: document.getElementById("view-dashboard"),
     "payment-entry": document.getElementById("view-payment-entry"),
     "outstanding-balances": document.getElementById("view-outstanding-balances"),
+    "waive-balance": document.getElementById("view-waive-balance"),
+    "waived-payments": document.getElementById("view-waived-payments"),
     "pending-deposits": document.getElementById("view-pending-deposits"),
     receipts: document.getElementById("view-receipts"),
     tenants: document.getElementById("view-tenants"),
@@ -18,20 +20,28 @@
   };
 
   const pageTitles = {
-    dashboard: "RentLedger — Dashboard",
-    "payment-entry": "RentLedger — Payment Entry",
-    "outstanding-balances": "RentLedger — Outstanding Balances",
-    "pending-deposits": "RentLedger — Pending Security Deposits",
-    receipts: "RentLedger — Payments",
-    tenants: "RentLedger — Tenants",
-    estates: "RentLedger — Estates",
-    "estate-detail": "RentLedger — Estate",
-    "monthly-collection": "RentLedger — Monthly Collection Summary",
-    "bank-statement-review": "RentLedger — Bank Statement Review",
-    "custom-reports": "RentLedger — Custom Reports",
+    dashboard: "Dashboard",
+    "payment-entry": "Record a Payment",
+    "outstanding-balances": "Outstanding Balances",
+    "waive-balance": "Waive a Balance",
+    "waived-payments": "Waived Payments",
+    "pending-deposits": "Pending Security Deposits",
+    receipts: "Payments",
+    tenants: "Tenants",
+    estates: "Estates",
+    "estate-detail": "Estate",
+    "monthly-collection": "Monthly Collection Summary",
+    "bank-statement-review": "Bank Statement Review",
+    "custom-reports": "Custom Reports",
   };
 
   const navLinks = document.querySelectorAll(".sidebar__nav .sidebar__link[data-view]");
+  const paymentsNavGroup = document.getElementById("paymentsNavGroup");
+  const paymentsNavToggle = document.getElementById("paymentsNavToggle");
+  const paymentNavViews = new Set(["receipts", "payment-entry"]);
+  const outstandingNavGroup = document.getElementById("outstandingNavGroup");
+  const outstandingNavToggle = document.getElementById("outstandingNavToggle");
+  const outstandingNavViews = new Set(["outstanding-balances", "waived-payments", "waive-balance"]);
   let chartInitialized = false;
   let collectionChart = null;
 
@@ -51,7 +61,15 @@
       link.classList.toggle("sidebar__link--active", link.dataset.view === viewId);
     });
 
-    document.title = pageTitles[viewId] || "RentLedger";
+    const paymentViewActive = paymentNavViews.has(viewId);
+    paymentsNavToggle?.classList.toggle("sidebar__link--active", paymentViewActive);
+    if (paymentViewActive) setPaymentsNavOpen(true);
+
+    const outstandingViewActive = outstandingNavViews.has(viewId);
+    outstandingNavToggle?.classList.toggle("sidebar__link--active", outstandingViewActive);
+    if (outstandingViewActive) setOutstandingNavOpen(true);
+
+    document.title = pageTitles[viewId] || "Dashboard";
 
     if (viewId === "dashboard" && !chartInitialized) {
       initChart();
@@ -59,6 +77,15 @@
 
     if (viewId === "outstanding-balances") {
       renderOutstandingReport();
+    }
+
+    if (viewId === "waive-balance") {
+      resetWaiveBalanceForm();
+      renderWaiveBalancesList();
+    }
+
+    if (viewId === "waived-payments") {
+      renderWaivedPaymentsScreen();
     }
 
     if (viewId === "pending-deposits") {
@@ -195,6 +222,18 @@
     if (viewId && views[viewId]) showView(viewId);
   }
 
+  function setPaymentsNavOpen(open) {
+    if (!paymentsNavGroup || !paymentsNavToggle) return;
+    paymentsNavGroup.classList.toggle("sidebar__group--open", open);
+    paymentsNavToggle.setAttribute("aria-expanded", String(open));
+  }
+
+  function setOutstandingNavOpen(open) {
+    if (!outstandingNavGroup || !outstandingNavToggle) return;
+    outstandingNavGroup.classList.toggle("sidebar__group--open", open);
+    outstandingNavToggle.setAttribute("aria-expanded", String(open));
+  }
+
   navLinks.forEach((link) => {
     link.addEventListener("click", (e) => {
       e.preventDefault();
@@ -203,10 +242,40 @@
     });
   });
 
+  paymentsNavToggle?.addEventListener("click", () => {
+    setPaymentsNavOpen(!paymentsNavGroup?.classList.contains("sidebar__group--open"));
+  });
+
+  outstandingNavToggle?.addEventListener("click", () => {
+    setOutstandingNavOpen(!outstandingNavGroup?.classList.contains("sidebar__group--open"));
+  });
+
   document.querySelector(".attention-card .card__link[data-view]")?.addEventListener("click", (e) => {
     e.preventDefault();
     navigateToView(e.currentTarget.dataset.view);
   });
+
+  document.getElementById("waivedPaymentsBack")?.addEventListener("click", () => {
+    navigateToView("outstanding-balances");
+  });
+
+  document.getElementById("waiveBalanceBack")?.addEventListener("click", () => {
+    navigateToView("outstanding-balances");
+  });
+
+  document.getElementById("waiveBalanceCancel")?.addEventListener("click", () => {
+    navigateToView("outstanding-balances");
+  });
+
+  document.getElementById("viewWaivedPaymentsLink")?.addEventListener("click", () => {
+    navigateToView("waived-payments");
+  });
+
+  document.getElementById("waiveBalanceLink")?.addEventListener("click", () => {
+    navigateToView("waive-balance");
+  });
+
+  initOutstandingBalanceActionMenu();
 
   const dashDepositsPendingCard = document.getElementById("dashDepositsPendingCard");
   dashDepositsPendingCard?.addEventListener("click", () => {
@@ -263,6 +332,7 @@
   let receipts = [];
   let receiptsLoadState = "loading";
   const RECEIPT_UNAVAILABLE_MESSAGE = "Unable to generate receipt";
+  const RECEIPT_SIGNATURE_SRC = "assets/signature.png";
   let selectedTenant = null;
   let apiLoaded = false;
   let tenantsLoadState = "loading";
@@ -297,9 +367,51 @@
   let outstandingSortKey = "outstanding";
   let outstandingSortDirection = "desc";
   let outstandingFiltersInitialized = false;
+  const waivedPayments = [];
 
   function formatOutstandingAmount(amount) {
     return `UGX ${Number(amount).toLocaleString("en-UG")}`;
+  }
+
+  function renderWaivedPaymentsScreen() {
+    const total = waivedPayments.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+    const tenantCount = new Set(waivedPayments.map((row) => row.tenantId || row.tenantName).filter(Boolean)).size;
+    const table = document.getElementById("waivedPaymentsTable");
+    const countEl = document.getElementById("waivedPaymentsTableCount");
+
+    const totalEl = document.getElementById("waivedPaymentsTotal");
+    const recordsEl = document.getElementById("waivedPaymentsCount");
+    const tenantsEl = document.getElementById("waivedPaymentsTenants");
+    if (totalEl) totalEl.textContent = formatOutstandingAmount(total);
+    if (recordsEl) recordsEl.textContent = String(waivedPayments.length);
+    if (tenantsEl) tenantsEl.textContent = String(tenantCount);
+    if (countEl) countEl.textContent = `Showing ${waivedPayments.length} waived payment${waivedPayments.length === 1 ? "" : "s"}`;
+
+    if (!table) return;
+    if (!waivedPayments.length) {
+      table.innerHTML = `
+        <tr class="outstanding-empty">
+          <td colspan="8"><span class="material-symbols-outlined">money_off</span>No waived payments recorded yet.</td>
+        </tr>`;
+      return;
+    }
+
+    table.innerHTML = waivedPayments
+      .map((row) => `
+        <tr>
+          <td>${escapeHtml(row.date || "—")}</td>
+          <td>
+            <span class="outstanding-tenant__name">${escapeHtml(row.tenantName || "—")}</span>
+            <span class="outstanding-tenant__id">${escapeHtml(row.tenantId || "")}</span>
+          </td>
+          <td><span class="estate-name">${escapeHtml(estateShortName(row.estate || "—"))}</span></td>
+          <td><span class="house-number">${escapeHtml(row.house || "—")}</span></td>
+          <td>${escapeHtml(row.rentMonth || "—")}</td>
+          <td class="text-right"><span class="waived-payment-amount">${formatOutstandingAmount(row.amount || 0)}</span></td>
+          <td>${escapeHtml(row.reason || "—")}</td>
+          <td>${escapeHtml(row.approvedBy || "—")}</td>
+        </tr>`)
+      .join("");
   }
 
   function outstandingSortValue(tenant, key) {
@@ -345,6 +457,52 @@
         return matchesSearch && matchesEstate && matchesMonth;
       })
       .sort(compareOutstandingBalances);
+  }
+
+  function initOutstandingBalanceActionMenu() {
+    const control = document.getElementById("outstandingBalanceActionMenuControl");
+    const trigger = document.getElementById("outstandingBalanceActionTrigger");
+    const menu = document.getElementById("outstandingBalanceActionMenu");
+    const hidden = document.getElementById("outstandingBalanceAction");
+    if (!control || !trigger || !menu || !hidden || control.dataset.initialized === "true") return;
+
+    let isOpen = false;
+
+    function close() {
+      menu.hidden = true;
+      trigger.setAttribute("aria-expanded", "false");
+      isOpen = false;
+    }
+
+    function open() {
+      menu.hidden = false;
+      trigger.setAttribute("aria-expanded", "true");
+      isOpen = true;
+    }
+
+    trigger.addEventListener("click", () => {
+      isOpen ? close() : open();
+    });
+
+    menu.addEventListener("click", (event) => {
+      const item = event.target.closest("[data-balance-action]");
+      if (!item) return;
+      hidden.value = item.dataset.balanceAction || "";
+      hidden.dispatchEvent(new Event("change", { bubbles: true }));
+      close();
+      if (hidden.value === "waive") navigateToView("waive-balance");
+      if (hidden.value === "view-waived") navigateToView("waived-payments");
+    });
+
+    document.addEventListener("click", (event) => {
+      if (isOpen && !control.contains(event.target)) close();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && isOpen) close();
+    });
+
+    control.dataset.initialized = "true";
   }
 
   function initialiseOutstandingFilters() {
@@ -738,7 +896,7 @@
 
   const tenantSortLabels = {
     name: "tenant name",
-    nationalIdNumber: "national Id no",
+    nationalIdNumber: "National ID No.",
     phone: "phone number",
     estate: "estate",
     house: "house number",
@@ -1936,7 +2094,7 @@
       setTenantProfileHtml("tpNationalId", tenantProfileLockedText(tenant.nationalIdNumber));
     } else {
       setTenantProfileHtml("tpNationalId", tenantProfileInput("tpNationalIdInput", "", {
-        attrs: 'placeholder="Enter national id no" maxlength="20" autocapitalize="characters" spellcheck="false"',
+        attrs: 'placeholder="Enter National ID No." maxlength="20" autocapitalize="characters" spellcheck="false"',
       }));
     }
     setTenantProfileHtml("tpPhone", tenantProfileInput("tpPhoneInput", tenant.phone || "", { attrs: 'inputmode="tel"' }));
@@ -2539,7 +2697,7 @@
     const headers = [
       "Tenant ID",
       "Tenant Name",
-      "National id no",
+      "National ID No.",
       "Phone Number",
       "Estate",
       "House Number",
@@ -2737,6 +2895,9 @@
     if (document.getElementById("view-outstanding-balances")?.classList.contains("view--active")) {
       renderOutstandingReport();
     }
+    if (document.getElementById("view-waive-balance")?.classList.contains("view--active")) {
+      renderWaiveBalancesList();
+    }
     if (document.getElementById("view-pending-deposits")?.classList.contains("view--active")) {
       renderPendingDepositsReport();
     }
@@ -2798,6 +2959,9 @@
     }
     if (document.getElementById("view-outstanding-balances")?.classList.contains("view--active")) {
       renderOutstandingReport();
+    }
+    if (document.getElementById("view-waive-balance")?.classList.contains("view--active")) {
+      renderWaiveBalancesList();
     }
     if (document.getElementById("view-pending-deposits")?.classList.contains("view--active")) {
       renderPendingDepositsReport();
@@ -3092,11 +3256,17 @@
     const ref = esc(receiptDisplayValue(receipt.paymentRef));
     const amount = esc(receiptDisplayValue(receipt.amount));
     const balance = esc(receiptDisplayValue(receipt.balance || "NIL"));
+    const baseHref = window.location?.origin && window.location.origin !== "null"
+      ? `${window.location.origin}/`
+      : "";
+    const baseTag = baseHref ? `<base href="${esc(baseHref)}">` : "";
+    const signatureSrc = esc(RECEIPT_SIGNATURE_SRC);
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  ${baseTag}
   <title>Receipt ${no}</title>
   <style>
     * { box-sizing: border-box; }
@@ -3228,7 +3398,23 @@
       text-align: right;
       margin-top: 2px;
     }
-    .receipt-paper__line--signature { min-height: 28px; }
+    .receipt-paper__line--signature {
+      position: relative;
+      min-height: 64px;
+      overflow: visible;
+    }
+    .receipt-paper__signature {
+      position: absolute;
+      left: 8px;
+      bottom: -8px;
+      width: auto;
+      height: 76px;
+      max-width: 128px;
+      object-fit: contain;
+      object-position: left bottom;
+      pointer-events: none;
+      user-select: none;
+    }
     @media print {
       body { padding: 16px; }
       .receipt-paper { box-shadow: none; }
@@ -3286,7 +3472,9 @@
           </div>
           <div class="receipt-paper__signed-row">
             <span class="receipt-paper__signed-label">Signed:</span>
-            <span class="receipt-paper__line receipt-paper__line--signature">&nbsp;</span>
+            <span class="receipt-paper__line receipt-paper__line--signature">
+              <img class="receipt-paper__signature" src="${signatureSrc}" alt="">
+            </span>
           </div>
           <span class="receipt-paper__signed-for">For: KIMUJO HOLDINGS LIMITED</span>
         </div>
@@ -3306,64 +3494,60 @@
     printWindow.onload = () => printWindow.print();
   }
 
-  function loadHtmlInHiddenFrame(html) {
-    return new Promise((resolve, reject) => {
-      const iframe = document.createElement("iframe");
-      iframe.setAttribute("aria-hidden", "true");
-      iframe.style.cssText = "position:fixed;width:0;height:0;border:0;visibility:hidden;pointer-events:none;";
-      iframe.onload = () => {
-        const doc = iframe.contentDocument;
-        const target = doc?.querySelector(".receipt-paper") || doc?.body;
-        if (!target) {
-          iframe.remove();
-          reject(new Error("Could not render receipt for PDF export."));
-          return;
-        }
-        resolve({ iframe, target });
-      };
-      iframe.onerror = () => {
-        iframe.remove();
-        reject(new Error("Could not render receipt for PDF export."));
-      };
-      document.body.appendChild(iframe);
-      iframe.srcdoc = html;
-    });
+  function waitForImages(root) {
+    const images = Array.from(root.querySelectorAll("img"));
+    return Promise.all(
+      images.map((img) => {
+        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.addEventListener("load", resolve, { once: true });
+          img.addEventListener("error", resolve, { once: true });
+        });
+      })
+    );
   }
 
-  async function downloadHtmlAsPdf(html, filename) {
+  // Capture the receipt exactly as it appears on screen and save it as a PDF.
+  async function downloadElementAsPdf(element, filename) {
     if (typeof html2pdf !== "function") {
       throw new Error("PDF download is unavailable in this browser.");
     }
 
-    const { iframe, target } = await loadHtmlInHiddenFrame(html);
-    try {
-      await html2pdf()
-        .set({
-          margin: [10, 10, 10, 10],
-          filename,
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: "#ffffff" },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        })
-        .from(target)
-        .save();
-    } finally {
-      iframe.remove();
-    }
+    await waitForImages(element);
+
+    await html2pdf()
+      .set({
+        margin: [10, 10, 10, 10],
+        filename,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: "#ffffff",
+        },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      })
+      .from(element)
+      .save();
   }
 
   async function downloadReceiptPdf(receipt) {
     if (!isReceiptDisplayable(receipt)) return;
 
-    const html = buildReceiptDocumentHtml(receipt);
     const filename = receiptPdfFilename(receipt);
 
     if (window.electronAPI?.saveReceiptPdf) {
-      await window.electronAPI.saveReceiptPdf(html, filename);
+      await window.electronAPI.saveReceiptPdf(buildReceiptDocumentHtml(receipt), filename);
       return;
     }
 
-    await downloadHtmlAsPdf(html, filename);
+    const element = document.querySelector("#receiptModal .receipt-paper");
+    if (!element) {
+      throw new Error("Open the receipt before downloading the PDF.");
+    }
+
+    await downloadElementAsPdf(element, filename);
   }
 
   function printReceipt(receipt) {
@@ -3847,7 +4031,7 @@
     });
   }
 
-  /* ── Payment Entry ── */
+  /* ── Record a Payment ── */
 
   const amountInput = document.getElementById("amountPaid");
   const amountHint = document.getElementById("amountPaidHint");
@@ -4304,6 +4488,360 @@
     if (e.target.closest(".tenant-search")) return;
     closeTenantSuggestions();
   });
+
+  /* ── Waive a Balance ── */
+
+  const waiveBalanceForm = document.getElementById("waiveBalanceForm");
+  const waiveBalanceFormEmpty = document.getElementById("waiveBalanceFormEmpty");
+  const waiveBalancesSearchInput = document.getElementById("waiveBalancesSearch");
+  const waiveAmountInput = document.getElementById("waiveAmount");
+  const waiveReasonInput = document.getElementById("waiveReason");
+  const waiveApprovedByInput = document.getElementById("waiveApprovedBy");
+  const waiveBalanceSubmit = document.getElementById("waiveBalanceSubmit");
+  const waiveBalanceSummary = document.getElementById("waiveBalanceSummary");
+  const waiveRentMonthMenu = document.getElementById("waiveRentMonthMenu");
+  const waiveRentMonthHidden = document.getElementById("waiveRentMonth");
+  const waiveRentMonthTrigger = document.getElementById("waiveRentMonthTrigger");
+  let waiveSelectedTenant = null;
+  let waiveSelectedBalanceId = null;
+  let waiveRentMonthMultiSelect = null;
+  let waiveBalanceInitialized = false;
+
+  function getSelectedWaiveMonths() {
+    if (waiveRentMonthMultiSelect) return waiveRentMonthMultiSelect.getSelected();
+    return waiveRentMonthHidden?.value
+      ? waiveRentMonthHidden.value.split(",").map((month) => month.trim()).filter(Boolean)
+      : [];
+  }
+
+  function findTenantForBalance(balance) {
+    if (!balance) return null;
+    return tenants.find((t) => (t.tenantId || t.id) === balance.id) || {
+      tenantId: balance.id,
+      id: balance.id,
+      name: balance.name,
+      estate: balance.estate,
+      unit: balance.house,
+      house: balance.house,
+    };
+  }
+
+  function getFilteredWaiveBalances() {
+    const search = waiveBalancesSearchInput?.value.trim().toLowerCase() || "";
+    return outstandingBalances
+      .filter((balance) => {
+        if (!search) return true;
+        return [balance.name, balance.house, balance.phone, balance.estate, balance.id]
+          .join(" ")
+          .toLowerCase()
+          .includes(search);
+      })
+      .sort((a, b) => b.outstanding - a.outstanding || a.name.localeCompare(b.name, "en"));
+  }
+
+  function renderWaiveBalancesList() {
+    const table = document.getElementById("waiveBalancesTable");
+    const countEl = document.getElementById("waiveBalancesTableCount");
+    const filteredBalances = getFilteredWaiveBalances();
+
+    if (countEl) {
+      countEl.textContent = outstandingBalancesLoadState === "loading"
+        ? "Loading outstanding balances..."
+        : `Showing ${filteredBalances.length} of ${outstandingBalances.length} balance${outstandingBalances.length === 1 ? "" : "s"}`;
+    }
+
+    if (!table) return;
+
+    if (outstandingBalancesLoadState === "loading") {
+      table.innerHTML = `
+        <tr class="outstanding-empty">
+          <td colspan="6">
+            <span class="loading-spinner" role="status" aria-label="Loading">
+              <img src="assets/spinner.svg" alt="">
+              Loading outstanding balances...
+            </span>
+          </td>
+        </tr>`;
+      return;
+    }
+
+    if (outstandingBalancesLoadState === "error") {
+      table.innerHTML = `
+        <tr class="outstanding-empty">
+          <td colspan="6"><span class="material-symbols-outlined">cloud_off</span>Could not load outstanding balances.</td>
+        </tr>`;
+      return;
+    }
+
+    if (!filteredBalances.length) {
+      const emptyMessage = outstandingBalances.length
+        ? "No balances match your search."
+        : "No outstanding balances to waive.";
+      table.innerHTML = `
+        <tr class="outstanding-empty">
+          <td colspan="6"><span class="material-symbols-outlined">person_search</span>${emptyMessage}</td>
+        </tr>`;
+      return;
+    }
+
+    table.innerHTML = filteredBalances
+      .map((balance) => {
+        const selected = balance.id === waiveSelectedBalanceId;
+        return `
+        <tr class="waive-balance-row${selected ? " waive-balance-row--selected" : ""}" data-balance-id="${escapeHtml(balance.id)}" tabindex="0" role="button" aria-pressed="${selected}">
+          <td>
+            <span class="outstanding-tenant__name">${escapeHtml(balance.name)}</span>
+            <span class="outstanding-tenant__id">${escapeHtml(balance.id)}</span>
+          </td>
+          <td><span class="estate-name">${escapeHtml(estateShortName(balance.estate))}</span></td>
+          <td><span class="house-number">${escapeHtml(balance.house)}</span></td>
+          <td><span class="phone-number">${formatPhone(balance.phone)}</span></td>
+          <td><div class="month-list">${balance.pendingMonths.map((pendingMonth) => `<span class="month-chip">${escapeHtml(pendingMonth)}</span>`).join("")}</div></td>
+          <td class="text-right"><span class="outstanding-amount">${formatOutstandingAmount(balance.outstanding)}</span></td>
+        </tr>`;
+      })
+      .join("");
+  }
+
+  function syncWaiveSelectionUI() {
+    const hasSelection = !!waiveSelectedTenant;
+    waiveBalanceFormEmpty?.toggleAttribute("hidden", hasSelection);
+    waiveBalanceForm?.toggleAttribute("hidden", !hasSelection);
+  }
+
+  function getOutstandingBalanceForTenant(tenant) {
+    if (!tenant) return null;
+    const tenantKey = tenant.tenantId || tenant.id;
+    return outstandingBalances.find((balance) => balance.id === tenantKey) || null;
+  }
+
+  function computeWaiveAmountFromSelection() {
+    const balance = getOutstandingBalanceForTenant(waiveSelectedTenant);
+    if (!balance) return 0;
+
+    const selectedMonths = getSelectedWaiveMonths();
+    if (!selectedMonths.length) return 0;
+
+    const monthAmounts = balance.monthAmounts || {};
+    return selectedMonths.reduce((sum, month) => sum + (Number(monthAmounts[month]) || 0), 0);
+  }
+
+  function syncWaiveAmountFromSelection() {
+    const amount = computeWaiveAmountFromSelection();
+    if (waiveAmountInput) {
+      waiveAmountInput.value = amount ? formatDigitsWithCommas(String(amount)) : "0";
+    }
+  }
+
+  function fillWaiveTenantInfo(tenant, balance) {
+    const nameEl = document.getElementById("waiveTenantName");
+    const estateEl = document.getElementById("waiveTenantEstate");
+    const unitEl = document.getElementById("waiveTenantUnit");
+    const outstandingEl = document.getElementById("waiveTenantOutstanding");
+    if (nameEl) nameEl.textContent = tenant?.name || "—";
+    if (estateEl) estateEl.textContent = estateShortName(tenant?.estate) || "—";
+    if (unitEl) unitEl.textContent = tenant?.unit || tenant?.house || "—";
+    if (outstandingEl) {
+      outstandingEl.textContent = balance
+        ? formatOutstandingAmount(balance.outstanding)
+        : "UGX 0";
+    }
+  }
+
+  function populateWaiveRentMonthOptions(months) {
+    if (!waiveRentMonthMultiSelect) return;
+
+    const items = months.map((month) => ({ value: month, label: month }));
+    waiveRentMonthMultiSelect.setItems(items);
+    waiveRentMonthMultiSelect.setDisabled(!months.length);
+    if (months.length) waiveRentMonthMultiSelect.setValues(months);
+  }
+
+  function renderWaiveBalanceSummary() {
+    if (!waiveBalanceSummary) return;
+
+    if (!waiveSelectedTenant) {
+      waiveBalanceSummary.innerHTML = `
+        <p class="waive-balance-summary__empty">
+          <span class="material-symbols-outlined icon icon--empty">touch_app</span>
+          Select a balance to waive
+        </p>`;
+      return;
+    }
+
+    const balance = getOutstandingBalanceForTenant(waiveSelectedTenant);
+    const rentMonths = getSelectedWaiveMonths();
+    const rentMonthsDisplay = rentMonths.length
+      ? `<div class="month-list month-list--summary">${rentMonths.map((month) => `<span class="month-chip">${escapeHtml(month)}</span>`).join("")}</div>`
+      : "—";
+    const reason = waiveReasonInput?.value.trim() || "";
+    const approvedBy = waiveApprovedByInput?.value.trim() || "—";
+    const waiveAmount = computeWaiveAmountFromSelection();
+    const amountDisplay = waiveAmount > 0 ? formatOutstandingAmount(waiveAmount) : "—";
+
+    waiveBalanceSummary.innerHTML = `
+      <div class="waive-balance-summary__row">
+        <span class="waive-balance-summary__label">Tenant</span>
+        <span class="waive-balance-summary__value">${escapeHtml(waiveSelectedTenant.name)}</span>
+      </div>
+      <div class="waive-balance-summary__row">
+        <span class="waive-balance-summary__label">Pending months</span>
+        <span class="waive-balance-summary__value">${balance?.pendingMonths?.length || 0}</span>
+      </div>
+      <div class="waive-balance-summary__row">
+        <span class="waive-balance-summary__label">Total outstanding</span>
+        <span class="waive-balance-summary__value">${formatOutstandingAmount(balance?.outstanding || 0)}</span>
+      </div>
+      <div class="waive-balance-summary__row">
+        <span class="waive-balance-summary__label">Rent months</span>
+        <span class="waive-balance-summary__value">${rentMonthsDisplay}</span>
+      </div>
+      <div class="waive-balance-summary__row">
+        <span class="waive-balance-summary__label">Amount to waive</span>
+        <span class="waive-balance-summary__value waive-balance-summary__value--amount">${amountDisplay}</span>
+      </div>
+      <div class="waive-balance-summary__row">
+        <span class="waive-balance-summary__label">Approved by</span>
+        <span class="waive-balance-summary__value">${escapeHtml(approvedBy)}</span>
+      </div>
+      ${reason ? `<p class="waive-balance-summary__note">${escapeHtml(reason)}</p>` : ""}`;
+  }
+
+  function canSubmitWaiveBalance() {
+    if (!waiveSelectedTenant) return false;
+    if (!getSelectedWaiveMonths().length) return false;
+    if (!waiveReasonInput?.value.trim()) return false;
+    return computeWaiveAmountFromSelection() > 0;
+  }
+
+  function syncWaiveSubmitState() {
+    if (waiveBalanceSubmit) waiveBalanceSubmit.disabled = !canSubmitWaiveBalance();
+    renderWaiveBalanceSummary();
+  }
+
+  function resetWaiveBalanceForm() {
+    waiveSelectedTenant = null;
+    waiveSelectedBalanceId = null;
+    fillWaiveTenantInfo(null, null);
+    populateWaiveRentMonthOptions([]);
+    if (waiveAmountInput) waiveAmountInput.value = "0";
+    if (waiveReasonInput) waiveReasonInput.value = "";
+    if (waiveApprovedByInput) waiveApprovedByInput.value = "";
+    syncWaiveSelectionUI();
+    renderWaiveBalancesList();
+    syncWaiveSubmitState();
+  }
+
+  function chooseWaiveBalance(balance) {
+    if (!balance) return;
+    const tenant = findTenantForBalance(balance);
+    waiveSelectedTenant = tenant;
+    waiveSelectedBalanceId = balance.id;
+    fillWaiveTenantInfo(tenant, balance);
+    populateWaiveRentMonthOptions(balance.pendingMonths || []);
+    syncWaiveAmountFromSelection();
+    syncWaiveSelectionUI();
+    renderWaiveBalancesList();
+    syncWaiveSubmitState();
+  }
+
+  function initWaiveBalanceForm() {
+    if (waiveBalanceInitialized) return;
+
+    waiveRentMonthMultiSelect = initMultiSelect(
+      {
+        container: document.getElementById("waiveRentMonthSelect"),
+        trigger: waiveRentMonthTrigger,
+        menu: waiveRentMonthMenu,
+        display: document.getElementById("waiveRentMonthDisplay"),
+        hidden: waiveRentMonthHidden,
+      },
+      [],
+      "All pending months",
+      "Select rent months"
+    );
+    waiveRentMonthMultiSelect.setDisabled(true);
+
+    waiveBalancesSearchInput?.addEventListener("input", renderWaiveBalancesList);
+
+    document.getElementById("waiveBalancesTable")?.addEventListener("click", (e) => {
+      const row = e.target.closest(".waive-balance-row");
+      if (!row) return;
+      const balance = outstandingBalances.find((item) => item.id === row.dataset.balanceId);
+      if (balance) chooseWaiveBalance(balance);
+    });
+
+    document.getElementById("waiveBalancesTable")?.addEventListener("keydown", (e) => {
+      const row = e.target.closest(".waive-balance-row");
+      if (!row) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        const balance = outstandingBalances.find((item) => item.id === row.dataset.balanceId);
+        if (balance) chooseWaiveBalance(balance);
+      }
+    });
+
+    waiveRentMonthHidden?.addEventListener("change", () => {
+      syncWaiveAmountFromSelection();
+      syncWaiveSubmitState();
+    });
+    waiveReasonInput?.addEventListener("input", syncWaiveSubmitState);
+    waiveApprovedByInput?.addEventListener("input", syncWaiveSubmitState);
+
+    waiveBalanceForm?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (!canSubmitWaiveBalance()) {
+        syncWaiveSubmitState();
+        return;
+      }
+
+      const balance = getOutstandingBalanceForTenant(waiveSelectedTenant);
+      const selectedMonths = getSelectedWaiveMonths();
+      const waiveAmount = computeWaiveAmountFromSelection();
+      if (waiveAmount <= 0) {
+        alert("Please select at least one rent month with an outstanding balance.");
+        return;
+      }
+
+      if (!selectedMonths.length) {
+        alert("Please select at least one rent month to waive.");
+        return;
+      }
+
+      if (!waiveReasonInput?.value.trim()) {
+        alert("Please enter a reason for this waiver.");
+        waiveReasonInput?.focus();
+        return;
+      }
+
+      const monthAmounts = balance?.monthAmounts || {};
+      const waiveBase = {
+        date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+        tenantId: waiveSelectedTenant.tenantId || waiveSelectedTenant.id || "",
+        tenantName: waiveSelectedTenant.name,
+        estate: waiveSelectedTenant.estate || balance?.estate || "",
+        house: waiveSelectedTenant.unit || waiveSelectedTenant.house || balance?.house || "",
+        reason: waiveReasonInput.value.trim(),
+        approvedBy: waiveApprovedByInput?.value.trim() || "—",
+      };
+
+      // Each waived month is its own payment — one payment per month, never
+      // stacked into a single combined record.
+      const newWaivers = selectedMonths.map((month) => ({
+        ...waiveBase,
+        rentMonth: month,
+        amount: Number(monthAmounts[month]) || 0,
+      }));
+      waivedPayments.unshift(...newWaivers);
+
+      navigateToView("waived-payments");
+    });
+
+    syncWaiveSelectionUI();
+    waiveBalanceInitialized = true;
+  }
+
+  initWaiveBalanceForm();
 
   paymentForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -5075,15 +5613,18 @@
     return labels ? labels.includes(paymentMethod) : paymentMethod === methodValue;
   }
 
-  function initMultiSelect(els, items, allLabel) {
+  function initMultiSelect(els, items, allLabel, emptyLabel) {
     if (!els.container || !els.menu) return null;
 
+    let itemsList = items;
+    let placeholderLabel = allLabel;
+    let emptyLabelText = emptyLabel || allLabel;
     let selected = new Set();
     let isOpen = false;
 
     function render() {
       els.menu.innerHTML = "";
-      items.forEach((item) => {
+      itemsList.forEach((item) => {
         const label = document.createElement("label");
         label.className = "multi-select__item" + (selected.has(item.value) ? " multi-select__item--checked" : "");
         const cb = document.createElement("input");
@@ -5106,7 +5647,15 @@
     function sync() {
       const arr = [...selected];
       els.hidden.value = arr.join(",");
-      els.display.textContent = arr.length === 0 ? allLabel : arr.length === items.length ? allLabel : `${arr.length} selected`;
+      if (arr.length === 0) {
+        els.display.textContent = emptyLabelText;
+      } else if (itemsList.length > 0 && arr.length === itemsList.length) {
+        els.display.textContent = placeholderLabel;
+      } else if (arr.length === 1) {
+        els.display.textContent = arr[0];
+      } else {
+        els.display.textContent = `${arr.length} selected`;
+      }
       els.hidden.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
@@ -5124,6 +5673,16 @@
       getSelected() { return [...selected]; },
       clear() { selected.clear(); sync(); render(); },
       setValues(values) { selected = new Set(values); sync(); render(); },
+      setItems(newItems) {
+        itemsList = newItems;
+        selected.clear();
+        render();
+        sync();
+      },
+      setDisabled(disabled) {
+        els.trigger.disabled = disabled;
+        if (disabled) close();
+      },
     };
   }
 

@@ -117,7 +117,7 @@ html.is-electron.platform-darwin .sidebar {
 }
 
 html.is-electron.platform-darwin .sidebar__toggle {
-  top: var(--mac-window-controls-height);
+  top: calc(var(--mac-window-controls-height) + 20px);
 }
 
 /* ── Sidebar ── */
@@ -142,7 +142,7 @@ html.is-electron.platform-darwin .sidebar__toggle {
 /* Floating circular collapse toggle on the sidebar edge */
 .sidebar__toggle {
   position: absolute;
-  top: 18px;
+  top: 42px;
   right: 0;
   z-index: 1;
   width: 36px;
@@ -265,11 +265,16 @@ html.is-electron.platform-darwin .sidebar__toggle {
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
   padding: 10px 12px;
+  border: 0;
   border-radius: var(--radius-md);
+  background: transparent;
+  font-family: var(--font);
   font-size: 14px;
   font-weight: 500;
   color: var(--gray-700);
+  cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
   transition: background 0.15s, color 0.15s;
@@ -281,9 +286,19 @@ html.is-electron.platform-darwin .sidebar__toggle {
 }
 
 .sidebar__link--active {
-  background: var(--green-50);
-  color: var(--green-800);
+  background: var(--green-100);
+  color: var(--green-900);
   font-weight: 600;
+}
+
+.sidebar__link--active .icon,
+.sidebar__link--active .sidebar__parent-arrow {
+  color: var(--green-900);
+}
+
+.sidebar__link--active:hover {
+  background: var(--green-100);
+  color: var(--green-900);
 }
 
 .sidebar__link--settings {
@@ -302,6 +317,48 @@ html.is-electron.platform-darwin .sidebar__toggle {
   transition: opacity 0.2s ease;
 }
 
+.sidebar__group {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar__link--parent {
+  justify-content: flex-start;
+}
+
+.sidebar__parent-arrow {
+  margin-left: auto;
+  color: var(--gray-500);
+  font-size: 18px;
+  transition: transform 0.16s ease, opacity 0.2s ease;
+}
+
+.sidebar__group--open .sidebar__parent-arrow {
+  transform: rotate(180deg);
+}
+
+.sidebar__submenu {
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 0 4px 32px;
+}
+
+.sidebar__group--open .sidebar__submenu {
+  display: flex;
+}
+
+.sidebar__sub-link {
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.sidebar__sub-link .icon {
+  font-size: 18px;
+}
+
 /* ── Collapsed state ── */
 
 .sidebar--collapsed {
@@ -315,7 +372,8 @@ html.is-electron.platform-darwin .sidebar__toggle {
 }
 
 .sidebar--collapsed .sidebar__brand-text,
-.sidebar--collapsed .sidebar__link-text {
+.sidebar--collapsed .sidebar__link-text,
+.sidebar--collapsed .sidebar__parent-arrow {
   opacity: 0;
   width: 0;
   pointer-events: none;
@@ -325,6 +383,10 @@ html.is-electron.platform-darwin .sidebar__toggle {
   justify-content: center;
   padding-left: 0;
   padding-right: 0;
+}
+
+.sidebar--collapsed .sidebar__submenu {
+  display: none;
 }
 
 .sidebar--collapsed .sidebar__link--settings {
@@ -845,7 +907,7 @@ body.sidebar-open {
   display: block;
 }
 
-/* ── Page header (Payment Entry) ── */
+/* ── Page header (Record a Payment) ── */
 
 .page-content {
   padding: 28px 32px 40px;
@@ -1601,7 +1663,22 @@ body.sidebar-open {
 }
 
 .receipt-paper__line--signature {
-  min-height: 28px;
+  position: relative;
+  min-height: 64px;
+  overflow: visible;
+}
+
+.receipt-paper__signature {
+  position: absolute;
+  left: 8px;
+  bottom: -8px;
+  width: auto;
+  height: 76px;
+  max-width: 128px;
+  object-fit: contain;
+  object-position: left bottom;
+  pointer-events: none;
+  user-select: none;
 }
 
 .receipt-paper__amount-row {
@@ -1677,16 +1754,16 @@ body.sidebar-open {
   justify-content: center;
 }
 
-/* ── Payment Entry: single-screen lock (scoped to this view only) ── */
+/* ── Record a Payment: single-screen lock (scoped to this view only) ── */
 
-/* Lock the main column to the viewport ONLY while Payment Entry is active.
+/* Lock the main column to the viewport ONLY while Record a Payment is active.
    Dashboard / Receipts keep their normal scrolling behaviour. */
 .main:has(#view-payment-entry.view--active) {
   height: 100vh;
   overflow: hidden;
 }
 
-/* Keep Payment Entry as a fixed, single-screen workspace. */
+/* Keep Record a Payment as a fixed, single-screen workspace. */
 #view-payment-entry.view--active {
   flex: 1;
   min-height: 0;
@@ -1784,10 +1861,16 @@ body.sidebar-open {
   gap: 16px;
 }
 
-.form-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--gray-700);
+.form-input--readonly,
+.form-input[readonly] {
+  background: var(--gray-50);
+  color: var(--gray-800);
+  cursor: default;
+}
+
+.waive-balance-form-card .form-input--readonly {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .form-input-wrap {
@@ -2734,31 +2817,26 @@ body.sidebar-open {
 }
 
 .outstanding-stat-card__icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-sm);
-  display: grid;
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
-  place-items: center;
+  justify-content: center;
 }
 
 .outstanding-stat-card__icon .material-symbols-outlined {
-  font-size: 21px;
+  font-size: 24px;
 }
 
 .outstanding-stat-card__icon--danger {
   color: var(--red-600);
-  background: var(--red-50);
 }
 
 .outstanding-stat-card__icon--blue {
   color: var(--blue-600);
-  background: var(--blue-50);
 }
 
 .outstanding-stat-card__icon--neutral {
   color: var(--gray-700);
-  background: var(--gray-50);
 }
 
 .outstanding-report-card {
@@ -2771,6 +2849,60 @@ body.sidebar-open {
   justify-content: space-between;
   gap: 20px;
   padding: 8px 24px 5px;
+}
+
+.outstanding-action-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.outstanding-action-menu__trigger {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.outstanding-action-menu__trigger:hover {
+  background: var(--gray-50);
+  border-color: var(--gray-300);
+}
+
+.outstanding-action-menu__trigger:focus-visible,
+.outstanding-action-menu__trigger[aria-expanded="true"] {
+  border-color: var(--green-800);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(45, 90, 67, 0.1);
+}
+
+.outstanding-action-menu__trigger .material-symbols-outlined {
+  font-size: 21px;
+}
+
+.outstanding-action-menu__menu {
+  left: auto;
+  right: 0;
+  min-width: 250px;
+}
+
+.outstanding-action-menu__item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: var(--font);
+  text-align: left;
+}
+
+.outstanding-action-menu__item.custom-select__option {
+  padding: 8px 10px;
+  font-size: 13px;
 }
 
 .outstanding-filters {
@@ -3004,6 +3136,205 @@ body.sidebar-open {
 
 .outstanding-table tbody tr:last-child td {
   border-bottom: none;
+}
+
+.waived-payments-back,
+.waive-balance-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  border: none;
+  background: transparent;
+  color: var(--green-800);
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0;
+}
+
+.waived-payments-back:hover,
+.waived-payments-back:focus-visible,
+.waive-balance-back:hover,
+.waive-balance-back:focus-visible {
+  color: var(--green-900);
+  outline: none;
+  text-decoration: underline;
+}
+
+.waived-payments-back .material-symbols-outlined,
+.waive-balance-back .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.waive-balance-layout {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.waive-balance-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.waive-balances-list-card__hint {
+  margin: 4px 0 0;
+  color: var(--gray-500);
+  font-size: 13px;
+}
+
+.waive-balances-filters {
+  padding-top: 0;
+}
+
+.waive-balances-table tbody tr.waive-balance-row {
+  cursor: pointer;
+}
+
+.waive-balances-table tbody tr.waive-balance-row:hover td,
+.waive-balances-table tbody tr.waive-balance-row:focus-visible td {
+  background: #f4f8f5;
+}
+
+.waive-balances-table tbody tr.waive-balance-row--selected td {
+  background: #edf6f0;
+}
+
+.waive-balances-table tbody tr.waive-balance-row:focus-visible {
+  outline: none;
+}
+
+.waive-balances-table tbody tr.waive-balance-row:focus-visible td:first-child {
+  box-shadow: inset 3px 0 0 var(--green-700);
+}
+
+.waive-balance-form-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 220px;
+  padding: 24px;
+  color: var(--gray-500);
+  font-size: 13px;
+  text-align: center;
+}
+
+.waive-balance-form-empty[hidden] {
+  display: none;
+}
+
+.waive-balance-form-empty .icon--empty {
+  font-size: 28px;
+  color: var(--gray-400);
+}
+
+.waive-balance-form-empty p {
+  margin: 0;
+}
+
+.waive-balance-form-card .form-group--full {
+  grid-column: 1 / -1;
+}
+
+.waive-balance-form-card .multi-select {
+  width: 100%;
+}
+
+.month-list--summary {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.waive-balance-form-card {
+  overflow: visible;
+}
+
+.waive-balance-summary-card {
+  min-height: 280px;
+}
+
+.waive-balance-summary {
+  padding: 0 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.waive-balance-summary__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 180px;
+  margin: 0;
+  color: var(--gray-500);
+  font-size: 13px;
+  text-align: center;
+}
+
+.waive-balance-summary__empty .icon--empty {
+  font-size: 28px;
+  color: var(--gray-400);
+}
+
+.waive-balance-summary__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.waive-balance-summary__row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.waive-balance-summary__label {
+  color: var(--gray-500);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.waive-balance-summary__value {
+  color: var(--gray-900);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.waive-balance-summary__value--amount {
+  color: var(--green-800);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.waive-balance-summary__note {
+  margin: 4px 0 0;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--gray-50);
+  color: var(--gray-700);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.waived-payments-table {
+  min-width: 1040px;
+}
+
+.waived-payment-amount {
+  color: var(--green-800);
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .outstanding-tenant__name {
@@ -4250,7 +4581,8 @@ body.sidebar-open {
 
 @media (max-width: 1200px) {
   .analytics-row,
-  .payment-layout {
+  .payment-layout,
+  .waive-balance-layout {
     grid-template-columns: 1fr;
   }
 
@@ -4414,7 +4746,8 @@ body.sidebar-open {
   }
 
   .sidebar--collapsed .sidebar__brand-text,
-  .sidebar--collapsed .sidebar__link-text {
+  .sidebar--collapsed .sidebar__link-text,
+  .sidebar--collapsed .sidebar__parent-arrow {
     opacity: 1;
     width: auto;
     pointer-events: auto;
@@ -4428,6 +4761,10 @@ body.sidebar-open {
 
   .sidebar--collapsed .sidebar__link--settings {
     border-radius: 0 0 var(--radius-md) var(--radius-md);
+  }
+
+  .sidebar--collapsed .sidebar__group--open .sidebar__submenu {
+    display: flex;
   }
 
   .sidebar--collapsed .sidebar__section {
