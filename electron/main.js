@@ -3,17 +3,21 @@
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const fs = require("fs");
 const path = require("path");
+const { resolveDataDir, seedDatabaseIfMissing } = require("./database-bootstrap");
 
 const IS_DEV = process.env.ELECTRON_DEV === "1";
 const PORT = process.env.PORT || 3000;
 const DB_FILENAME = "kimujjo_holdings_database.db";
 const IS_MAC = process.platform === "darwin";
-const MIN_IMPORTED_DATABASE_BYTES = 600 * 1024;
 
 let mainWindow = null;
 
 function setDataDir() {
-  process.env.RENTLEDGER_DATA_DIR = path.join(app.getPath("userData"), "data");
+  process.env.RENTLEDGER_DATA_DIR = resolveDataDir({
+    currentUserDataDir: app.getPath("userData"),
+    appDataDir: app.getPath("appData"),
+    dbFilename: DB_FILENAME,
+  });
 }
 
 function bundledDatabasePath() {
@@ -22,50 +26,13 @@ function bundledDatabasePath() {
     : path.join(__dirname, "..", "data", DB_FILENAME);
 }
 
-function hasSqliteHeader(dbPath) {
-  const header = Buffer.alloc(16);
-  const fd = fs.openSync(dbPath, "r");
-  try {
-    fs.readSync(fd, header, 0, header.length, 0);
-  } finally {
-    fs.closeSync(fd);
-  }
-
-  return header.toString("latin1") === "SQLite format 3\u0000";
-}
-
-function looksLikeLegacyBundledDatabase(dbPath) {
-  if (!fs.existsSync(dbPath)) return false;
-
-  const { size } = fs.statSync(dbPath);
-  return size > 0
-    && size < MIN_IMPORTED_DATABASE_BYTES
-    && hasSqliteHeader(dbPath);
-}
-
 function installDatabaseIfMissing() {
   const dataDir = process.env.RENTLEDGER_DATA_DIR;
-  const targetDb = path.join(dataDir, DB_FILENAME);
-  const bundledDb = bundledDatabasePath();
-
-  if (!fs.existsSync(bundledDb)) {
-    console.warn(`Bundled database not found at ${bundledDb}`);
-    return;
-  }
-
-  fs.mkdirSync(dataDir, { recursive: true });
-
-  if (!fs.existsSync(targetDb)) {
-    fs.copyFileSync(bundledDb, targetDb);
-    return;
-  }
-
-  if (looksLikeLegacyBundledDatabase(targetDb)) {
-    const backupPath = path.join(dataDir, `${DB_FILENAME}.legacy-backup`);
-    fs.copyFileSync(targetDb, backupPath);
-    fs.copyFileSync(bundledDb, targetDb);
-    console.warn(`Replaced legacy bundled database with current data. Backup: ${backupPath}`);
-  }
+  return seedDatabaseIfMissing({
+    dataDir,
+    bundledDb: bundledDatabasePath(),
+    dbFilename: DB_FILENAME,
+  });
 }
 
 async function createWindow() {
