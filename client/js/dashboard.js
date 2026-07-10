@@ -4743,7 +4743,7 @@
       });
     });
 
-    saveBtn?.addEventListener("click", () => {
+    saveBtn?.addEventListener("click", async () => {
       const payloads = collectMultiPaymentPayloads();
       const incomplete = payloads.filter(
         (p) => !p.tenantId || !p.date || !p.amount || !p.bankRef
@@ -4758,8 +4758,45 @@
         return;
       }
 
-      // UI-only for now — save wiring comes next.
-      setMultiPaymentMessage(`Ready to save ${payloads.length} payment${payloads.length === 1 ? "" : "s"}. Saving will be connected next.`);
+      const seenRefs = new Set();
+      for (let i = 0; i < payloads.length; i += 1) {
+        const ref = payloads[i].bankRef.toLowerCase();
+        if (seenRefs.has(ref)) {
+          setMultiPaymentMessage(`Row ${i + 1}: Duplicate bank reference in this batch.`);
+          return;
+        }
+        seenRefs.add(ref);
+      }
+
+      if (!apiLoaded) {
+        setMultiPaymentMessage("Database not connected.");
+        return;
+      }
+
+      saveBtn.disabled = true;
+      addRowBtn && (addRowBtn.disabled = true);
+      setMultiPaymentMessage("");
+
+      try {
+        const result = await RentLedgerApi.post("/api/payments/batch", {
+          payments: payloads.map(({ tenantId, date, amount, method, bankRef }) => ({
+            tenantId,
+            date,
+            amount,
+            method,
+            bankRef,
+          })),
+        });
+        await refreshFromApi();
+        closeMultiPaymentModal();
+        const count = result?.count || result?.payments?.length || payloads.length;
+        window.alert(`Successfully recorded ${count} payment${count === 1 ? "" : "s"}.`);
+      } catch (err) {
+        setMultiPaymentMessage(err?.message || "Could not save payments.");
+      } finally {
+        saveBtn.disabled = false;
+        if (addRowBtn) addRowBtn.disabled = false;
+      }
     });
 
     multiPaymentModalInitialized = true;

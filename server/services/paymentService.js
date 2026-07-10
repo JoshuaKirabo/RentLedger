@@ -90,13 +90,64 @@ function insertAllocatedPayment(data, allocation, receiptOptions = {}) {
   );
 }
 
+function createPaymentInTransaction(data) {
+  const tenant = requireTenant(data.tenantId);
+  const allocation = allocationService.computeAllocation(data.tenantId, data.amount);
+  const inserted = insertAllocatedPayment(data, allocation);
+  ledgerRepository.refreshReceiptBalancesForTenant(data.tenantId);
+  return buildPaymentResult(data, tenant, allocation, inserted);
+}
+
 function createPayment(data) {
+  return ledgerRepository.runInTransaction(() => createPaymentInTransaction(data));
+}
+
+const MAX_BATCH_PAYMENTS = 100;
+
+function createPayments(items) {
+  if (!Array.isArray(items) || !items.length) {
+    const err = new Error("At least one payment is required");
+    err.statusCode = 400;
+    throw err;
+  }
+  if (items.length > MAX_BATCH_PAYMENTS) {
+    const err = new Error(`Maximum ${MAX_BATCH_PAYMENTS} payments per batch`);
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const seenRefs = new Set();
+  for (let i = 0; i < items.length; i += 1) {
+    const ref = String(items[i].bankRef || "").trim().toLowerCase();
+    if (seenRefs.has(ref)) {
+      const err = new Error(`Row ${i + 1}: Duplicate bank reference in this batch`);
+      err.statusCode = 400;
+      throw err;
+    }
+    seenRefs.add(ref);
+  }
+
   return ledgerRepository.runInTransaction(() => {
-    const tenant = requireTenant(data.tenantId);
-    const allocation = allocationService.computeAllocation(data.tenantId, data.amount);
-    const inserted = insertAllocatedPayment(data, allocation);
-    ledgerRepository.refreshReceiptBalancesForTenant(data.tenantId);
-    return buildPaymentResult(data, tenant, allocation, inserted);
+    const results = [];
+    for (let i = 0; i < items.length; i += 1) {
+      try {
+        results.push(createPaymentInTransaction(items[i]));
+      } catch (err) {
+        if (err.code === "SQLITE_CONSTRAINT_UNIQUE") {
+          const conflict = new Error(`Row ${i + 1}: That bank reference is already used by another payment`);
+          conflict.statusCode = 409;
+          throw conflict;
+        }
+        if (!/^\s*Row\s+\d+:/i.test(err.message || "")) {
+          err.message = `Row ${i + 1}: ${err.message}`;
+        }
+        throw err;
+      }
+    }
+    return {
+      count: results.length,
+      payments: results,
+    };
   });
 }
 
@@ -154,4 +205,4 @@ function deletePayment(paymentId) {
   });
 }
 
-module.exports = { previewPayment, createPayment, updatePayment, deletePayment };
+module.exports = { previewPayment, createPayment, createPayments, updatePayment, deletePayment };

@@ -128,6 +128,31 @@ router.post("/", (req, res) => {
   }
 });
 
+router.post("/batch", (req, res) => {
+  try {
+    const rawPayments = req.body?.payments;
+    if (!Array.isArray(rawPayments) || !rawPayments.length) {
+      return res.status(400).json({ error: "payments array is required" });
+    }
+
+    const payments = rawPayments.map((item, index) => {
+      try {
+        return parsePaymentInput(item);
+      } catch (err) {
+        if (!/^\s*Row\s+\d+:/i.test(err.message || "")) {
+          err.message = `Row ${index + 1}: ${err.message}`;
+        }
+        throw err;
+      }
+    });
+
+    const result = paymentService.createPayments(payments);
+    return res.status(201).json(result);
+  } catch (err) {
+    return sendPaymentError(res, err);
+  }
+});
+
 router.put("/:paymentId", (req, res) => {
   try {
     const result = paymentService.updatePayment(
