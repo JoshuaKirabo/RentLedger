@@ -1,7 +1,11 @@
 "use strict";
 
 const PhoneNumbers = require("../../shared/phone");
-const { formatRentMonthLabel, OUTSTANDING_START_MONTH } = require("../lib/rentMonths");
+const {
+  formatRentMonthLabel,
+  formatRentPaymentPurpose,
+  OUTSTANDING_START_MONTH,
+} = require("../lib/rentMonths");
 const { amountInWords } = require("./amountInWords");
 
 function formatDisplayDate(isoDate) {
@@ -82,7 +86,7 @@ function toApiReceipts(receipts) {
       receiptDate: formatReceiptDate(r.date),
       receivedFrom: r.tenantName,
       amountWords: amountInWords(r.amount),
-      purpose: r.purpose,
+      purpose: formatRentPaymentPurpose(r.monthsCovered),
       paymentRef: r.paymentRef,
       balance: formatAmount(r.balance),
     };

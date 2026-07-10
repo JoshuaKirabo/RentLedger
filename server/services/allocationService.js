@@ -4,6 +4,7 @@ const ledgerRepository = require("../repositories/ledgerRepository");
 const {
   currentRentMonth,
   formatRentMonthLabel,
+  formatRentPaymentPurpose,
   nextRentMonth,
   monthFromDate,
 } = require("../lib/rentMonths");
@@ -99,10 +100,9 @@ function computeAllocation(tenantId, amount, options = {}) {
     0,
     outstandingBeforePayment - allocatedToOutstanding
   );
-  const monthsCovered = rows
-    .filter((row) => row.applied > 0)
-    .map((row) => row.month)
-    .join(", ");
+  const coveredRows = rows.filter((row) => row.applied > 0);
+  const monthsCovered = coveredRows.map((row) => row.month).join(", ");
+  const coveredRentMonths = coveredRows.map((row) => row.rentMonth);
 
   return {
     tenantId,
@@ -114,7 +114,7 @@ function computeAllocation(tenantId, amount, options = {}) {
     outstandingBalance,
     rows,
     monthsCovered,
-    purpose: monthsCovered ? `Rent for ${monthsCovered}` : "Rent payment",
+    purpose: formatRentPaymentPurpose(coveredRentMonths),
   };
 }
 
