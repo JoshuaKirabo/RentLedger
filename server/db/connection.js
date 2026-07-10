@@ -111,6 +111,55 @@ function migrateTenantProfileFields(db) {
   `);
 }
 
+function migrateReceiptBalance(db) {
+  addColumnIfMissing(
+    db,
+    "receipts",
+    "balance_after",
+    "balance_after INTEGER NOT NULL DEFAULT 0 CHECK (balance_after >= 0)"
+  );
+
+  // Imported receipts pre-date the stored balance field. Reconstruct their
+  // balance at the time of payment from the immutable allocation ledger.
+  db.prepare(`
+    UPDATE receipts
+    SET balance_after = COALESCE(
+      (
+        SELECT SUM(
+          ro.amount_due - COALESCE(
+            (
+              SELECT SUM(pa2.allocated_amount)
+              FROM payment_allocations pa2
+              JOIN payments p2 ON p2.payment_id = pa2.payment_id
+              WHERE pa2.rent_obligation_id = ro.rent_obligation_id
+                AND p2.payment_status = 'POSTED'
+                AND (
+                  p2.payment_date < receipt_payment.payment_date
+                  OR (
+                    p2.payment_date = receipt_payment.payment_date
+                    AND p2.payment_id <= receipt_payment.payment_id
+                  )
+                )
+            ),
+            0
+          )
+        )
+        FROM rent_obligations ro
+        JOIN tenancy_assignments ta ON ta.tenancy_id = ro.tenancy_id
+        WHERE ta.tenant_id = receipt_payment.tenant_id
+          AND ro.rent_month >= ?
+          AND ro.rent_month <= substr(receipt_payment.payment_date, 1, 7)
+      ),
+      0
+    )
+    FROM payments AS receipt_payment
+    WHERE receipts.payment_id = receipt_payment.payment_id
+      AND receipts.issued_by = 'IMPORT'
+      AND receipts.balance_after = 0
+      AND receipt_payment.payment_type IN ('RENT', 'MIXED')
+  `).run(OUTSTANDING_START_MONTH);
+}
+
 function applyScheduledMoveOuts(db) {
   db.prepare(`
     UPDATE tenancy_assignments
@@ -215,6 +264,7 @@ function migrate(db) {
       WHERE end_date IS NULL;
   `);
   migrateReceiptNumberFormat(db);
+  migrateReceiptBalance(db);
   migrateTenantProfileFields(db);
   recreateTenantInputView(db);
   waiveArrearsBeforeOutstandingStart(db);

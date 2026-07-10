@@ -263,6 +263,7 @@ CREATE TABLE receipts (
     receipt_number          TEXT NOT NULL UNIQUE,
     issued_at               TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     issued_by               TEXT NOT NULL DEFAULT 'SYSTEM',
+    balance_after           INTEGER NOT NULL DEFAULT 0 CHECK (balance_after >= 0),
 
     FOREIGN KEY (payment_id)
         REFERENCES payments(payment_id)
@@ -636,4 +637,3 @@ SELECT
         ELSE 'FULLY_PAID_UP'
     END AS account_category
 FROM v_current_tenant_directory d;
-

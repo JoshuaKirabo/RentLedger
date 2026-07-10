@@ -77,7 +77,7 @@ function toApiReceipts(receipts) {
       amountWords: amountInWords(r.amount),
       purpose: r.purpose,
       paymentRef: r.paymentRef,
-      balance: r.balance || "NIL",
+      balance: formatAmount(r.balance),
     };
   });
 }

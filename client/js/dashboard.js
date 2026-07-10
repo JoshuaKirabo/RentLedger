@@ -327,7 +327,7 @@
   let receipts = [];
   let receiptsLoadState = "loading";
   const RECEIPT_UNAVAILABLE_MESSAGE = "Unable to generate receipt";
-  const RECEIPT_SIGNATURE_SRC = "assets/signature.png";
+  const RECEIPT_SIGNATURE_TEXT = "HK";
   let selectedTenant = null;
   let apiLoaded = false;
   let tenantsLoadState = "loading";
@@ -3852,7 +3852,7 @@
       ? `${window.location.origin}/`
       : "";
     const baseTag = baseHref ? `<base href="${esc(baseHref)}">` : "";
-    const signatureSrc = esc(RECEIPT_SIGNATURE_SRC);
+    const signatureText = esc(RECEIPT_SIGNATURE_TEXT);
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -3861,6 +3861,13 @@
   ${baseTag}
   <title>Receipt ${no}</title>
   <style>
+    @font-face {
+      font-family: "League Script";
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+      src: url("fonts/league-script/league-script-400-normal.ttf") format("truetype");
+    }
     * { box-sizing: border-box; }
     body {
       margin: 0;
@@ -3998,12 +4005,12 @@
     .receipt-paper__signature {
       position: absolute;
       left: 8px;
-      bottom: -8px;
-      width: auto;
-      height: 76px;
-      max-width: 128px;
-      object-fit: contain;
-      object-position: left bottom;
+      bottom: -5px;
+      font-family: "League Script", cursive;
+      font-size: 56px;
+      font-weight: 400;
+      line-height: 1;
+      color: #202124;
       pointer-events: none;
       user-select: none;
     }
@@ -4065,7 +4072,7 @@
           <div class="receipt-paper__signed-row">
             <span class="receipt-paper__signed-label">Signed:</span>
             <span class="receipt-paper__line receipt-paper__line--signature">
-              <img class="receipt-paper__signature" src="${signatureSrc}" alt="">
+              <span class="receipt-paper__signature" aria-label="${signatureText}">${signatureText}</span>
             </span>
           </div>
           <span class="receipt-paper__signed-for">For: KIMUJO HOLDINGS LIMITED</span>

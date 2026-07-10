@@ -28,6 +28,7 @@ function createPayment(data) {
       amount: data.amount,
       method: data.method,
       bankRef: data.bankRef,
+      receiptBalance: allocation.outstandingBalance,
     },
     allocation.rows
   );
@@ -60,7 +61,7 @@ function createPayment(data) {
     amountWords: amountInWords(data.amount),
     purpose: data.purpose || allocation.purpose,
     paymentRef: data.bankRef || "",
-    balance: allocation.unallocated > 0 ? String(allocation.unallocated) : "NIL",
+    balance: String(allocation.outstandingBalance),
   };
 
   return { payment, receipt, allocation };

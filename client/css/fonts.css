@@ -1,6 +1,14 @@
 /* Self-hosted fonts for offline use */
 
 @font-face {
+  font-family: "League Script";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/league-script/league-script-400-normal.ttf") format("truetype");
+}
+
+@font-face {
   font-family: "Material Symbols Outlined";
   font-style: normal;
   font-weight: 400;

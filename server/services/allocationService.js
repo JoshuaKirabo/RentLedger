@@ -86,6 +86,17 @@ function computeAllocation(tenantId, amount) {
   }
 
   const allocatedTotal = rows.reduce((sum, row) => sum + row.applied, 0);
+  const outstandingBeforePayment = openObligations.reduce(
+    (sum, obligation) => sum + obligation.balance,
+    0
+  );
+  const allocatedToOutstanding = rows
+    .filter((row) => !row.isAdvance)
+    .reduce((sum, row) => sum + row.applied, 0);
+  const outstandingBalance = Math.max(
+    0,
+    outstandingBeforePayment - allocatedToOutstanding
+  );
   const monthsCovered = rows
     .filter((row) => row.applied > 0)
     .map((row) => row.month)
@@ -98,6 +109,7 @@ function computeAllocation(tenantId, amount) {
     totalAmount: amount,
     allocatedTotal,
     unallocated: remaining,
+    outstandingBalance,
     rows,
     monthsCovered,
     purpose: monthsCovered ? `Rent for ${monthsCovered}` : "Rent payment",

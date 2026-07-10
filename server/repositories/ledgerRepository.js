@@ -105,7 +105,7 @@ function getAllReceipts() {
         ),
         '—'
       ) AS monthsCovered,
-      'NIL' AS balance,
+      r.balance_after AS balance,
       'Pending' AS emailStatus,
       'Pending' AS smsStatus
     FROM receipts r
@@ -329,8 +329,13 @@ function insertPaymentWithReceipt(paymentData, allocationRows) {
   `);
 
   const insertReceipt = db.prepare(`
-    INSERT INTO receipts (payment_id, receipt_number, issued_at, issued_by)
-    VALUES (?, ?, ?, 'SYSTEM')
+    INSERT INTO receipts (
+      payment_id,
+      receipt_number,
+      issued_at,
+      issued_by,
+      balance_after
+    ) VALUES (?, ?, ?, 'SYSTEM', ?)
   `);
 
   const transaction = db.transaction(() => {
@@ -363,7 +368,12 @@ function insertPaymentWithReceipt(paymentData, allocationRows) {
       insertAllocation.run(paymentId, obligationId, row.applied);
     }
 
-    insertReceipt.run(paymentId, receiptNumber, `${paymentData.date}T09:00:00`);
+    insertReceipt.run(
+      paymentId,
+      receiptNumber,
+      `${paymentData.date}T09:00:00`,
+      paymentData.receiptBalance
+    );
 
     return { paymentId, receiptNumber, paymentReference };
   });
