@@ -4347,6 +4347,428 @@
     document.getElementById("editPaymentTenantTrigger")?.focus();
   }
 
+  /* ── Record multiple payments ── */
+
+  let multiPaymentModalInitialized = false;
+  let multiPaymentRows = [];
+  let multiPaymentRowIdSeq = 1;
+
+  const MULTI_PAYMENT_METHODS = [
+    { value: "bank", label: "Bank Deposit" },
+    { value: "mobile", label: "Mobile Money" },
+    { value: "agb", label: "Agency Banking" },
+  ];
+
+  function createMultiPaymentRow(overrides = {}) {
+    return {
+      id: multiPaymentRowIdSeq++,
+      date: toISODate(new Date()),
+      tenantId: "",
+      tenantName: "",
+      unit: "",
+      estate: "",
+      amount: "",
+      method: "bank",
+      bankRef: "",
+      ...overrides,
+    };
+  }
+
+  function setMultiPaymentMessage(text) {
+    const message = document.getElementById("multiPaymentFormMessage");
+    if (!message) return;
+    message.textContent = text || "";
+    message.hidden = !text;
+  }
+
+  function syncMultiPaymentRowsFromDom() {
+    const body = document.getElementById("multiPaymentTableBody");
+    if (!body) return;
+
+    body.querySelectorAll(".multi-payment-row").forEach((tr) => {
+      const id = Number(tr.dataset.rowId);
+      const row = multiPaymentRows.find((item) => item.id === id);
+      if (!row) return;
+
+      row.date = tr.querySelector('[data-field="date"]')?.value || "";
+      row.tenantName = tr.querySelector('[data-field="tenantName"]')?.value || "";
+      row.tenantId = tr.querySelector('[data-field="tenantId"]')?.value || "";
+      row.amount = tr.querySelector('[data-field="amount"]')?.value || "";
+      row.method = tr.querySelector('[data-field="method"]')?.value || "bank";
+      row.bankRef = tr.querySelector('[data-field="bankRef"]')?.value || "";
+    });
+  }
+
+  function updateMultiPaymentCount() {
+    const countEl = document.getElementById("multiPaymentCount");
+    if (!countEl) return;
+    const n = multiPaymentRows.length;
+    countEl.textContent = `${n} payment${n === 1 ? "" : "s"}`;
+  }
+
+  function renderMultiPaymentRow(row) {
+    const prefix = `multiPay${row.id}`;
+    const unit = row.unit || "—";
+    const estate = row.estate ? estateShortName(row.estate) || row.estate : "—";
+
+    return `
+      <tr class="multi-payment-row" data-row-id="${row.id}">
+        <td>${renderDraftDatePicker(`${prefix}Date`, row.date)}</td>
+        <td>
+          <div class="multi-payment-tenant tenant-search">
+            <div class="form-input-wrap">
+              <input
+                type="text"
+                class="form-input"
+                data-field="tenantName"
+                value="${escapeHtml(row.tenantName)}"
+                placeholder="Type tenant name..."
+                autocomplete="off"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded="false"
+                aria-controls="${prefix}TenantSuggest"
+              >
+              <input type="hidden" data-field="tenantId" value="${escapeHtml(row.tenantId)}">
+              <ul class="tenant-suggest" id="${prefix}TenantSuggest" role="listbox" aria-label="Tenant matches" hidden></ul>
+            </div>
+          </div>
+        </td>
+        <td class="multi-payment-cell-muted" data-field="unitDisplay">${escapeHtml(unit)}</td>
+        <td class="multi-payment-cell-muted" data-field="estateDisplay">${escapeHtml(estate)}</td>
+        <td class="text-right">
+          <input type="text" class="draft-input draft-input--amount text-right" data-field="amount" inputmode="numeric" value="${escapeHtml(row.amount)}" placeholder="0">
+        </td>
+        <td>${renderDraftSelect(`${prefix}Method`, "method", MULTI_PAYMENT_METHODS, row.method)}</td>
+        <td>
+          <input type="text" class="draft-input" data-field="bankRef" value="${escapeHtml(row.bankRef)}" placeholder="Reference" autocomplete="off">
+        </td>
+        <td>
+          <button type="button" class="multi-payment-remove" data-action="remove" data-row-id="${row.id}" aria-label="Remove row">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </td>
+      </tr>`;
+  }
+
+  function applyTenantToMultiPaymentRow(tr, tenant) {
+    const id = Number(tr.dataset.rowId);
+    const row = multiPaymentRows.find((item) => item.id === id);
+    if (!row) return;
+
+    row.tenantId = tenant?.tenantId || "";
+    row.tenantName = tenant?.name || "";
+    row.unit = tenant?.unit || tenant?.house || "";
+    row.estate = tenant?.estate || "";
+
+    const nameInput = tr.querySelector('[data-field="tenantName"]');
+    const idInput = tr.querySelector('[data-field="tenantId"]');
+    const unitCell = tr.querySelector('[data-field="unitDisplay"]');
+    const estateCell = tr.querySelector('[data-field="estateDisplay"]');
+
+    if (nameInput) nameInput.value = row.tenantName;
+    if (idInput) idInput.value = row.tenantId;
+    if (unitCell) unitCell.textContent = row.unit || "—";
+    if (estateCell) estateCell.textContent = row.estate ? estateShortName(row.estate) || row.estate : "—";
+  }
+
+  function clearTenantOnMultiPaymentRow(tr) {
+    const id = Number(tr.dataset.rowId);
+    const row = multiPaymentRows.find((item) => item.id === id);
+    if (row) {
+      row.tenantId = "";
+      row.unit = "";
+      row.estate = "";
+      row.tenantName = tr.querySelector('[data-field="tenantName"]')?.value || "";
+    }
+    const idInput = tr.querySelector('[data-field="tenantId"]');
+    const unitCell = tr.querySelector('[data-field="unitDisplay"]');
+    const estateCell = tr.querySelector('[data-field="estateDisplay"]');
+    if (idInput) idInput.value = "";
+    if (unitCell) unitCell.textContent = "—";
+    if (estateCell) estateCell.textContent = "—";
+  }
+
+  function initMultiPaymentTenantSearch(tr) {
+    const wrap = tr.querySelector(".multi-payment-tenant");
+    const input = tr.querySelector('[data-field="tenantName"]');
+    const list = wrap?.querySelector(".tenant-suggest");
+    if (!wrap || !input || !list) return;
+
+    let suggestions = [];
+    let activeIndex = -1;
+
+    function closeSuggestions() {
+      list.hidden = true;
+      list.innerHTML = "";
+      suggestions = [];
+      activeIndex = -1;
+      input.setAttribute("aria-expanded", "false");
+      input.removeAttribute("aria-activedescendant");
+    }
+
+    function openSuggestions() {
+      list.hidden = false;
+      input.setAttribute("aria-expanded", "true");
+    }
+
+    function setActive(index) {
+      const options = [...list.querySelectorAll(".tenant-suggest__option")];
+      activeIndex = index;
+      options.forEach((opt, i) => {
+        const active = i === index;
+        opt.classList.toggle("tenant-suggest__option--active", active);
+        opt.setAttribute("aria-selected", active ? "true" : "false");
+        if (active) input.setAttribute("aria-activedescendant", opt.id);
+      });
+    }
+
+    function renderSuggestions(query) {
+      activeIndex = -1;
+      if (!query.trim()) {
+        closeSuggestions();
+        return;
+      }
+
+      suggestions = getTenantMatches(query);
+      if (!suggestions.length) {
+        list.innerHTML = `<li class="tenant-suggest__empty">No tenants match "${escapeHtml(query.trim())}"</li>`;
+        openSuggestions();
+        return;
+      }
+
+      list.innerHTML = suggestions
+        .map((t, i) => {
+          const meta = [t.unit, estateShortName(t.estate)].filter((v) => v && v !== "—").join(" · ");
+          return `
+            <li class="tenant-suggest__option" role="option" id="multi-tenant-suggest-${tr.dataset.rowId}-${i}" data-index="${i}" aria-selected="false">
+              <span class="tenant-suggest__main">
+                <span class="tenant-suggest__name">${highlightMatch(t.name, query)}</span>
+                ${meta ? `<span class="tenant-suggest__meta">${escapeHtml(meta)}</span>` : ""}
+              </span>
+              <span class="tenant-suggest__id">${escapeHtml(t.tenantId || "")}</span>
+            </li>`;
+        })
+        .join("");
+      openSuggestions();
+    }
+
+    function chooseSuggestion(index) {
+      const tenant = suggestions[index];
+      if (!tenant) return;
+      applyTenantToMultiPaymentRow(tr, tenant);
+      closeSuggestions();
+    }
+
+    input.addEventListener("input", () => {
+      clearTenantOnMultiPaymentRow(tr);
+      renderSuggestions(input.value);
+    });
+
+    input.addEventListener("focus", () => {
+      if (input.value.trim() && !tr.querySelector('[data-field="tenantId"]')?.value) {
+        renderSuggestions(input.value);
+      }
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (list.hidden) return;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActive(Math.min(activeIndex + 1, suggestions.length - 1));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActive(Math.max(activeIndex - 1, 0));
+      } else if (e.key === "Enter" && activeIndex >= 0) {
+        e.preventDefault();
+        chooseSuggestion(activeIndex);
+      } else if (e.key === "Escape") {
+        closeSuggestions();
+      }
+    });
+
+    list.addEventListener("mousedown", (e) => {
+      const option = e.target.closest(".tenant-suggest__option");
+      if (!option) return;
+      e.preventDefault();
+      chooseSuggestion(Number(option.dataset.index));
+    });
+  }
+
+  function initMultiPaymentRowControls() {
+    const body = document.getElementById("multiPaymentTableBody");
+    if (!body) return;
+
+    body.querySelectorAll(".multi-payment-row").forEach((tr) => {
+      const id = tr.dataset.rowId;
+      const datePrefix = `multiPay${id}Date`;
+      const methodPrefix = `multiPay${id}Method`;
+
+      initDatePicker({
+        picker: document.getElementById(`${datePrefix}Picker`),
+        trigger: document.getElementById(`${datePrefix}Trigger`),
+        popover: document.getElementById(`${datePrefix}Popover`),
+        display: document.getElementById(`${datePrefix}Display`),
+        hidden: document.getElementById(`${datePrefix}Input`),
+        field: document.getElementById(`${datePrefix}Field`),
+        monthLabel: document.getElementById(`${datePrefix}MonthLabel`),
+        grid: document.getElementById(`${datePrefix}Grid`),
+        prevBtn: document.getElementById(`${datePrefix}Prev`),
+        nextBtn: document.getElementById(`${datePrefix}Next`),
+        todayBtn: document.getElementById(`${datePrefix}Today`),
+        cancelBtn: document.getElementById(`${datePrefix}Cancel`),
+        applyBtn: document.getElementById(`${datePrefix}Apply`),
+        placement: "below",
+        fixed: true,
+      });
+
+      initCustomSelect({
+        container: document.getElementById(`${methodPrefix}Select`),
+        trigger: document.getElementById(`${methodPrefix}Trigger`),
+        menu: document.getElementById(`${methodPrefix}Menu`),
+        display: document.getElementById(`${methodPrefix}Display`),
+        hidden: document.getElementById(`${methodPrefix}Input`),
+      });
+
+      initMultiPaymentTenantSearch(tr);
+    });
+  }
+
+  function renderMultiPaymentTable() {
+    const body = document.getElementById("multiPaymentTableBody");
+    if (!body) return;
+
+    if (!multiPaymentRows.length) {
+      body.innerHTML = `
+        <tr class="outstanding-empty">
+          <td colspan="8">
+            <span class="material-symbols-outlined">playlist_add</span>
+            Add a row to start recording payments.
+          </td>
+        </tr>`;
+      updateMultiPaymentCount();
+      return;
+    }
+
+    body.innerHTML = multiPaymentRows.map((row) => renderMultiPaymentRow(row)).join("");
+    initMultiPaymentRowControls();
+    updateMultiPaymentCount();
+  }
+
+  function closeMultiPaymentModal() {
+    const modal = document.getElementById("multiPaymentModal");
+    if (!modal) return;
+    modal.hidden = true;
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+    setMultiPaymentMessage("");
+  }
+
+  function openMultiPaymentModal() {
+    initMultiPaymentModalOnce();
+    const modal = document.getElementById("multiPaymentModal");
+    if (!modal) return;
+
+    multiPaymentRows = [createMultiPaymentRow(), createMultiPaymentRow(), createMultiPaymentRow()];
+    setMultiPaymentMessage("");
+    renderMultiPaymentTable();
+
+    modal.hidden = false;
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    document.querySelector("#multiPaymentTableBody [data-field='tenantName']")?.focus();
+  }
+
+  function collectMultiPaymentPayloads() {
+    syncMultiPaymentRowsFromDom();
+    return multiPaymentRows.map((row) => {
+      const amountDigits = String(row.amount || "").replace(/[^\d]/g, "");
+      return {
+        tenantId: row.tenantId,
+        tenantName: row.tenantName,
+        date: row.date,
+        amount: amountDigits ? Number(amountDigits) : 0,
+        method: row.method || "bank",
+        bankRef: String(row.bankRef || "").trim(),
+      };
+    });
+  }
+
+  function initMultiPaymentModalOnce() {
+    if (multiPaymentModalInitialized) return;
+
+    const modal = document.getElementById("multiPaymentModal");
+    const backdrop = document.getElementById("multiPaymentModalBackdrop");
+    const closeBtn = document.getElementById("multiPaymentModalClose");
+    const cancelBtn = document.getElementById("multiPaymentCancel");
+    const addRowBtn = document.getElementById("multiPaymentAddRow");
+    const saveBtn = document.getElementById("multiPaymentSave");
+    const body = document.getElementById("multiPaymentTableBody");
+    if (!modal || !body) return;
+
+    const close = () => closeMultiPaymentModal();
+    backdrop?.addEventListener("click", close);
+    closeBtn?.addEventListener("click", close);
+    cancelBtn?.addEventListener("click", close);
+
+    addRowBtn?.addEventListener("click", () => {
+      syncMultiPaymentRowsFromDom();
+      multiPaymentRows.push(createMultiPaymentRow());
+      renderMultiPaymentTable();
+      const rows = body.querySelectorAll(".multi-payment-row");
+      rows[rows.length - 1]?.querySelector('[data-field="tenantName"]')?.focus();
+    });
+
+    body.addEventListener("click", (e) => {
+      const removeBtn = e.target.closest('[data-action="remove"]');
+      if (!removeBtn) return;
+      const id = Number(removeBtn.dataset.rowId);
+      syncMultiPaymentRowsFromDom();
+      multiPaymentRows = multiPaymentRows.filter((row) => row.id !== id);
+      if (!multiPaymentRows.length) multiPaymentRows.push(createMultiPaymentRow());
+      renderMultiPaymentTable();
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!modal.contains(e.target) || modal.hidden) return;
+      modal.querySelectorAll(".multi-payment-tenant").forEach((wrap) => {
+        if (wrap.contains(e.target)) return;
+        const list = wrap.querySelector(".tenant-suggest");
+        const input = wrap.querySelector('[data-field="tenantName"]');
+        if (!list || list.hidden) return;
+        list.hidden = true;
+        list.innerHTML = "";
+        input?.setAttribute("aria-expanded", "false");
+        input?.removeAttribute("aria-activedescendant");
+      });
+    });
+
+    saveBtn?.addEventListener("click", () => {
+      const payloads = collectMultiPaymentPayloads();
+      const incomplete = payloads.filter(
+        (p) => !p.tenantId || !p.date || !p.amount || !p.bankRef
+      );
+
+      if (!payloads.length) {
+        setMultiPaymentMessage("Add at least one payment row.");
+        return;
+      }
+      if (incomplete.length) {
+        setMultiPaymentMessage("Fill in tenant, date, amount, and bank reference for every row before saving.");
+        return;
+      }
+
+      // UI-only for now — save wiring comes next.
+      setMultiPaymentMessage(`Ready to save ${payloads.length} payment${payloads.length === 1 ? "" : "s"}. Saving will be connected next.`);
+    });
+
+    multiPaymentModalInitialized = true;
+  }
+
+  document.getElementById("recordMultiplePaymentsBtn")?.addEventListener("click", () => {
+    openMultiPaymentModal();
+  });
+
   function renderReceiptsTable() {
     if (!receiptsTable) return;
     initReceiptSortOnce();
@@ -6269,14 +6691,48 @@
       // Reset any prior inline positioning before measuring.
       pop.style.left = "";
       pop.style.right = "";
-      pop.classList.remove("datepicker__popover--below");
+      pop.style.top = "";
+      pop.style.bottom = "";
+      pop.style.position = "";
+      pop.classList.remove("datepicker__popover--below", "datepicker__popover--fixed");
 
       const margin = 8;
       const triggerRect = els.trigger.getBoundingClientRect();
       const viewportWidth = document.documentElement.clientWidth;
       const viewportHeight = document.documentElement.clientHeight;
-      const popWidth = pop.offsetWidth;
-      const popHeight = pop.offsetHeight;
+      const popWidth = pop.offsetWidth || 260;
+      const popHeight = pop.offsetHeight || 320;
+
+      // Fixed mode escapes overflow:hidden ancestors (e.g. table cells / modals).
+      if (els.fixed) {
+        pop.classList.add("datepicker__popover--fixed");
+        pop.style.position = "fixed";
+
+        const spaceAbove = triggerRect.top;
+        const spaceBelow = viewportHeight - triggerRect.bottom;
+        const openBelow = els.placement === "below" ||
+          (els.placement !== "above" && spaceAbove < popHeight + margin && spaceBelow > spaceAbove);
+
+        let top = openBelow
+          ? triggerRect.bottom + 6
+          : triggerRect.top - popHeight - 6;
+        if (top + popHeight > viewportHeight - margin) {
+          top = Math.max(margin, viewportHeight - margin - popHeight);
+        }
+        if (top < margin) top = margin;
+
+        let left = triggerRect.left;
+        if (left + popWidth > viewportWidth - margin) {
+          left = viewportWidth - margin - popWidth;
+        }
+        if (left < margin) left = margin;
+
+        pop.style.top = `${Math.round(top)}px`;
+        pop.style.left = `${Math.round(left)}px`;
+        pop.style.right = "auto";
+        pop.style.bottom = "auto";
+        return;
+      }
 
       // Horizontal: clamp so the popover stays within the viewport. The
       // popover is absolutely positioned relative to the trigger's left edge.
@@ -6314,13 +6770,21 @@
       els.trigger.setAttribute("aria-expanded", "true");
       isOpen = true;
       window.addEventListener("resize", positionPopover);
+      if (els.fixed) window.addEventListener("scroll", positionPopover, true);
     }
 
     function close() {
       els.popover.hidden = true;
+      els.popover.style.left = "";
+      els.popover.style.right = "";
+      els.popover.style.top = "";
+      els.popover.style.bottom = "";
+      els.popover.style.position = "";
+      els.popover.classList.remove("datepicker__popover--below", "datepicker__popover--fixed");
       els.trigger.setAttribute("aria-expanded", "false");
       isOpen = false;
       window.removeEventListener("resize", positionPopover);
+      window.removeEventListener("scroll", positionPopover, true);
     }
 
     els.trigger.addEventListener("click", () => {

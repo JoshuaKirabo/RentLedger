@@ -217,6 +217,10 @@
             <article class="card payment-form-card">
               <div class="payment-form-card__header">
                 <h2 class="card__title">Record a Payment</h2>
+                <button type="button" class="btn btn--outline btn--icon" id="recordMultiplePaymentsBtn">
+                  <span class="material-symbols-outlined icon icon--btn">playlist_add</span>
+                  Record Multiple Payments
+                </button>
               </div>
 
               <form class="payment-form" id="paymentForm">
@@ -2045,6 +2049,61 @@
           </button>
         </footer>
       </form>
+    </div>
+  </div>
+
+  <!-- Record multiple payments modal -->
+  <div class="receipt-modal tenant-create-modal multi-payment-modal" id="multiPaymentModal" hidden aria-hidden="true">
+    <div class="receipt-modal__backdrop" id="multiPaymentModalBackdrop"></div>
+    <button type="button" class="receipt-modal__close" id="multiPaymentModalClose" aria-label="Close multiple payments form">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    <div class="receipt-modal__dialog multi-payment-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="multiPaymentModalTitle">
+      <div class="tenant-create-card multi-payment-card">
+        <header class="tenant-create-card__header">
+          <span class="tenant-create-card__icon material-symbols-outlined" aria-hidden="true">playlist_add</span>
+          <div>
+            <h2 class="tenant-create-card__title" id="multiPaymentModalTitle">Record multiple payments</h2>
+            <p class="tenant-create-card__subtitle">Enter several payments at once. Search for a tenant by name, then fill in the rest of the row.</p>
+          </div>
+        </header>
+
+        <div class="tenant-create-card__body multi-payment-card__body">
+          <p class="tenant-create-form__message" id="multiPaymentFormMessage" role="alert" aria-live="polite" hidden></p>
+          <div class="table-wrap multi-payment-table-wrap">
+            <table class="payments-table multi-payment-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Tenant Name</th>
+                  <th>Unit</th>
+                  <th>Estate</th>
+                  <th class="text-right">Amount (UGX)</th>
+                  <th>Method</th>
+                  <th>Bank Reference</th>
+                  <th aria-label="Actions"></th>
+                </tr>
+              </thead>
+              <tbody id="multiPaymentTableBody"></tbody>
+            </table>
+          </div>
+          <div class="multi-payment-card__toolbar">
+            <button type="button" class="btn btn--outline btn--icon" id="multiPaymentAddRow">
+              <span class="material-symbols-outlined icon icon--btn">add</span>
+              Add row
+            </button>
+            <span class="multi-payment-card__count" id="multiPaymentCount">0 payments</span>
+          </div>
+        </div>
+
+        <footer class="tenant-create-card__actions multi-payment-card__actions">
+          <button type="button" class="btn btn--outline" id="multiPaymentCancel">Cancel</button>
+          <button type="button" class="btn btn--primary btn--icon" id="multiPaymentSave">
+            <span class="material-symbols-outlined icon icon--btn">save</span>
+            Save Payments
+          </button>
+        </footer>
+      </div>
     </div>
   </div>
 

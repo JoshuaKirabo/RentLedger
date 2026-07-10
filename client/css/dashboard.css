@@ -1654,6 +1654,212 @@ body.sidebar-open {
   margin-right: auto;
 }
 
+/* ── Record multiple payments modal ── */
+
+.multi-payment-modal .receipt-modal__dialog,
+.multi-payment-modal__dialog {
+  max-width: min(1440px, calc(100vw - 32px));
+  width: 100%;
+}
+
+.multi-payment-card {
+  width: 100%;
+}
+
+.multi-payment-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  overflow: visible;
+}
+
+.multi-payment-table-wrap {
+  overflow: auto;
+  max-height: min(52vh, 520px);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  width: 100%;
+}
+
+.multi-payment-table-wrap:has(.tenant-suggest:not([hidden])),
+.multi-payment-table-wrap:has(.custom-select__menu:not([hidden])),
+.multi-payment-table-wrap:has(.datepicker__popover:not([hidden])) {
+  overflow: visible;
+}
+
+.multi-payment-table {
+  margin: 0;
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.multi-payment-table.payments-table thead th,
+.multi-payment-table.payments-table tbody td {
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-sizing: border-box;
+  padding: 8px 10px;
+}
+
+/* Keep interactive cells unclipped so dropdowns/calendars can render */
+.multi-payment-table.payments-table tbody td:nth-child(1),
+.multi-payment-table.payments-table tbody td:nth-child(2),
+.multi-payment-table.payments-table tbody td:nth-child(6) {
+  overflow: visible;
+}
+
+.multi-payment-table.payments-table thead th:nth-child(2),
+.multi-payment-table.payments-table tbody td:nth-child(2) {
+  text-align: left;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+/* Fixed proportional columns relative to the modal width */
+.multi-payment-table th:nth-child(1),
+.multi-payment-table td:nth-child(1) { width: 14%; } /* Date */
+.multi-payment-table th:nth-child(2),
+.multi-payment-table td:nth-child(2) { width: 22%; } /* Tenant Name */
+.multi-payment-table th:nth-child(3),
+.multi-payment-table td:nth-child(3) { width: 10%; } /* Unit */
+.multi-payment-table th:nth-child(4),
+.multi-payment-table td:nth-child(4) { width: 12%; } /* Estate */
+.multi-payment-table th:nth-child(5),
+.multi-payment-table td:nth-child(5) { width: 12%; } /* Amount */
+.multi-payment-table th:nth-child(6),
+.multi-payment-table td:nth-child(6) { width: 14%; } /* Method */
+.multi-payment-table th:nth-child(7),
+.multi-payment-table td:nth-child(7) { width: 12%; } /* Bank Reference */
+.multi-payment-table.payments-table thead th:nth-child(8),
+.multi-payment-table.payments-table tbody td:nth-child(8) {
+  width: 56px;
+  min-width: 56px;
+  padding-left: 8px;
+  padding-right: 12px;
+  text-align: center;
+  overflow: visible;
+}
+
+.multi-payment-row td {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.multi-payment-tenant {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+}
+
+.multi-payment-tenant .form-input-wrap {
+  width: 100%;
+  max-width: 100%;
+}
+
+.multi-payment-tenant .form-input {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px 8px;
+  font-size: 13px;
+  text-align: left;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.multi-payment-tenant .tenant-suggest {
+  z-index: 60;
+  width: max(100%, 280px);
+  max-width: min(360px, 70vw);
+}
+
+.multi-payment-cell-muted {
+  color: var(--gray-500);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.multi-payment-table .draft-input,
+.multi-payment-table .draft-input--amount {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.multi-payment-table .draft-datepicker,
+.multi-payment-table .draft-select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.multi-payment-table .draft-datepicker .datepicker__trigger,
+.multi-payment-table .draft-select .custom-select__trigger {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.multi-payment-table .datepicker__value,
+.multi-payment-table .custom-select__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.multi-payment-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--gray-500);
+  cursor: pointer;
+}
+
+.multi-payment-remove:hover {
+  background: transparent;
+  color: var(--gray-800);
+}
+
+.multi-payment-remove .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.multi-payment-card__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.multi-payment-card__count {
+  color: var(--gray-600);
+  font-size: 13px;
+}
+
+.multi-payment-card__actions {
+  justify-content: flex-end;
+}
+
 .receipt-paper {
   width: 100%;
   background: #fdf0f4;
@@ -1900,10 +2106,29 @@ body.sidebar-open {
 }
 
 .payment-form-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   padding: 20px 24px 0;
   border-bottom: 1px solid var(--gray-100);
   padding-bottom: 16px;
   margin-bottom: 0;
+}
+
+.payment-form-card__header .card__title {
+  margin: 0;
+}
+
+.payment-form-card__header .btn {
+  flex-shrink: 0;
+}
+
+@media (max-width: 720px) {
+  .payment-form-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 .payment-form-card {
@@ -2287,6 +2512,12 @@ body.sidebar-open {
 
 .datepicker__popover--below {
   top: calc(100% + 6px);
+  bottom: auto;
+}
+
+.datepicker__popover--fixed {
+  position: fixed;
+  z-index: 220;
   bottom: auto;
 }
 
