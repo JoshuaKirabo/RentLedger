@@ -974,15 +974,17 @@ body.sidebar-open {
   overflow: hidden;
 }
 
-#view-receipts.view--active > .page-content {
+#view-receipts.view--active > .page-content,
+#view-receipts.view--active > .receipts-page {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  padding: 0;
 }
 
-#view-receipts.view--active .receipts-table-card {
+#view-receipts.view--active .receipts-table-panel {
   flex: 1;
   min-height: 0;
   display: flex;
@@ -995,8 +997,24 @@ body.sidebar-open {
   flex-shrink: 0;
 }
 
-#view-receipts.view--active .receipts-table-card > .table-wrap,
-#view-receipts.view--active .receipts-table-card > .outstanding-table-wrap {
+#view-receipts.view--active .outstanding-report-card__header {
+  padding: 28px 16px 12px 40px;
+}
+
+#view-receipts.view--active .outstanding-report-card__header .card__title {
+  font-family: "Lato", var(--font);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+#view-receipts.view--active .outstanding-filters {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+#view-receipts.view--active .receipts-table-panel > .table-wrap,
+#view-receipts.view--active .receipts-table-panel > .outstanding-table-wrap {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -1006,9 +1024,11 @@ body.sidebar-open {
 
 #view-receipts.view--active .outstanding-report-card__footer {
   flex-shrink: 0;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
-.receipts-table-card__header {
+.receipts-table-panel__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1016,7 +1036,7 @@ body.sidebar-open {
   border-bottom: 1px solid var(--gray-100);
 }
 
-.receipts-table-card__tools {
+.receipts-table-panel__tools {
   display: flex;
   gap: 6px;
 }
