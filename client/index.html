@@ -1916,6 +1916,10 @@
       </div>
 
       <div class="receipt-modal__actions">
+        <button type="button" class="btn btn--outline btn--icon" id="receiptEditPaymentBtn">
+          <span class="material-symbols-outlined icon icon--btn">edit</span>
+          Edit Payment
+        </button>
         <button type="button" class="btn btn--green-outline btn--icon" id="receiptDownloadPdfBtn">
           <span class="material-symbols-outlined icon icon--btn">download</span>
           Download PDF
@@ -1925,6 +1929,122 @@
           Print Receipt
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- Edit payment modal -->
+  <div class="receipt-modal tenant-create-modal" id="editPaymentModal" hidden aria-hidden="true">
+    <div class="receipt-modal__backdrop" id="editPaymentModalBackdrop"></div>
+    <button type="button" class="receipt-modal__close" id="editPaymentModalClose" aria-label="Close edit payment form">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    <div class="receipt-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="editPaymentModalTitle">
+      <form class="tenant-create-card payment-edit-card" id="editPaymentForm">
+        <header class="tenant-create-card__header">
+          <span class="tenant-create-card__icon material-symbols-outlined" aria-hidden="true">edit_note</span>
+          <div>
+            <h2 class="tenant-create-card__title" id="editPaymentModalTitle">Edit payment</h2>
+            <p class="tenant-create-card__subtitle" id="editPaymentModalSubtitle">Correct the payment details. Rent balances and the receipt will be updated automatically.</p>
+          </div>
+        </header>
+
+        <div class="tenant-create-card__body">
+          <p class="tenant-create-form__message" id="editPaymentFormMessage" role="alert" aria-live="polite" hidden></p>
+          <div class="form-group payment-edit-card__tenant">
+            <label class="form-label" id="editPaymentTenantLabel" for="editPaymentTenantTrigger">Tenant <span class="form-label__required" aria-hidden="true">*</span></label>
+            <div class="custom-select tenant-create-select" id="editPaymentTenantSelect">
+              <button type="button" class="custom-select__trigger" id="editPaymentTenantTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="editPaymentTenantLabel editPaymentTenantDisplay">
+                <span class="custom-select__value" id="editPaymentTenantDisplay">Select tenant</span>
+                <span class="material-symbols-outlined icon icon--select" aria-hidden="true">expand_more</span>
+              </button>
+              <input type="hidden" id="editPaymentTenant" value="" required>
+              <ul class="custom-select__menu" id="editPaymentTenantMenu" role="listbox" hidden></ul>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="editPaymentDateTrigger">Payment date <span class="form-label__required" aria-hidden="true">*</span></label>
+              <div class="datepicker tenant-create-datepicker" id="editPaymentDatePicker">
+                <button type="button" class="datepicker__trigger" id="editPaymentDateTrigger" aria-haspopup="dialog" aria-expanded="false">
+                  <span class="material-symbols-outlined icon icon--input" aria-hidden="true">calendar_today</span>
+                  <span class="datepicker__value" id="editPaymentDateDisplay">Select date</span>
+                </button>
+                <input type="hidden" id="editPaymentDate" value="" required>
+                <div class="datepicker__popover" id="editPaymentDatePopover" role="dialog" aria-label="Choose payment date" hidden>
+                  <div class="datepicker__header">
+                    <button type="button" class="datepicker__nav-btn" id="editPaymentDatePrev" aria-label="Previous month"><span class="material-symbols-outlined">chevron_left</span></button>
+                    <span class="datepicker__month-label" id="editPaymentDateMonthLabel"></span>
+                    <button type="button" class="datepicker__nav-btn" id="editPaymentDateNext" aria-label="Next month"><span class="material-symbols-outlined">chevron_right</span></button>
+                  </div>
+                  <div class="datepicker__toolbar">
+                    <input type="text" class="datepicker__field" id="editPaymentDateField" readonly>
+                    <button type="button" class="datepicker__today-btn" id="editPaymentDateToday">Today</button>
+                  </div>
+                  <div class="datepicker__weekdays"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
+                  <div class="datepicker__grid" id="editPaymentDateGrid"></div>
+                  <div class="datepicker__footer">
+                    <button type="button" class="datepicker__btn datepicker__btn--cancel" id="editPaymentDateCancel">Cancel</button>
+                    <button type="button" class="datepicker__btn datepicker__btn--apply" id="editPaymentDateApply">Apply</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editPaymentAmount">Amount paid (UGX) <span class="form-label__required" aria-hidden="true">*</span></label>
+              <input class="form-input" id="editPaymentAmount" type="text" inputmode="numeric" autocomplete="off" maxlength="15" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" id="editPaymentMethodLabel" for="editPaymentMethodTrigger">Deposit channel <span class="form-label__required" aria-hidden="true">*</span></label>
+              <div class="custom-select tenant-create-select" id="editPaymentMethodSelect">
+                <button type="button" class="custom-select__trigger" id="editPaymentMethodTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="editPaymentMethodLabel editPaymentMethodDisplay">
+                  <span class="custom-select__value" id="editPaymentMethodDisplay">Bank Deposit</span>
+                  <span class="material-symbols-outlined icon icon--select" aria-hidden="true">expand_more</span>
+                </button>
+                <input type="hidden" id="editPaymentMethod" value="bank" required>
+                <ul class="custom-select__menu" id="editPaymentMethodMenu" role="listbox" hidden>
+                  <li class="custom-select__option custom-select__option--selected" role="option" data-value="bank" data-label="Bank Deposit" aria-selected="true">
+                    <span class="material-symbols-outlined icon icon--method">account_balance</span>
+                    Bank Deposit
+                  </li>
+                  <li class="custom-select__option" role="option" data-value="mobile" data-label="Mobile Money" aria-selected="false">
+                    <span class="material-symbols-outlined icon icon--method">smartphone</span>
+                    Mobile Money
+                  </li>
+                  <li class="custom-select__option" role="option" data-value="agb" data-label="Agency Banking" aria-selected="false">
+                    <span class="material-symbols-outlined icon icon--method">storefront</span>
+                    Agency Banking
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editPaymentBankRef">Bank reference <span class="form-label__required" aria-hidden="true">*</span></label>
+              <input class="form-input" id="editPaymentBankRef" type="text" autocomplete="off" required>
+            </div>
+          </div>
+
+          <p class="payment-edit-card__notice">
+            <span class="material-symbols-outlined" aria-hidden="true">info</span>
+            Saving recalculates the rent months covered. Deleting reverses this payment from the tenant's balance.
+          </p>
+        </div>
+
+        <footer class="tenant-create-card__actions payment-edit-card__actions">
+          <button type="button" class="btn btn--danger btn--icon payment-edit-card__delete" id="editPaymentDelete">
+            <span class="material-symbols-outlined icon icon--btn">delete</span>
+            Delete Payment
+          </button>
+          <button type="button" class="btn btn--outline" id="editPaymentCancel">Cancel</button>
+          <button type="submit" class="btn btn--primary btn--icon" id="editPaymentSave">
+            <span class="material-symbols-outlined icon icon--btn">save</span>
+            Save Changes
+          </button>
+        </footer>
+      </form>
     </div>
   </div>
 

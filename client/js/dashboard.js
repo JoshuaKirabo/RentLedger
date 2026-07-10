@@ -4156,6 +4156,196 @@
 
   let receiptModalInitialized = false;
   let activeReceipt = null;
+  let paymentEditModalInitialized = false;
+  let editingPayment = null;
+  let editPaymentTenantControl = null;
+  let editPaymentMethodControl = null;
+  let editPaymentDateControl = null;
+
+  function paymentMethodCode(receipt) {
+    if (receipt?.methodCode) return receipt.methodCode;
+    if (receipt?.method === "Bank Transfer") return "bank";
+    if (receipt?.method === "Mobile Money") return "mobile";
+    return "agb";
+  }
+
+  function paymentCanBeCorrected(receipt) {
+    return receipt?.canCorrect === true;
+  }
+
+  function initPaymentEditModalOnce() {
+    if (paymentEditModalInitialized) return;
+
+    const modal = document.getElementById("editPaymentModal");
+    const backdrop = document.getElementById("editPaymentModalBackdrop");
+    const closeBtn = document.getElementById("editPaymentModalClose");
+    const cancelBtn = document.getElementById("editPaymentCancel");
+    const deleteBtn = document.getElementById("editPaymentDelete");
+    const saveBtn = document.getElementById("editPaymentSave");
+    const form = document.getElementById("editPaymentForm");
+    const message = document.getElementById("editPaymentFormMessage");
+    if (!modal || !form) return;
+
+    function setMessage(text) {
+      if (!message) return;
+      message.textContent = text || "";
+      message.hidden = !text;
+    }
+
+    function closePaymentEditModal() {
+      modal.hidden = true;
+      modal.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+      editingPayment = null;
+      setMessage("");
+    }
+
+    async function deleteEditingPayment() {
+      if (!editingPayment) return;
+      const confirmed = window.confirm(
+        `Delete receipt ${editingPayment.receipt || editingPayment.no} for ${editingPayment.tenant}?\n\nThis will reverse the payment and recalculate the tenant's balance.`
+      );
+      if (!confirmed) return;
+
+      deleteBtn.disabled = true;
+      saveBtn.disabled = true;
+      setMessage("");
+      try {
+        await RentLedgerApi.del(`/api/payments/${editingPayment.paymentId}`);
+        await refreshFromApi();
+        closePaymentEditModal();
+        window.alert("Payment deleted. The tenant's balance has been updated.");
+      } catch (error) {
+        setMessage(error?.message || "Could not delete this payment.");
+      } finally {
+        deleteBtn.disabled = false;
+        saveBtn.disabled = false;
+      }
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!editingPayment) return;
+
+      const rawAmount = String(document.getElementById("editPaymentAmount")?.value || "").replace(/,/g, "");
+      const amount = Number(rawAmount);
+      if (!Number.isSafeInteger(amount) || amount <= 0 || amount > 999_999_999_999) {
+        setMessage(AMOUNT_VALIDATION_MESSAGE);
+        document.getElementById("editPaymentAmount")?.focus();
+        return;
+      }
+
+      const payload = {
+        tenantId: document.getElementById("editPaymentTenant")?.value,
+        date: document.getElementById("editPaymentDate")?.value,
+        amount,
+        method: document.getElementById("editPaymentMethod")?.value,
+        bankRef: document.getElementById("editPaymentBankRef")?.value.trim(),
+      };
+
+      if (!payload.tenantId || !payload.date || !payload.bankRef) {
+        setMessage("Tenant, payment date, amount, and bank reference are required.");
+        return;
+      }
+
+      deleteBtn.disabled = true;
+      saveBtn.disabled = true;
+      setMessage("");
+      try {
+        await RentLedgerApi.put(`/api/payments/${editingPayment.paymentId}`, payload);
+        await refreshFromApi();
+        closePaymentEditModal();
+        window.alert("Payment updated. The receipt and tenant balance have been recalculated.");
+      } catch (error) {
+        setMessage(error?.message || "Could not update this payment.");
+      } finally {
+        deleteBtn.disabled = false;
+        saveBtn.disabled = false;
+      }
+    });
+
+    backdrop?.addEventListener("click", closePaymentEditModal);
+    closeBtn?.addEventListener("click", closePaymentEditModal);
+    cancelBtn?.addEventListener("click", closePaymentEditModal);
+    deleteBtn?.addEventListener("click", deleteEditingPayment);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !modal.hidden) closePaymentEditModal();
+    });
+
+    editPaymentTenantControl = initCustomSelect({
+      container: document.getElementById("editPaymentTenantSelect"),
+      trigger: document.getElementById("editPaymentTenantTrigger"),
+      menu: document.getElementById("editPaymentTenantMenu"),
+      display: document.getElementById("editPaymentTenantDisplay"),
+      hidden: document.getElementById("editPaymentTenant"),
+    });
+
+    editPaymentMethodControl = initCustomSelect({
+      container: document.getElementById("editPaymentMethodSelect"),
+      trigger: document.getElementById("editPaymentMethodTrigger"),
+      menu: document.getElementById("editPaymentMethodMenu"),
+      display: document.getElementById("editPaymentMethodDisplay"),
+      hidden: document.getElementById("editPaymentMethod"),
+    });
+
+    editPaymentDateControl = initDatePicker({
+      picker: document.getElementById("editPaymentDatePicker"),
+      trigger: document.getElementById("editPaymentDateTrigger"),
+      popover: document.getElementById("editPaymentDatePopover"),
+      display: document.getElementById("editPaymentDateDisplay"),
+      hidden: document.getElementById("editPaymentDate"),
+      field: document.getElementById("editPaymentDateField"),
+      monthLabel: document.getElementById("editPaymentDateMonthLabel"),
+      grid: document.getElementById("editPaymentDateGrid"),
+      prevBtn: document.getElementById("editPaymentDatePrev"),
+      nextBtn: document.getElementById("editPaymentDateNext"),
+      todayBtn: document.getElementById("editPaymentDateToday"),
+      cancelBtn: document.getElementById("editPaymentDateCancel"),
+      applyBtn: document.getElementById("editPaymentDateApply"),
+    });
+
+    paymentEditModalInitialized = true;
+  }
+
+  function openPaymentEditModal(receipt) {
+    if (!receipt?.paymentId || !paymentCanBeCorrected(receipt)) {
+      window.alert("Only rent payments from December 2025 onward can be edited.");
+      return;
+    }
+    initPaymentEditModalOnce();
+
+    const modal = document.getElementById("editPaymentModal");
+    const subtitle = document.getElementById("editPaymentModalSubtitle");
+    if (!modal) return;
+
+    editingPayment = receipt;
+    const selectableTenants = tenants.filter((tenant) =>
+      tenant.tenantId === receipt.tenantId || tenant.status === "Active" || tenant.status === "Notice"
+    );
+    const tenantOptions = selectableTenants.map((tenant) => ({
+      value: tenant.tenantId,
+      label: tenant.name,
+    }));
+    if (!tenantOptions.some((option) => option.value === receipt.tenantId)) {
+      tenantOptions.unshift({
+        value: receipt.tenantId,
+        label: receipt.tenant,
+      });
+    }
+    editPaymentTenantControl?.setOptions(tenantOptions, { value: receipt.tenantId });
+    editPaymentDateControl?.setDate(receipt.dateIso || "");
+    document.getElementById("editPaymentAmount").value = Number(receipt.amountValue || parseReceiptAmount(receipt)).toLocaleString("en-UG");
+    editPaymentMethodControl?.setValue(paymentMethodCode(receipt));
+    document.getElementById("editPaymentBankRef").value = receipt.paymentRef || "";
+    if (subtitle) {
+      subtitle.textContent = `Receipt ${receipt.receipt || receipt.no} · ${receipt.tenant}`;
+    }
+
+    modal.hidden = false;
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    document.getElementById("editPaymentTenantTrigger")?.focus();
+  }
 
   function renderReceiptsTable() {
     if (!receiptsTable) return;
@@ -4216,7 +4406,7 @@
     receiptsTable.innerHTML = receiptsView
       .map(
         (r, i) => `
-        <tr class="receipts-table__row" data-receipt-index="${i}" tabindex="0" role="button" aria-label="View receipt ${r.receipt || r.no} for ${r.tenant}">
+        <tr class="receipts-table__row" data-receipt-index="${i}">
           <td>${r.date}</td>
           <td>${r.tenant}</td>
           <td>${r.unit}</td>
@@ -4228,7 +4418,14 @@
               ${r.method}
             </span>
           </td>
-          <td><span class="receipt-no">${r.receipt || r.no}</span></td>
+          <td>
+            <div class="receipt-cell">
+              <button type="button" class="receipt-no receipt-view-button" aria-label="View receipt ${r.receipt || r.no} for ${r.tenant}">${r.receipt || r.no}</button>
+              <button type="button" class="receipt-edit-button" data-payment-action="edit" data-receipt-index="${i}" aria-label="Edit payment ${r.receipt || r.no}" ${paymentCanBeCorrected(r) ? "" : 'disabled title="Only rent payments from December 2025 onward can be edited"'}>
+                <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+              </button>
+            </div>
+          </td>
         </tr>`
       )
       .join("");
@@ -4241,6 +4438,7 @@
     }
 
     initReceiptModalOnce();
+    initPaymentEditModalOnce();
     initReceiptFiltersOnce();
     syncReceiptClearButton();
   }
@@ -4251,6 +4449,7 @@
     const closeBtn = document.getElementById("receiptModalClose");
     const downloadBtn = document.getElementById("receiptDownloadPdfBtn");
     const printBtn = document.getElementById("receiptPrintBtn");
+    const editBtn = document.getElementById("receiptEditPaymentBtn");
     const fields = {
       date: document.getElementById("receiptModalDate"),
       no: document.getElementById("receiptModalNo"),
@@ -4274,6 +4473,7 @@
       const enabled = isReceiptDisplayable(receipt);
       if (downloadBtn) downloadBtn.disabled = !enabled;
       if (printBtn) printBtn.disabled = !enabled;
+      if (editBtn) editBtn.disabled = !enabled || !receipt?.paymentId || !paymentCanBeCorrected(receipt);
     }
 
     function showReceiptUnavailable() {
@@ -4324,17 +4524,16 @@
     }
 
     receiptsTable?.addEventListener("click", (e) => {
+      const editButton = e.target.closest("[data-payment-action='edit']");
+      if (editButton) {
+        e.preventDefault();
+        e.stopPropagation();
+        const editIndex = parseInt(editButton.dataset.receiptIndex, 10);
+        openPaymentEditModal(receiptsView[editIndex]);
+        return;
+      }
       const row = e.target.closest(".receipts-table__row");
       if (!row) return;
-      const index = parseInt(row.dataset.receiptIndex, 10);
-      openReceipt(receiptsView[index]);
-    });
-
-    receiptsTable?.addEventListener("keydown", (e) => {
-      if (e.key !== "Enter" && e.key !== " ") return;
-      const row = e.target.closest(".receipts-table__row");
-      if (!row) return;
-      e.preventDefault();
       const index = parseInt(row.dataset.receiptIndex, 10);
       openReceipt(receiptsView[index]);
     });
@@ -4353,6 +4552,13 @@
 
     printBtn?.addEventListener("click", () => {
       if (activeReceipt) printReceipt(activeReceipt);
+    });
+
+    editBtn?.addEventListener("click", () => {
+      if (!activeReceipt) return;
+      const receiptToEdit = activeReceipt;
+      closeReceipt();
+      openPaymentEditModal(receiptToEdit);
     });
 
     closeBtn.addEventListener("click", closeReceipt);

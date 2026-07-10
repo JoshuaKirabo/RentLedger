@@ -368,21 +368,31 @@ AFTER INSERT ON payment_allocations
 BEGIN
     UPDATE rent_obligations
     SET
-        allocated_amount = (
-            SELECT COALESCE(SUM(pa.allocated_amount), 0)
-            FROM payment_allocations pa
-            WHERE pa.rent_obligation_id = NEW.rent_obligation_id
-        ),
+        allocated_amount = CASE
+            WHEN rent_month < '2025-12' THEN amount_due
+            ELSE (
+                SELECT COALESCE(SUM(pa.allocated_amount), 0)
+                FROM payment_allocations pa
+                JOIN payments p ON p.payment_id = pa.payment_id
+                WHERE pa.rent_obligation_id = NEW.rent_obligation_id
+                  AND p.payment_status = 'POSTED'
+            )
+        END,
         status = CASE
+            WHEN rent_month < '2025-12' THEN 'PAID'
             WHEN (
                 SELECT COALESCE(SUM(pa.allocated_amount), 0)
                 FROM payment_allocations pa
+                JOIN payments p ON p.payment_id = pa.payment_id
                 WHERE pa.rent_obligation_id = NEW.rent_obligation_id
+                  AND p.payment_status = 'POSTED'
             ) = 0 THEN 'UNPAID'
             WHEN (
                 SELECT COALESCE(SUM(pa.allocated_amount), 0)
                 FROM payment_allocations pa
+                JOIN payments p ON p.payment_id = pa.payment_id
                 WHERE pa.rent_obligation_id = NEW.rent_obligation_id
+                  AND p.payment_status = 'POSTED'
             ) < amount_due THEN 'PARTIAL'
             ELSE 'PAID'
         END

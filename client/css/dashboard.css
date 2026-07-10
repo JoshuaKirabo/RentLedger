@@ -1078,13 +1078,13 @@ body.sidebar-open {
   color: var(--green-800);
 }
 
-.receipts-table thead th:nth-child(1) { width: 10%; }
-.receipts-table thead th:nth-child(2) { width: 18%; }
+.receipts-table thead th:nth-child(1) { width: 9%; }
+.receipts-table thead th:nth-child(2) { width: 17%; }
 .receipts-table thead th:nth-child(3) { width: 8%; }
-.receipts-table thead th:nth-child(4) { width: 14%; }
+.receipts-table thead th:nth-child(4) { width: 13%; }
 .receipts-table thead th:nth-child(5) { width: 12%; }
-.receipts-table thead th:nth-child(6) { width: 18%; }
-.receipts-table thead th:nth-child(7) { width: 14%; }
+.receipts-table thead th:nth-child(6) { width: 16%; }
+.receipts-table thead th:nth-child(7) { width: 21%; }
 
 .receipts-table tbody td {
   padding: 14px 16px;
@@ -1100,6 +1100,62 @@ body.sidebar-open {
 
 .receipts-table tbody tr.receipts-table__row {
   cursor: pointer;
+}
+
+.receipt-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.receipt-edit-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--gray-500);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.receipt-edit-button:hover,
+.receipt-edit-button:focus-visible {
+  color: var(--green-800);
+  outline: none;
+}
+
+.receipt-edit-button:focus-visible {
+  outline: 2px solid var(--green-700);
+  outline-offset: 2px;
+}
+
+.receipt-edit-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.receipt-edit-button:disabled:hover {
+  color: var(--gray-500);
+}
+
+.receipt-edit-button .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.receipt-view-button {
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font);
+}
+
+.receipt-view-button:focus-visible {
+  outline: 2px solid var(--green-700);
+  outline-offset: 3px;
 }
 
 .receipt-no {
@@ -1561,6 +1617,41 @@ body.sidebar-open {
   padding: 16px 28px;
   border-top: 1px solid var(--gray-100);
   background: var(--surface);
+}
+
+.payment-edit-card__tenant {
+  margin-bottom: 16px;
+}
+
+.payment-edit-card .custom-select__trigger,
+.payment-edit-card .datepicker__trigger {
+  width: 100%;
+}
+
+.payment-edit-card__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 18px 0 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--green-50);
+  color: var(--green-800);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.payment-edit-card__notice .material-symbols-outlined {
+  flex-shrink: 0;
+  font-size: 18px;
+}
+
+.payment-edit-card__actions {
+  align-items: center;
+}
+
+.payment-edit-card__delete {
+  margin-right: auto;
 }
 
 .receipt-paper {

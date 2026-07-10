@@ -8,6 +8,7 @@
     "postinstall": "npm rebuild better-sqlite3",
     "start": "node server/index.js",
     "dev": "nodemon --watch server --watch shared server/index.js",
+    "test:payment-corrections": "node scripts/test-payment-corrections.js",
     "electron": "electron .",
     "electron:dev": "concurrently -k \"npm run dev\" \"cross-env ELECTRON_DEV=1 wait-on http://127.0.0.1:3000/api/health && electron .\"",
     "rebuild:electron": "electron-rebuild",

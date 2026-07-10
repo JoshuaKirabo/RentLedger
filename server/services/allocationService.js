@@ -17,14 +17,16 @@ function resolveAdvanceStartMonth(tenancyId, tenancyStartDate) {
   return monthFromDate(new Date().toISOString());
 }
 
-function computeAllocation(tenantId, amount) {
+function computeAllocation(tenantId, amount, options = {}) {
   if (!Number.isSafeInteger(amount) || amount <= 0) {
     const err = new Error("Amount must be a positive whole number of shillings");
     err.statusCode = 400;
     throw err;
   }
 
-  const tenancy = ledgerRepository.getActiveTenancy(tenantId);
+  const tenancy = options.tenancyId
+    ? ledgerRepository.getTenancyByIdForTenant(options.tenancyId, tenantId)
+    : ledgerRepository.getActiveTenancy(tenantId);
   if (!tenancy) {
     const err = new Error("Tenant has no active tenancy");
     err.statusCode = 404;

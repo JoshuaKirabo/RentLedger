@@ -111,6 +111,47 @@ function migrateTenantProfileFields(db) {
   `);
 }
 
+function migratePaymentAllocationApplyTrigger(db) {
+  db.exec(`
+    DROP TRIGGER IF EXISTS tr_payment_allocation_apply;
+    CREATE TRIGGER tr_payment_allocation_apply
+    AFTER INSERT ON payment_allocations
+    BEGIN
+      UPDATE rent_obligations
+      SET
+        allocated_amount = CASE
+          WHEN rent_month < '${OUTSTANDING_START_MONTH}' THEN amount_due
+          ELSE (
+            SELECT COALESCE(SUM(pa.allocated_amount), 0)
+            FROM payment_allocations pa
+            JOIN payments p ON p.payment_id = pa.payment_id
+            WHERE pa.rent_obligation_id = NEW.rent_obligation_id
+              AND p.payment_status = 'POSTED'
+          )
+        END,
+        status = CASE
+          WHEN rent_month < '${OUTSTANDING_START_MONTH}' THEN 'PAID'
+          WHEN (
+            SELECT COALESCE(SUM(pa.allocated_amount), 0)
+            FROM payment_allocations pa
+            JOIN payments p ON p.payment_id = pa.payment_id
+            WHERE pa.rent_obligation_id = NEW.rent_obligation_id
+              AND p.payment_status = 'POSTED'
+          ) = 0 THEN 'UNPAID'
+          WHEN (
+            SELECT COALESCE(SUM(pa.allocated_amount), 0)
+            FROM payment_allocations pa
+            JOIN payments p ON p.payment_id = pa.payment_id
+            WHERE pa.rent_obligation_id = NEW.rent_obligation_id
+              AND p.payment_status = 'POSTED'
+          ) < amount_due THEN 'PARTIAL'
+          ELSE 'PAID'
+        END
+      WHERE rent_obligation_id = NEW.rent_obligation_id;
+    END;
+  `);
+}
+
 function migrateReceiptBalance(db) {
   addColumnIfMissing(
     db,
@@ -266,6 +307,7 @@ function migrate(db) {
   migrateReceiptNumberFormat(db);
   migrateReceiptBalance(db);
   migrateTenantProfileFields(db);
+  migratePaymentAllocationApplyTrigger(db);
   recreateTenantInputView(db);
   waiveArrearsBeforeOutstandingStart(db);
   migrateTenantTypes(db);
