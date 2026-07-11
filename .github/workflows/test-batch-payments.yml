@@ -1,0 +1,27 @@
+name: Test Batch Payments
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+jobs:
+  batch-payments:
+    name: Batch payments
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run batch payments check
+        run: npm run test:batch-payments
