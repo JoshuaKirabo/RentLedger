@@ -30,7 +30,7 @@ function buildChart() {
 }
 
 function buildAttention() {
-  return dashboardRepository.getTenantsInArrears(4).map((row) => ({
+  return dashboardRepository.getTenantsInArrears(5).map((row) => ({
     name: row.name,
     unit: row.unit || "—",
     estate: row.estate || "—",
@@ -47,6 +47,10 @@ function getSummary() {
   const totals = dashboardRepository.getRentTotals(currentMonth);
   const pendingRentMonths = dashboardRepository.getPendingRentMonthsCount(currentMonth);
   const tenantSummary = summarizeTenantDirectory(tenantRepository.getTenantDirectory());
+  const occupancy = dashboardRepository.getOccupancyStats();
+  const totalUnits = Number(occupancy?.units) || 0;
+  const occupiedUnits = Number(occupancy?.occupied) || 0;
+  const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
 
   const totalExpected = Number(totals.expected) || 0;
   const totalCollected = Number(totals.collected) || 0;
@@ -78,6 +82,10 @@ function getSummary() {
     totalTenants: tenantSummary.totalTenants,
     pendingRentMonths,
     securityDepositsPending: tenantSummary.securityDepositsPending,
+    estateCount: Number(occupancy?.estates) || 0,
+    totalUnits,
+    occupiedUnits,
+    occupancyRate,
     chart: buildChart(),
     attention: buildAttention(),
   };

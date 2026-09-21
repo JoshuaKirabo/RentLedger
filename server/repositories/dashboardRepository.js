@@ -117,8 +117,25 @@ function getMonthlyCollection(upToMonth, limit = 6) {
   `).all(upToMonth, limit);
 }
 
+function getOccupancyStats() {
+  syncScheduledMoveOuts();
+  return open().prepare(`
+    SELECT
+      (SELECT COUNT(*) FROM estates WHERE is_active = 1) AS estates,
+      (SELECT COUNT(*) FROM units WHERE is_active = 1) AS units,
+      (
+        SELECT COUNT(*)
+        FROM units u
+        JOIN tenancy_assignments ta
+          ON ta.unit_id = u.unit_id
+         AND ta.end_date IS NULL
+        WHERE u.is_active = 1
+      ) AS occupied
+  `).get();
+}
+
 // Active tenants with unpaid rent, largest balance first.
-function getTenantsInArrears(limit = 4) {
+function getTenantsInArrears(limit = 5) {
   syncScheduledMoveOuts();
   return open().prepare(`
     SELECT
@@ -169,6 +186,7 @@ module.exports = {
   getTenantCounts,
   getPendingRentMonthsCount,
   getMonthlyCollection,
+  getOccupancyStats,
   getTenantsInArrears,
   getOutstandingRentObligations,
 };

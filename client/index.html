@@ -96,10 +96,12 @@
         </a>
       </nav>
 
-      <a href="#" class="sidebar__link sidebar__link--settings" data-label="Settings">
-        <span class="material-symbols-outlined icon icon--nav">settings</span>
-        <span class="sidebar__link-text">Settings</span>
-      </a>
+      <div class="sidebar__footer">
+        <a href="#" class="sidebar__link sidebar__link--settings" data-label="Settings">
+          <span class="material-symbols-outlined icon icon--nav">settings</span>
+          <span class="sidebar__link-text">Settings</span>
+        </a>
+      </div>
     </aside>
 
     <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
@@ -113,100 +115,103 @@
       <!-- Dashboard View -->
       <div id="view-dashboard" class="view view--active">
         <div class="dashboard">
-          <section class="metrics metrics--primary">
-            <article class="card metric-card">
-              <div class="metric-card__header">
-                <span class="metric-card__label" id="dashYearCollectedLabel">Total Collected</span>
-                <span class="metric-card__icon metric-card__icon--neutral">
-                  <span class="material-symbols-outlined icon icon--metric">savings</span>
-                </span>
+          <header class="dash-welcome">
+            <div class="dash-welcome__copy">
+              <h1>Hello, Kimujo</h1>
+              <p id="dashWelcomeDate"></p>
+            </div>
+            <div class="dash-actions">
+              <button type="button" class="dash-action dash-action--primary" data-view="payment-entry">
+                <span class="material-symbols-outlined" aria-hidden="true">payments</span>
+                Record a payment
+              </button>
+              <button type="button" class="dash-action" data-action="add-tenant">
+                <span class="material-symbols-outlined" aria-hidden="true">person_add</span>
+                Add a tenant
+              </button>
+            </div>
+          </header>
+
+          <section class="dash-metrics">
+            <article class="card dash-card dash-hero">
+              <div class="dash-hero__copy">
+                <span class="dash-card__label" id="dashYearCollectedLabel">Revenues</span>
+                <p class="dash-hero__value" id="dashYearCollected">UGX 0</p>
+                <p class="dash-card__hint" id="dashYearCollectedSub"></p>
               </div>
-              <p class="metric-card__value" id="dashYearCollected">UGX 0</p>
-              <p class="metric-card__sub" id="dashYearCollectedSub"></p>
-              <div class="metric-card__progress">
+              <div class="metric-card__progress dash-hero__progress">
                 <div class="metric-card__progress-fill metric-card__progress-fill--neutral" id="dashYearCollectionProgress" style="width: 0%"></div>
               </div>
             </article>
 
-            <article class="card metric-card">
-              <div class="metric-card__header">
-                <span class="metric-card__label">Collected This Month</span>
-                <span class="metric-card__icon metric-card__icon--success">
-                  <span class="material-symbols-outlined icon icon--metric">trending_up</span>
-                </span>
+            <article class="card dash-card dash-occupancy">
+              <div class="dash-occupancy__copy">
+                <span class="dash-card__label">Occupancy rate</span>
+                <p class="dash-hero__value" id="dashOccupancyRate">0%</p>
+                <p class="dash-card__hint" id="dashOccupancySub"></p>
               </div>
-              <p class="metric-card__value metric-card__value--success" id="dashTotalCollected">UGX 0</p>
-              <p class="metric-card__sub" id="dashMonthCollectedSub"></p>
-              <div class="metric-card__progress">
-                <div class="metric-card__progress-fill" id="dashCollectionProgress" style="width: 0%"></div>
-              </div>
-            </article>
-
-            <article class="card metric-card">
-              <div class="metric-card__header">
-                <span class="metric-card__label">Total Outstanding</span>
-                <span class="metric-card__icon metric-card__icon--danger">
-                  <span class="material-symbols-outlined icon icon--metric">warning</span>
-                </span>
-              </div>
-              <p class="metric-card__value metric-card__value--danger" id="dashTotalOutstanding">UGX 0</p>
+              <div class="dash-ring" id="dashOccupancyRing" style="--p: 0" aria-hidden="true"></div>
             </article>
           </section>
 
-          <section class="metrics metrics--secondary">
-            <article class="card stat-card">
-              <div class="stat-card__content">
-                <span class="stat-card__label">Active Tenants</span>
-                <span class="stat-card__value" id="dashActiveTenants">0</span>
-              </div>
-              <span class="stat-card__icon stat-card__icon--success">
-                <span class="material-symbols-outlined icon icon--stat">groups</span>
-              </span>
-            </article>
+          <section class="dash-bottom">
+            <div class="dash-counts">
+              <article class="card dash-card dash-count" id="dashTenantsCard">
+                <span class="dash-card__label">Tenants</span>
+                <p class="dash-count__value" id="dashActiveTenants">0</p>
+                <p class="dash-card__hint" id="dashTenantsSub"></p>
+                <button type="button" class="dash-count__nudge" id="dashDepositsPendingCard" hidden>
+                  <span id="dashDepositsPending">0</span> deposits pending
+                </button>
+              </article>
 
-            <article class="card stat-card">
-              <div class="stat-card__content">
-                <span class="stat-card__label">Pending Rent Months</span>
-                <span class="stat-card__value" id="dashPendingRentMonths">0</span>
-              </div>
-              <span class="stat-card__icon stat-card__icon--info">
-                <span class="material-symbols-outlined icon icon--stat">calendar_month</span>
-              </span>
-            </article>
+              <article class="card dash-card dash-count" data-view="estates" role="button" tabindex="0" aria-label="View estates">
+                <span class="dash-card__label">Estates</span>
+                <p class="dash-count__value" id="dashEstateCount">0</p>
+                <p class="dash-card__hint" id="dashEstateSub"></p>
+              </article>
+            </div>
 
-            <article class="card stat-card stat-card--action" id="dashDepositsPendingCard" role="button" tabindex="0" aria-label="View tenants with pending security deposits">
-              <div class="stat-card__content">
-                <span class="stat-card__label">Security Deposits Pending</span>
-                <span class="stat-card__value" id="dashDepositsPending">0</span>
-              </div>
-              <span class="stat-card__icon stat-card__icon--muted">
-                <span class="material-symbols-outlined icon icon--stat">lock</span>
-              </span>
-            </article>
-          </section>
-
-          <section class="analytics-row">
-            <article class="card chart-card">
-              <div class="card__header">
-                <h2 class="card__title">Collection Overview</h2>
-                <div class="chart-legend">
-                  <span class="chart-legend__item"><span class="chart-legend__swatch chart-legend__swatch--expected"></span>Expected</span>
-                  <span class="chart-legend__item"><span class="chart-legend__swatch chart-legend__swatch--collected"></span>Collected</span>
+            <article class="card dash-card dash-payments chart-card">
+              <div class="dash-card__header">
+                <div>
+                  <h2 class="dash-card__title">Collected this month</h2>
+                  <p class="dash-card__hint" id="dashPaymentsMonth"></p>
                 </div>
               </div>
-              <div class="chart-card__body">
-                <canvas id="collectionChart" aria-label="Collection overview bar chart"></canvas>
+              <div class="dash-donut chart-card__body">
+                <div class="dash-donut__canvas">
+                  <canvas id="collectionChart" aria-label="Paid versus unpaid rent this month"></canvas>
+                  <div class="dash-donut__center">
+                    <span class="dash-donut__center-value" id="dashTotalCollected">UGX 0</span>
+                    <span class="dash-donut__center-hint" id="dashMonthCollectedSub"></span>
+                  </div>
+                </div>
+                <dl class="dash-donut__facts">
+                  <div>
+                    <dt>Still due this month</dt>
+                    <dd id="dashUnpaidAmount">UGX 0</dd>
+                  </div>
+                  <div>
+                    <dt>Outstanding overall</dt>
+                    <dd id="dashTotalOutstanding">UGX 0</dd>
+                  </div>
+                </dl>
               </div>
-            </article>
-
-            <article class="card attention-card">
-              <div class="card__header">
-                <h2 class="card__title">Attention Required</h2>
-                <a href="#" class="card__link" data-view="outstanding-balances">View All</a>
+              <div class="metric-card__progress" hidden>
+                <div class="metric-card__progress-fill" id="dashCollectionProgress" style="width: 0%"></div>
               </div>
-              <ul class="attention-list" id="attentionList"></ul>
+              <span id="dashPendingRentMonths" hidden>0</span>
             </article>
           </section>
+
+          <article class="card dash-card dash-unpaid attention-card">
+            <div class="dash-card__header">
+              <h2 class="dash-card__title">Top unpaid rents</h2>
+              <a href="#" class="dash-pill" data-view="outstanding-balances">View all</a>
+            </div>
+            <ul class="dash-unpaid__list attention-list" id="attentionList"></ul>
+          </article>
         </div>
       </div>
 

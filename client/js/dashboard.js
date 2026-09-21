@@ -250,6 +250,43 @@
     navigateToView(e.currentTarget.dataset.view);
   });
 
+  document.getElementById("view-dashboard")?.addEventListener("click", (e) => {
+    const addTenant = e.target.closest("[data-action='add-tenant']");
+    if (addTenant) {
+      e.preventDefault();
+      openAddTenantModal();
+      return;
+    }
+
+    const deposits = e.target.closest("#dashDepositsPendingCard");
+    if (deposits) return;
+
+    const tenantsCard = e.target.closest("#dashTenantsCard");
+    if (tenantsCard) {
+      navigateToView("tenants");
+      return;
+    }
+
+    const trigger = e.target.closest("[data-view]");
+    if (!trigger) return;
+    e.preventDefault();
+    navigateToView(trigger.dataset.view);
+  });
+
+  document.getElementById("view-dashboard")?.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    if (e.target.closest("#dashDepositsPendingCard")) return;
+    if (e.target.closest("#dashTenantsCard")) {
+      e.preventDefault();
+      navigateToView("tenants");
+      return;
+    }
+    const trigger = e.target.closest("[data-view]");
+    if (!trigger) return;
+    e.preventDefault();
+    navigateToView(trigger.dataset.view);
+  });
+
   document.getElementById("waivedPaymentsBack")?.addEventListener("click", () => {
     navigateToView("outstanding-balances");
   });
@@ -273,12 +310,15 @@
   initOutstandingBalanceActionMenu();
 
   const dashDepositsPendingCard = document.getElementById("dashDepositsPendingCard");
-  dashDepositsPendingCard?.addEventListener("click", () => {
+  dashDepositsPendingCard?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     navigateToView("pending-deposits");
   });
   dashDepositsPendingCard?.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" && e.key !== " ") return;
     e.preventDefault();
+    e.stopPropagation();
     navigateToView("pending-deposits");
   });
 
@@ -1531,7 +1571,7 @@
           {
             label: "Collected",
             data,
-            backgroundColor: "#2d5a43",
+            backgroundColor: "#047857",
             borderRadius: 4,
             barPercentage: 0.7,
             categoryPercentage: 0.6,
@@ -3380,7 +3420,7 @@
     p { margin: 0 0 20px; color: #737785; font-size: 13px; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
     th, td { border: 1px solid #e5e2e1; padding: 8px 10px; text-align: left; }
-    th { background: #f0faf4; color: #2d5a43; font-weight: 700; }
+    th { background: #ECFDF5; color: #047857; font-weight: 700; }
     tr:nth-child(even) td { background: #faf9f6; }
     @media print { body { margin: 16px; } }
   </style>
@@ -3534,6 +3574,7 @@
       const summary = await RentLedgerApi.get("/api/dashboard");
       renderDashboard(summary);
     } catch {
+      renderWelcomeDate();
       renderAttentionList([]);
     }
 
@@ -3618,23 +3659,21 @@
 
     if (!items || !items.length) {
       attentionList.innerHTML =
-        '<li class="attention-item attention-item--empty">No tenants currently in arrears.</li>';
+        '<li class="dash-unpaid__empty">No tenants currently in arrears.</li>';
       return;
     }
 
     attentionList.innerHTML = items
       .map(
         (item) => `
-        <li class="attention-item">
-          <div class="attention-item__info">
-            <p class="attention-item__name">${item.name}</p>
-            <p class="attention-item__meta">
-              ${item.unit}<span class="dot">·</span>${escapeHtml(estateShortName(item.estate))}
-              <span class="dot">·</span>
-              <span class="attention-item__pending">${item.months} Month${item.months > 1 ? "s" : ""} Pending</span>
-            </p>
-          </div>
-          <span class="attention-item__amount">${item.amountDisplay || `UGX ${item.amount}`}</span>
+        <li>
+          <button type="button" class="dash-unpaid__row" data-view="outstanding-balances">
+            <span class="dash-unpaid__info">
+              <span class="dash-unpaid__name">${escapeHtml(item.name)}</span>
+              <span class="dash-unpaid__meta">${escapeHtml(item.unit)} · ${escapeHtml(estateShortName(item.estate))} · ${item.months} month${item.months > 1 ? "s" : ""} pending</span>
+            </span>
+            <span class="dash-unpaid__amount">${escapeHtml(item.amountDisplay || item.amount || "")}</span>
+          </button>
         </li>`
       )
       .join("");
@@ -3645,25 +3684,68 @@
     if (el) el.textContent = value;
   }
 
+  function renderWelcomeDate() {
+    const el = document.getElementById("dashWelcomeDate");
+    if (!el) return;
+    el.textContent = new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
   function renderDashboard(summary) {
     if (!summary) return;
     dashboardSummary = summary;
+    renderWelcomeDate();
 
-    setDashText("dashYearCollectedLabel", `Total Collected in ${summary.year}`);
+    setDashText("dashYearCollectedLabel", "Revenues");
     setDashText("dashYearCollected", summary.yearCollectedDisplay);
     setDashText(
       "dashYearCollectedSub",
-      `${summary.yearCollectionRate ?? 0}% of ${summary.yearExpectedDisplay ?? "UGX 0"} expected total`
+      `${summary.yearCollectionRate ?? 0}% of ${summary.yearExpectedDisplay ?? "UGX 0"} expected this year`
     );
     setDashText("dashTotalCollected", summary.totalCollectedDisplay);
     setDashText(
       "dashMonthCollectedSub",
-      `${summary.collectionRate ?? 0}% of ${summary.totalExpectedDisplay ?? "UGX 0"} expected total`
+      `${summary.collectionRate ?? 0}% of expected`
     );
     setDashText("dashTotalOutstanding", summary.totalOutstandingDisplay);
+    const unpaidThisMonth = Math.max(0, (Number(summary.totalExpected) || 0) - (Number(summary.totalCollected) || 0));
+    setDashText("dashUnpaidAmount", `UGX ${unpaidThisMonth.toLocaleString("en-UG")}`);
     setDashText("dashActiveTenants", String(summary.activeTenants ?? 0));
     setDashText("dashPendingRentMonths", String(summary.pendingRentMonths ?? 0));
-    setDashText("dashDepositsPending", String(summary.securityDepositsPending));
+    setDashText("dashEstateCount", String(summary.estateCount ?? 0));
+    setDashText("dashOccupancyRate", `${summary.occupancyRate ?? 0}%`);
+    setDashText(
+      "dashOccupancySub",
+      `${summary.occupiedUnits ?? 0} of ${summary.totalUnits ?? 0} houses occupied`
+    );
+    setDashText(
+      "dashTenantsSub",
+      `${summary.pendingRentMonths ?? 0} pending rent month${summary.pendingRentMonths === 1 ? "" : "s"}`
+    );
+    setDashText(
+      "dashEstateSub",
+      `${summary.totalUnits ?? 0} houses across the portfolio`
+    );
+    setDashText(
+      "dashPaymentsMonth",
+      new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })
+    );
+    setDashText("dashDepositsPending", String(summary.securityDepositsPending ?? 0));
+
+    const depositsCard = document.getElementById("dashDepositsPendingCard");
+    if (depositsCard) {
+      const pending = Number(summary.securityDepositsPending) || 0;
+      depositsCard.hidden = pending <= 0;
+    }
+
+    const occupancyRing = document.getElementById("dashOccupancyRing");
+    if (occupancyRing) {
+      occupancyRing.style.setProperty("--p", String(Math.min(100, Math.max(0, summary.occupancyRate ?? 0))));
+    }
 
     const progress = document.getElementById("dashCollectionProgress");
     if (progress) {
@@ -3676,7 +3758,7 @@
     }
 
     renderAttentionList(summary.attention);
-    updateCollectionChart(summary.chart);
+    updateCollectionChart(summary);
   }
 
   /* ── Render receipts table ── */
@@ -5173,35 +5255,44 @@
 
   /* ── Collection overview chart ── */
 
+  function paymentsChartValues(summary) {
+    const paid = Math.max(0, Number(summary?.totalCollected) || 0);
+    const expected = Math.max(0, Number(summary?.totalExpected) || 0);
+    const unpaid = Math.max(0, expected - paid);
+    return { paid, unpaid };
+  }
+
+  function applyPaymentsChartData(chart, summary) {
+    if (!chart) return;
+    const { paid, unpaid } = paymentsChartValues(summary);
+    const empty = paid === 0 && unpaid === 0;
+    const dataset = chart.data.datasets[0];
+    chart.data.labels = empty ? ["No rent due"] : ["Not paid", "Paid"];
+    dataset.data = empty ? [1] : [unpaid, paid];
+    dataset.backgroundColor = empty ? ["#E7E5E4"] : ["#F59E0B", "#047857"];
+    dataset.hoverBackgroundColor = empty ? ["#E7E5E4"] : ["#D97706", "#065F46"];
+  }
+
   function initChart() {
     const chartCanvas = document.getElementById("collectionChart");
     if (!chartCanvas || typeof Chart === "undefined" || chartInitialized) return;
 
     chartInitialized = true;
     const ctx = chartCanvas.getContext("2d");
-
-    const initial = dashboardSummary?.chart || { labels: [], expected: [], collected: [] };
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     collectionChart = new Chart(ctx, {
-      type: "bar",
+      type: "doughnut",
       data: {
-        labels: initial.labels,
+        labels: ["Not paid", "Paid"],
         datasets: [
           {
-            label: "Expected",
-            data: (initial.expected || []).slice(),
-            backgroundColor: "#c8d4e8",
-            borderRadius: 4,
-            barPercentage: 0.7,
-            categoryPercentage: 0.6,
-          },
-          {
-            label: "Collected",
-            data: (initial.collected || []).slice(),
-            backgroundColor: "#2d5a43",
-            borderRadius: 4,
-            barPercentage: 0.7,
-            categoryPercentage: 0.6,
+            data: [0, 0],
+            backgroundColor: ["#F59E0B", "#047857"],
+            hoverBackgroundColor: ["#D97706", "#065F46"],
+            borderWidth: 0,
+            spacing: 6,
+            borderRadius: 8,
           },
         ],
       },
@@ -5209,10 +5300,11 @@
         responsive: true,
         maintainAspectRatio: false,
         resizeDelay: 0,
-        animation: { duration: 400 },
+        cutout: "74%",
+        animation: reduceMotion ? false : { duration: 400, easing: "easeOutQuart" },
         animations: { resize: { duration: 0 } },
         layout: {
-          padding: { left: 4, right: 8, top: 4, bottom: 4 },
+          padding: 8,
         },
         plugins: {
           legend: { display: false },
@@ -5221,62 +5313,31 @@
             titleFont: { family: "Plus Jakarta Sans", size: 13 },
             bodyFont: { family: "Plus Jakarta Sans", size: 12 },
             padding: 12,
-            cornerRadius: 6,
+            cornerRadius: 10,
+            filter: (item) => item.label !== "No rent due",
             callbacks: {
-              label: (ctx) => {
-                const v = Number(ctx.raw) || 0;
-                return ` ${ctx.dataset.label}: ${formatUgx(v)}`;
+              label: (item) => {
+                const v = Number(item.raw) || 0;
+                return ` ${item.label}: ${formatUgx(v)}`;
               },
-            },
-          },
-        },
-        scales: {
-          x: {
-            grid: { display: false },
-            border: { display: false },
-            title: {
-              display: true,
-              text: "Month",
-              font: { family: "Plus Jakarta Sans", size: 12, weight: 600 },
-              color: "#737785",
-              padding: { top: 10 },
-            },
-            ticks: {
-              font: { family: "Plus Jakarta Sans", size: 12 },
-              color: "#737785",
-            },
-          },
-          y: {
-            beginAtZero: true,
-            grid: { color: "#f0eded", drawBorder: false },
-            border: { display: false, dash: [4, 4] },
-            title: {
-              display: true,
-              text: "Amount (UGX)",
-              font: { family: "Plus Jakarta Sans", size: 12, weight: 600 },
-              color: "#737785",
-              padding: { bottom: 8 },
-            },
-            ticks: {
-              font: { family: "Plus Jakarta Sans", size: 11 },
-              color: "#737785",
-              callback: (v) => Number(v).toLocaleString("en-UG"),
             },
           },
         },
       },
     });
+    applyPaymentsChartData(collectionChart, dashboardSummary);
   }
 
-  function updateCollectionChart(chartData) {
-    if (!chartData) return;
+  function updateCollectionChart(summaryOrChart) {
+    const summary = summaryOrChart && "totalCollected" in (summaryOrChart || {})
+      ? summaryOrChart
+      : dashboardSummary;
+
     if (!chartInitialized) {
       initChart();
       if (!collectionChart) return;
     }
-    collectionChart.data.labels = chartData.labels || [];
-    collectionChart.data.datasets[0].data = (chartData.expected || []).slice();
-    collectionChart.data.datasets[1].data = (chartData.collected || []).slice();
+    applyPaymentsChartData(collectionChart, summary);
     collectionChart.update();
   }
 
@@ -6591,9 +6652,8 @@
 
   initReceiptModalOnce();
   initAddTenantModalOnce();
-
-  const dashYear = new Date().getFullYear();
-  setDashText("dashYearCollectedLabel", `Total Collected in ${dashYear}`);
+  renderWelcomeDate();
+  setDashText("dashYearCollectedLabel", "Revenues");
 
   initApi();
 
