@@ -8,7 +8,6 @@
     "payment-entry": document.getElementById("view-payment-entry"),
     "waive-balance": document.getElementById("view-waive-balance"),
     "waived-payments": document.getElementById("view-waived-payments"),
-    "pending-deposits": document.getElementById("view-pending-deposits"),
     receipts: document.getElementById("view-receipts"),
     tenants: document.getElementById("view-tenants"),
     estates: document.getElementById("view-estates"),
@@ -69,10 +68,6 @@
 
     if (viewId === "waived-payments") {
       renderWaivedPaymentsScreen();
-    }
-
-    if (viewId === "pending-deposits") {
-      renderPendingDepositsReport();
     }
 
     if (viewId === "tenants") {
@@ -320,17 +315,27 @@
     navigateToView(tabs[next].dataset.sheet);
   });
 
+  function openOutstandingDeposits() {
+    waiveKindFilter = "deposit";
+    document.querySelectorAll("#view-waive-balance .waive-kind-filter__btn").forEach((button) => {
+      const active = button.dataset.kind === "deposit";
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    navigateToView("waive-balance");
+  }
+
   const dashDepositsPendingCard = document.getElementById("dashDepositsPendingCard");
   dashDepositsPendingCard?.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
-    navigateToView("pending-deposits");
+    openOutstandingDeposits();
   });
   dashDepositsPendingCard?.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" && e.key !== " ") return;
     e.preventDefault();
     e.stopPropagation();
-    navigateToView("pending-deposits");
+    openOutstandingDeposits();
   });
 
   if (sidebar && sidebarToggle) {
@@ -812,13 +817,6 @@
     menu?.appendChild(option);
   }
 
-  /* ── Pending security deposits ── */
-
-  let pendingDepositsSortKey = "balance";
-  let pendingDepositsSortDirection = "desc";
-  let pendingDepositsFiltersInitialized = false;
-  let pendingDepositsInitialized = false;
-
   function getDepositBalance(tenant) {
     const required = Number(tenant.depositRequiredAmount) || 0;
     const paid = Number(tenant.depositPaidAmount) || 0;
@@ -840,220 +838,6 @@
 
   function getPendingDepositTenants() {
     return tenantsDirectory.filter(isPendingDepositTenant);
-  }
-
-  function pendingDepositsSortValue(tenant, key) {
-    if (key === "balance") return getDepositBalance(tenant);
-    if (key === "depositRequired") return Number(tenant.depositRequiredAmount) || 0;
-    if (key === "depositPaid") return Number(tenant.depositPaidAmount) || 0;
-    if (key === "dateBecame") return parseTenantDate(tenant);
-    if (key === "phone") return tenant.phone.replace(/\D/g, "");
-    return tenant[key];
-  }
-
-  function comparePendingDeposits(a, b) {
-    const aValue = pendingDepositsSortValue(a, pendingDepositsSortKey);
-    const bValue = pendingDepositsSortValue(b, pendingDepositsSortKey);
-    const comparison = typeof aValue === "number"
-      ? aValue - bValue
-      : String(aValue).localeCompare(String(bValue), "en", { numeric: true });
-    const directionalComparison = pendingDepositsSortDirection === "desc" ? -comparison : comparison;
-    return directionalComparison || a.name.localeCompare(b.name, "en");
-  }
-
-  function getFilteredPendingDeposits() {
-    const search = document.getElementById("pendingDepositsSearch")?.value.trim().toLowerCase() || "";
-    const estate = document.getElementById("pendingDepositsEstateFilter")?.value || "";
-    const status = document.getElementById("pendingDepositsStatusFilter")?.value || "";
-
-    return getPendingDepositTenants()
-      .filter((tenant) => {
-        const matchesSearch = !search || [tenant.name, tenant.house, tenant.phone, tenant.estate]
-          .join(" ")
-          .toLowerCase()
-          .includes(search);
-        const matchesEstate = !estate || tenant.estate === estate;
-        const matchesStatus = !status || tenant.securityDeposit === status;
-        return matchesSearch && matchesEstate && matchesStatus;
-      })
-      .sort(comparePendingDeposits);
-  }
-
-  function initialisePendingDepositsFilters() {
-    if (pendingDepositsFiltersInitialized) return;
-
-    const estateSelect = document.getElementById("pendingDepositsEstateFilter");
-    const estateMenu = document.getElementById("pendingDepositsEstateMenu");
-    const searchInput = document.getElementById("pendingDepositsSearch");
-    const statusSelect = document.getElementById("pendingDepositsStatusFilter");
-    const clearButton = document.getElementById("clearPendingDepositsFilters");
-    const columnSortButtons = document.querySelectorAll(".pending-deposits-table .outstanding-column-sort");
-
-    if (!estateSelect || !estateMenu || !statusSelect) return;
-
-    [...new Set(getPendingDepositTenants().map((tenant) => tenant.estate))]
-      .sort()
-      .forEach((estate) => addOutstandingFilterOption(estateMenu, estate, estateShortName(estate)));
-
-    const estateFilterControl = initCustomSelect({
-      container: document.getElementById("pendingDepositsEstateSelect"),
-      trigger: document.getElementById("pendingDepositsEstateTrigger"),
-      menu: estateMenu,
-      display: document.getElementById("pendingDepositsEstateDisplay"),
-      hidden: estateSelect,
-    });
-
-    const statusFilterControl = initCustomSelect({
-      container: document.getElementById("pendingDepositsStatusSelect"),
-      trigger: document.getElementById("pendingDepositsStatusTrigger"),
-      menu: document.getElementById("pendingDepositsStatusMenu"),
-      display: document.getElementById("pendingDepositsStatusDisplay"),
-      hidden: statusSelect,
-    });
-
-    [searchInput, estateSelect, statusSelect].forEach((element) => {
-      element?.addEventListener(element === searchInput ? "input" : "change", renderPendingDepositsReport);
-    });
-
-    clearButton?.addEventListener("click", () => {
-      if (searchInput) searchInput.value = "";
-      estateFilterControl?.setValue("");
-      statusFilterControl?.setValue("");
-      renderPendingDepositsReport();
-    });
-
-    columnSortButtons.forEach((button) => button.addEventListener("click", () => {
-      const nextSortKey = button.dataset.sortKey;
-      if (nextSortKey === pendingDepositsSortKey) {
-        pendingDepositsSortDirection = pendingDepositsSortDirection === "asc" ? "desc" : "asc";
-      } else {
-        pendingDepositsSortKey = nextSortKey;
-        pendingDepositsSortDirection = nextSortKey === "balance" || nextSortKey === "depositRequired" || nextSortKey === "depositPaid" || nextSortKey === "dateBecame"
-          ? "desc"
-          : "asc";
-      }
-      renderPendingDepositsReport();
-    }));
-
-    pendingDepositsFiltersInitialized = true;
-  }
-
-  function initPendingDepositsOnce() {
-    if (pendingDepositsInitialized) return;
-
-    const table = document.getElementById("pendingDepositsTable");
-    table?.addEventListener("click", (event) => {
-      const recordButton = event.target.closest("[data-record-deposit]");
-      const profileButton = event.target.closest("[data-open-profile]");
-      const button = recordButton || profileButton;
-      if (!button) return;
-      const filtered = getFilteredPendingDeposits();
-      const index = parseInt(button.dataset.tenantIndex, 10);
-      const tenant = filtered[index];
-      if (!tenant) return;
-      if (recordButton) {
-        openSecurityDepositPayment(tenant);
-        return;
-      }
-      openTenantProfile(tenant);
-    });
-
-    pendingDepositsInitialized = true;
-  }
-
-  function renderPendingDepositsReport() {
-    initPendingDepositsOnce();
-    if (tenantsLoadState === "ready") initialisePendingDepositsFilters();
-
-    const table = document.getElementById("pendingDepositsTable");
-    const pendingTenants = getPendingDepositTenants();
-    const filteredTenants = getFilteredPendingDeposits();
-    const totalBalance = pendingTenants.reduce((sum, tenant) => sum + getDepositBalance(tenant), 0);
-    const partialCount = pendingTenants.filter((tenant) => tenant.securityDeposit === "Partial").length;
-    const totalEl = document.getElementById("pendingDepositsTotal");
-    const tenantsEl = document.getElementById("pendingDepositsTenants");
-    const partialEl = document.getElementById("pendingDepositsPartial");
-    const countEl = document.getElementById("pendingDepositsTableCount");
-    const clearButton = document.getElementById("clearPendingDepositsFilters");
-    const search = document.getElementById("pendingDepositsSearch")?.value.trim() || "";
-    const estate = document.getElementById("pendingDepositsEstateFilter")?.value || "";
-    const status = document.getElementById("pendingDepositsStatusFilter")?.value || "";
-
-    if (totalEl) totalEl.textContent = formatOutstandingAmount(totalBalance);
-    if (tenantsEl) tenantsEl.textContent = pendingTenants.length;
-    if (partialEl) partialEl.textContent = partialCount;
-    if (countEl) countEl.textContent = `Showing ${filteredTenants.length} of ${pendingTenants.length} tenants`;
-    if (clearButton) clearButton.disabled = !(search || estate || status);
-
-    document.querySelectorAll(".pending-deposits-table .outstanding-column-sort").forEach((button) => {
-      const isActive = button.dataset.sortKey === pendingDepositsSortKey;
-      const direction = pendingDepositsSortDirection === "asc" ? "ascending" : "descending";
-      const icon = button.querySelector(".material-symbols-outlined");
-      const header = button.closest("th");
-      if (icon) icon.textContent = isActive ? (pendingDepositsSortDirection === "asc" ? "arrow_upward" : "arrow_downward") : "unfold_more";
-      button.setAttribute("aria-label", `Sort by ${button.dataset.sortKey} ${isActive ? direction : "ascending"}`);
-      button.setAttribute("aria-pressed", String(isActive));
-      header?.setAttribute("aria-sort", isActive ? direction : "none");
-    });
-
-    if (!table) return;
-    if (tenantsLoadState === "loading") {
-      table.innerHTML = `
-        <tr class="outstanding-empty">
-          <td colspan="10">
-            <span class="loading-spinner" role="status" aria-label="Loading">
-              <img src="assets/spinner.svg" alt="">
-              Loading pending security deposits...
-            </span>
-          </td>
-        </tr>`;
-      if (countEl) countEl.textContent = "Loading pending security deposits...";
-      return;
-    }
-    if (tenantsLoadState === "error") {
-      table.innerHTML = `
-        <tr class="outstanding-empty">
-          <td colspan="10"><span class="material-symbols-outlined">cloud_off</span>Could not load tenant data.</td>
-        </tr>`;
-      if (countEl) countEl.textContent = "Could not load tenant data.";
-      return;
-    }
-    if (!filteredTenants.length) {
-      const emptyMessage = pendingTenants.length
-        ? "No tenants match these filters."
-        : "All active tenants have paid their security deposits.";
-      table.innerHTML = `
-        <tr class="outstanding-empty">
-          <td colspan="10"><span class="material-symbols-outlined">verified_user</span>${emptyMessage}</td>
-        </tr>`;
-      return;
-    }
-
-    table.innerHTML = filteredTenants
-      .map((tenant, index) => {
-        const balance = getDepositBalance(tenant);
-        return `
-        <tr class="pending-deposits-table__row">
-          <td>
-            <button type="button" class="pending-deposits-profile" data-open-profile data-tenant-index="${index}">
-              <span class="outstanding-tenant__name">${escapeHtml(tenant.name)}</span>
-              <span class="outstanding-tenant__id">${escapeHtml(tenant.id)}</span>
-            </button>
-          </td>
-          <td><span class="estate-name">${escapeHtml(estateShortName(tenant.estate))}</span></td>
-          <td><span class="house-number">${escapeHtml(tenant.house)}</span></td>
-          <td><span class="phone-number">${formatPhone(tenant.phone)}</span></td>
-          <td><span class="badge ${depositBadgeClass[tenant.securityDeposit] || "badge--pending"}">${escapeHtml(tenant.securityDeposit)}</span></td>
-          <td class="text-right">${formatOutstandingAmount(tenant.depositRequiredAmount || 0)}</td>
-          <td class="text-right">${formatOutstandingAmount(tenant.depositPaidAmount || 0)}</td>
-          <td class="text-right"><span class="outstanding-amount">${formatOutstandingAmount(balance)}</span></td>
-          <td>${escapeHtml(tenant.dateBecame || "—")}</td>
-          <td>
-            <button type="button" class="btn btn--outline btn--sm pending-deposits-table__record" data-record-deposit data-tenant-index="${index}" aria-label="Record security deposit for ${escapeHtml(tenant.name)}">Record</button>
-          </td>
-        </tr>`;
-      })
-      .join("");
   }
 
   /* ── Tenants directory ── */
@@ -3648,9 +3432,6 @@
     if (document.getElementById("view-waive-balance")?.classList.contains("view--active")) {
       renderWaiveBalancesList();
     }
-    if (document.getElementById("view-pending-deposits")?.classList.contains("view--active")) {
-      renderPendingDepositsReport();
-    }
 
     try {
       tenants = await RentLedgerApi.get("/api/tenants");
@@ -3733,9 +3514,6 @@
     }
     if (document.getElementById("view-waived-payments")?.classList.contains("view--active")) {
       renderWaivedPaymentsScreen();
-    }
-    if (document.getElementById("view-pending-deposits")?.classList.contains("view--active")) {
-      renderPendingDepositsReport();
     }
     renderReceiptsTable();
     refreshMonthlyCollection();
@@ -9171,9 +8949,11 @@
     try {
       savedView = localStorage.getItem(ACTIVE_VIEW_KEY);
     } catch (_) {}
-    if (savedView && views[savedView]) showView(savedView);
+    if (savedView === "pending-deposits") openOutstandingDeposits();
+    else if (savedView && views[savedView]) showView(savedView);
     else if (savedView) {
       try { localStorage.removeItem(ACTIVE_VIEW_KEY); } catch (_) {}
     }
+    document.documentElement.classList.remove("is-booting");
   })();
 })();

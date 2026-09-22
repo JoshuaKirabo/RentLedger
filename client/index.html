@@ -5,7 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RentLedger</title>
   <link rel="stylesheet" href="css/fonts.css">
-  <link rel="stylesheet" href="css/dashboard.css?v=20260922z">
+  <link rel="stylesheet" href="css/dashboard.css?v=20260923a">
+  <script>
+    // Returning to a screen other than the dashboard: keep the main area hidden
+    // until dashboard.js has switched to it, so the dashboard never flashes.
+    try {
+      var savedView = localStorage.getItem("rentledger:activeView");
+      if (savedView && savedView !== "dashboard") document.documentElement.classList.add("is-booting");
+    } catch (_) {}
+  </script>
 </head>
 <body>
   <div class="window-drag-region" aria-hidden="true"></div>
@@ -52,10 +60,6 @@
         <a href="#" class="sidebar__link" data-view="waive-balance" data-label="Outstanding Balances">
           <span class="material-symbols-outlined icon icon--nav">schedule</span>
           <span class="sidebar__link-text">Outstanding Balances</span>
-        </a>
-        <a href="#" class="sidebar__link" data-view="pending-deposits" data-label="Pending Security Deposits">
-          <span class="material-symbols-outlined icon icon--nav">lock</span>
-          <span class="sidebar__link-text">Pending Security Deposits</span>
         </a>
         <a href="#" class="sidebar__link" data-view="tenants" data-label="Tenants">
           <span class="material-symbols-outlined icon icon--nav">group</span>
@@ -378,286 +382,7 @@
         </div>
       </div>
 
-      <!-- Waive Balance View -->
-      <div id="view-waive-balance" class="view" role="tabpanel" aria-labelledby="sheet-tab-balances">
-        <div class="page-content waive-balance-page">
-          <header class="balances-hero">
-            <div class="balances-hero__lead" aria-live="polite">
-              <h1 class="balances-hero__title">
-                <span class="balances-hero__total" id="waiveBalancesHeroTotal">—</span>
-              </h1>
-              <p class="balances-hero__context" id="waiveBalancesHeroContext">Loading what is still owed.</p>
-            </div>
-          </header>
-
-          <div class="waive-balance-layout">
-            <section class="waive-balances-list-card" aria-label="Balances still owed">
-              <div class="outstanding-filters waive-balances-filters">
-                <label class="outstanding-search" for="waiveBalancesSearch">
-                  <span class="material-symbols-outlined" aria-hidden="true">search</span>
-                  <input id="waiveBalancesSearch" type="search" placeholder="Name, house, or phone" autocomplete="off">
-                </label>
-                <div class="waive-kind-filter" role="group" aria-label="Filter by category">
-                  <button type="button" class="waive-kind-filter__btn is-active" data-kind="all" aria-pressed="true">All</button>
-                  <button type="button" class="waive-kind-filter__btn" data-kind="rent" aria-pressed="false">Rent</button>
-                  <button type="button" class="waive-kind-filter__btn" data-kind="deposit" aria-pressed="false">Deposit</button>
-                </div>
-              </div>
-
-              <div class="waive-balance-head" id="waiveBalancesHead" hidden></div>
-              <div class="waive-balance-list" id="waiveBalancesList"></div>
-
-              <footer class="outstanding-report-card__footer" hidden>
-                <span id="waiveBalancesTableCount"></span>
-              </footer>
-            </section>
-
-            <div class="waive-balance-detail" aria-hidden="true">
-              <article class="card payment-form-card waive-balance-form-card">
-                <div class="waive-balance-form-empty" id="waiveBalanceFormEmpty">
-                  <p class="waive-balance-form-empty__title">No tenant selected</p>
-                  <p>Choose someone from the list to see the months they still owe.</p>
-                </div>
-
-                <div class="waive-balance-stage" id="waiveBalanceStage" hidden>
-                  <div class="waive-balance-stage__top">
-                    <h2 class="waive-selection" id="waiveSelectionLine"></h2>
-                    <button type="button" class="waive-balance-close" id="waiveBalanceClose" aria-label="Close">
-                      <span class="material-symbols-outlined" aria-hidden="true">close</span>
-                    </button>
-                  </div>
-                  <div class="waive-balance-stage__body">
-                    <section class="waive-balance-review" id="waiveBalanceReview" aria-labelledby="waiveSelectionLine">
-                      <p class="waive-period-kicker" id="waivePeriodKicker">Period owed</p>
-                      <ul class="waive-period-list" id="waivePeriodList"></ul>
-                      <div class="waive-balance-summary" id="waiveReviewSummary"></div>
-                      <div class="form-actions">
-                        <button type="button" class="btn btn--primary" id="waiveBalanceStart">Waive balance</button>
-                      </div>
-                    </section>
-
-                <form class="payment-form" id="waiveBalanceForm" aria-hidden="true" inert>
-                  <div class="waive-balance-summary" id="waiveBalanceSummary"></div>
-
-                  <p class="waive-deposit-note" id="waiveDepositNote" hidden>Unpaid security deposit only. Rent months stay as they are.</p>
-
-                  <div class="form-group" id="waiveRentMonthField">
-                    <label class="form-label" id="waiveRentMonthLabel">Rent months</label>
-                    <div class="multi-select" id="waiveRentMonthSelect">
-                      <button type="button" class="multi-select__trigger" id="waiveRentMonthTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="waiveRentMonthLabel waiveRentMonthDisplay" disabled>
-                        <span class="multi-select__value" id="waiveRentMonthDisplay">Select rent months</span>
-                        <span class="material-symbols-outlined icon icon--select">expand_more</span>
-                      </button>
-                      <input type="hidden" id="waiveRentMonth" value="">
-                      <div class="multi-select__menu" id="waiveRentMonthMenu" hidden></div>
-                    </div>
-                  </div>
-
-                  <div class="form-group">
-                    <label class="form-label" for="waiveAmount">Amount to waive (UGX)</label>
-                    <input type="text" id="waiveAmount" class="form-input form-input--readonly" value="0" readonly tabindex="-1" aria-readonly="true">
-                  </div>
-
-                  <div class="form-group">
-                    <label class="form-label" for="waiveReason">Reason <span class="form-label__required" aria-hidden="true">*</span></label>
-                    <textarea id="waiveReason" class="form-input form-textarea" rows="2" required placeholder="Why this balance is being waived"></textarea>
-                  </div>
-
-                  <div class="form-group">
-                    <label class="form-label" for="waiveApprovedBy">Approved by</label>
-                    <input type="text" id="waiveApprovedBy" class="form-input form-input--readonly" value="" readonly tabindex="-1" aria-readonly="true">
-                  </div>
-
-                  <div class="form-actions">
-                    <button type="button" class="btn btn--outline" id="waiveBalanceCancel">Cancel</button>
-                    <button type="submit" class="btn btn--primary" id="waiveBalanceSubmit" disabled>Waive balance</button>
-                  </div>
-                </form>
-                  </div>
-                </div>
-              </article>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Waived Payments View -->
-      <div id="view-waived-payments" class="view" role="tabpanel" aria-labelledby="sheet-tab-waived">
-        <div class="page-content outstanding-page waived-payments-page">
-          <header class="balances-hero">
-            <div class="balances-hero__lead" aria-live="polite">
-              <h1 class="balances-hero__title">
-                <span class="balances-hero__total" id="waivedPaymentsTotal">UGX 0</span>
-              </h1>
-              <p class="balances-hero__context" id="waivedPaymentsContext">No waived payments yet.</p>
-            </div>
-          </header>
-
-          <div class="waive-balance-layout" id="waivedPaymentsLayout">
-            <section class="waive-balances-list-card waived-payments-card" aria-label="Waived payments">
-              <div class="outstanding-filters waive-balances-filters waived-payments-filters">
-                <label class="outstanding-search" for="waivedPaymentsSearch">
-                  <span class="material-symbols-outlined" aria-hidden="true">search</span>
-                  <input id="waivedPaymentsSearch" type="search" placeholder="Name, house, or reason" autocomplete="off">
-                </label>
-                <div class="waive-kind-filter" id="waivedKindFilter" role="group" aria-label="Filter by category">
-                  <button type="button" class="waive-kind-filter__btn is-active" data-kind="all" aria-pressed="true">All</button>
-                  <button type="button" class="waive-kind-filter__btn" data-kind="rent" aria-pressed="false">Rent</button>
-                  <button type="button" class="waive-kind-filter__btn" data-kind="deposit" aria-pressed="false">Deposit</button>
-                </div>
-              </div>
-
-              <div class="waive-balance-head" id="waivedPaymentsHead" hidden></div>
-              <div class="waive-balance-list" id="waivedPaymentsList"></div>
-
-              <footer class="outstanding-report-card__footer">
-                <span id="waivedPaymentsTableCount">Showing 0 waived payments</span>
-              </footer>
-            </section>
-
-            <div class="waive-balance-detail" id="waivedPaymentsDetail" aria-hidden="true">
-              <article class="card payment-form-card waive-balance-form-card">
-                <div class="waive-balance-stage">
-                  <div class="waive-balance-stage__top">
-                    <div>
-                      <h2 class="waive-selection" id="waivedDetailTitle"></h2>
-                      <p class="waived-detail-meta" id="waivedDetailMeta"></p>
-                    </div>
-                    <button type="button" class="waive-balance-close" id="waivedDetailClose" aria-label="Close">
-                      <span class="material-symbols-outlined" aria-hidden="true">close</span>
-                    </button>
-                  </div>
-                  <div class="waive-balance-stage__body">
-                    <section class="waive-balance-review" aria-labelledby="waivedDetailTitle">
-                      <p class="waive-period-kicker" id="waivedDetailKicker"></p>
-                      <ul class="waive-period-list" id="waivedDetailLines"></ul>
-                      <p class="waived-detail-reason" id="waivedDetailReason" hidden></p>
-                      <div class="waive-owed" id="waivedDetailTotal"></div>
-                      <div class="waive-balance-summary" id="waivedDetailSummary"></div>
-                      <p class="waived-detail-edit-note" id="waivedDetailEditNote" hidden></p>
-                      <div class="form-actions waived-detail-actions" id="waivedDetailActions" hidden>
-                        <button type="button" class="btn btn--outline" id="waivedDetailEdit">Edit waiver</button>
-                      </div>
-                      <div class="form-actions waived-detail-actions" id="waivedDetailEditActions" hidden>
-                        <button type="button" class="btn btn--outline" id="waivedDetailCancel">Cancel</button>
-                        <button type="button" class="btn btn--primary" id="waivedDetailSave" disabled>Save</button>
-                      </div>
-                    </section>
-                  </div>
-                </div>
-              </article>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Pending Security Deposits View -->
-      <div id="view-pending-deposits" class="view">
-        <div class="page-content outstanding-page">
-          <section class="metrics metrics--outstanding" aria-label="Pending security deposit summary">
-            <article class="card outstanding-stat-card outstanding-stat-card--amount">
-              <div>
-                <span class="outstanding-stat-card__label">Total deposit balance</span>
-                <strong class="outstanding-stat-card__value" id="pendingDepositsTotal">UGX 0</strong>
-                <span class="outstanding-stat-card__hint">Still owed across all pending deposits</span>
-              </div>
-              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--danger">
-                <span class="material-symbols-outlined">account_balance_wallet</span>
-              </span>
-            </article>
-
-            <article class="card outstanding-stat-card">
-              <div>
-                <span class="outstanding-stat-card__label">Tenants with pending deposits</span>
-                <strong class="outstanding-stat-card__value" id="pendingDepositsTenants">0</strong>
-                <span class="outstanding-stat-card__hint">Active tenants who have not paid in full</span>
-              </div>
-              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--blue">
-                <span class="material-symbols-outlined">group</span>
-              </span>
-            </article>
-
-            <article class="card outstanding-stat-card">
-              <div>
-                <span class="outstanding-stat-card__label">Partially paid</span>
-                <strong class="outstanding-stat-card__value" id="pendingDepositsPartial">0</strong>
-                <span class="outstanding-stat-card__hint">Tenants who paid some but not the full deposit</span>
-              </div>
-              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--neutral">
-                <span class="material-symbols-outlined">pie_chart</span>
-              </span>
-            </article>
-          </section>
-
-          <section class="card outstanding-report-card">
-            <div class="outstanding-report-card__header">
-              <div>
-                <h2 class="card__title">Pending security deposits by tenant</h2>
-              </div>
-            </div>
-
-            <div class="outstanding-filters">
-              <label class="outstanding-search" for="pendingDepositsSearch">
-                <span class="material-symbols-outlined">search</span>
-                <input id="pendingDepositsSearch" type="search" placeholder="Search name, house number, or phone">
-              </label>
-              <div class="outstanding-filter-control">
-                <span class="outstanding-filter-label" id="pendingDepositsEstateLabel">Estate</span>
-                <div class="custom-select" id="pendingDepositsEstateSelect">
-                  <button type="button" class="custom-select__trigger" id="pendingDepositsEstateTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="pendingDepositsEstateLabel pendingDepositsEstateDisplay">
-                    <span class="custom-select__value" id="pendingDepositsEstateDisplay">All estates</span>
-                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
-                  </button>
-                  <input type="hidden" id="pendingDepositsEstateFilter" value="">
-                  <ul class="custom-select__menu" id="pendingDepositsEstateMenu" role="listbox" hidden>
-                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="All estates" aria-selected="true">All estates</li>
-                  </ul>
-                </div>
-              </div>
-              <div class="outstanding-filter-control">
-                <span class="outstanding-filter-label" id="pendingDepositsStatusLabel">Deposit status</span>
-                <div class="custom-select" id="pendingDepositsStatusSelect">
-                  <button type="button" class="custom-select__trigger" id="pendingDepositsStatusTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="pendingDepositsStatusLabel pendingDepositsStatusDisplay">
-                    <span class="custom-select__value" id="pendingDepositsStatusDisplay">All statuses</span>
-                    <span class="material-symbols-outlined icon icon--select">expand_more</span>
-                  </button>
-                  <input type="hidden" id="pendingDepositsStatusFilter" value="">
-                  <ul class="custom-select__menu" id="pendingDepositsStatusMenu" role="listbox" hidden>
-                    <li class="custom-select__option custom-select__option--selected" role="option" data-value="" data-label="All statuses" aria-selected="true">All statuses</li>
-                    <li class="custom-select__option" role="option" data-value="Pending" data-label="Pending" aria-selected="false">Pending</li>
-                    <li class="custom-select__option" role="option" data-value="Partial" data-label="Partial" aria-selected="false">Partial</li>
-                  </ul>
-                </div>
-              </div>
-              <button type="button" class="clear-filters" id="clearPendingDepositsFilters" disabled>Clear filters</button>
-            </div>
-
-            <div class="table-wrap outstanding-table-wrap">
-              <table class="outstanding-table pending-deposits-table">
-                <thead>
-                  <tr>
-                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="name"><span>Tenant name</span><span class="material-symbols-outlined">unfold_more</span></button></th>
-                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="estate"><span>Estate</span><span class="material-symbols-outlined">unfold_more</span></button></th>
-                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="house"><span>House no.</span><span class="material-symbols-outlined">unfold_more</span></button></th>
-                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="phone"><span>Phone number</span><span class="material-symbols-outlined">unfold_more</span></button></th>
-                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="securityDeposit"><span>Status</span><span class="material-symbols-outlined">unfold_more</span></button></th>
-                    <th class="text-right" aria-sort="none"><button type="button" class="outstanding-column-sort outstanding-column-sort--right" data-sort-key="depositRequired"><span>Required</span><span class="material-symbols-outlined">unfold_more</span></button></th>
-                    <th class="text-right" aria-sort="none"><button type="button" class="outstanding-column-sort outstanding-column-sort--right" data-sort-key="depositPaid"><span>Paid</span><span class="material-symbols-outlined">unfold_more</span></button></th>
-                    <th class="text-right" aria-sort="descending"><button type="button" class="outstanding-column-sort outstanding-column-sort--right" data-sort-key="balance"><span>Balance</span><span class="material-symbols-outlined">arrow_downward</span></button></th>
-                    <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="dateBecame"><span>Move-in date</span><span class="material-symbols-outlined">unfold_more</span></button></th>
-                    <th>Record</th>
-                  </tr>
-                </thead>
-                <tbody id="pendingDepositsTable"></tbody>
-              </table>
-            </div>
-
-            <footer class="outstanding-report-card__footer">
-              <span id="pendingDepositsTableCount">Showing 0 tenants</span>
-            </footer>
-          </section>
-        </div>
-      </div>
+      <div data-screen="outstanding_balances"></div>
 
       <!-- Tenants View -->
       <div id="view-tenants" class="view">
@@ -2392,6 +2117,6 @@
   <script src="vendor/html2pdf.js/html2pdf.bundle.min.js"></script>
   <script src="js/phone.js"></script>
   <script src="js/api.js"></script>
-  <script src="js/dashboard.js?v=20260922o"></script>
+  <script src="js/screens.js?v=20260923a"></script>
 </body>
 </html>
