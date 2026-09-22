@@ -164,28 +164,30 @@
                   <p class="dash-card__hint" id="dashPaymentsMonth"></p>
                 </div>
               </div>
-              <div class="dash-donut chart-card__body">
-                <div class="dash-donut__canvas">
-                  <canvas id="collectionChart" aria-label="Paid versus unpaid rent this month"></canvas>
-                  <div class="dash-donut__center">
-                    <span class="dash-donut__center-value" id="dashTotalCollected">UGX 0</span>
-                    <span class="dash-donut__center-hint" id="dashMonthCollectedSub"></span>
-                  </div>
+              <div class="dash-collect">
+                <div class="dash-collect__copy">
+                  <p class="dash-collect__value" id="dashTotalCollected">UGX 0</p>
+                  <p class="dash-collect__rate" id="dashMonthCollectedSub">0% of expected</p>
                 </div>
-                <dl class="dash-donut__facts">
-                  <div>
-                    <dt>Still due this month</dt>
-                    <dd id="dashUnpaidAmount">UGX 0</dd>
-                  </div>
-                  <div>
-                    <dt>Outstanding overall</dt>
-                    <dd id="dashTotalOutstanding">UGX 0</dd>
-                  </div>
-                </dl>
+                <div class="dash-collect__mark" id="dashCollectRing" style="--p: 0" aria-hidden="true">
+                  <svg class="dash-collect__svg" viewBox="0 0 120 120">
+                    <g transform="rotate(-90 60 60)">
+                      <circle class="dash-collect__track" cx="60" cy="60" r="46" />
+                      <circle class="dash-collect__progress" cx="60" cy="60" r="46" />
+                    </g>
+                  </svg>
+                </div>
               </div>
-              <div class="metric-card__progress" hidden>
-                <div class="metric-card__progress-fill" id="dashCollectionProgress" style="width: 0%"></div>
-              </div>
+              <dl class="dash-collect__facts">
+                <div>
+                  <dt>Still due this month</dt>
+                  <dd class="dash-collect__due" id="dashUnpaidAmount">UGX 0</dd>
+                </div>
+                <div>
+                  <dt>Outstanding overall</dt>
+                  <dd id="dashTotalOutstanding">UGX 0</dd>
+                </div>
+              </dl>
               <span id="dashPendingRentMonths" hidden>0</span>
             </article>
           </section>

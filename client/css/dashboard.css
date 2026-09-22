@@ -913,78 +913,131 @@ body.sidebar-open {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: min-content;
+  overflow: visible;
 }
 
-.dash-donut {
+.dash-collect {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 8px 24px 22px;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 22px 4px;
   flex: 1;
 }
 
-.dash-donut__canvas {
-  position: relative;
-  width: min(100%, 196px);
-  aspect-ratio: 1;
-  margin: auto;
+.dash-collect__copy {
+  min-width: 0;
 }
 
-.dash-donut__canvas canvas {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-.dash-donut__center {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  text-align: center;
-  padding: 22px;
-}
-
-.dash-donut__center-value {
-  font-size: 20px;
+.dash-collect__value {
+  font-size: 36px;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.048em;
+  line-height: 0.95;
   font-variant-numeric: tabular-nums;
   color: var(--gray-900);
 }
 
-.dash-donut__center-hint {
-  margin-top: 3px;
-  font-size: 11px;
+.dash-collect__rate {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
   color: var(--gray-500);
-  max-width: 14ch;
 }
 
-.dash-donut__facts {
+.dash-collect__mark {
+  --p: 0;
+  width: 108px;
+  height: 108px;
+  flex-shrink: 0;
+}
+
+.dash-collect__svg {
+  display: block;
   width: 100%;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--gray-100);
+  height: 100%;
+}
+
+.dash-collect__track,
+.dash-collect__progress {
+  fill: none;
+  stroke-width: 12;
+}
+
+.dash-collect__track {
+  stroke: var(--gray-200);
+}
+
+.dash-collect__progress {
+  /* r=46, circumference = 2πr. Dash units are SVG user units, so the arc matches --p exactly. */
+  stroke: var(--green-800);
+  stroke-linecap: butt;
+  stroke-dasharray: 289.027;
+  stroke-dashoffset: calc(289.027 * (1 - var(--p) / 100));
+  transition: stroke-dashoffset 380ms var(--ease-out);
+}
+
+.dash-collect__mark[data-state="partial"] .dash-collect__progress {
+  stroke-linecap: round;
+}
+
+.dash-collect__mark[data-state="empty"] .dash-collect__progress {
+  stroke: transparent;
+}
+
+.dash-collect__facts {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 20px 24px;
+  margin-top: auto;
+  padding: 22px 22px 22px;
 }
 
-.dash-donut__facts dt {
-  font-size: 12px;
+.dash-collect__facts dt {
+  font-size: 13px;
   font-weight: 500;
   color: var(--gray-500);
 }
 
-.dash-donut__facts dd {
-  margin-top: 3px;
-  font-size: 15px;
+.dash-collect__facts dd {
+  margin-top: 4px;
+  font-size: 18px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
   font-variant-numeric: tabular-nums;
   color: var(--gray-900);
+}
+
+.dash-collect__facts .dash-collect__due {
+  color: var(--accent-ink);
+}
+
+@media (max-width: 720px) {
+  .dash-collect {
+    gap: 16px;
+    padding-top: 18px;
+  }
+
+  .dash-collect__value {
+    font-size: 28px;
+  }
+
+  .dash-collect__mark {
+    width: 84px;
+    height: 84px;
+  }
+
+  .dash-collect__facts {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .dash-collect__facts dd {
+    font-size: 16px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -992,6 +1045,7 @@ body.sidebar-open {
   .dash-pill,
   .dash-unpaid__row,
   .dash-count,
+  .dash-collect__progress,
   .sidebar__link,
   .sidebar__submenu,
   .sidebar__parent-arrow {
@@ -1436,21 +1490,6 @@ body.sidebar-open {
 
 .view--active {
   display: block;
-}
-
-#view-waive-balance.view--active > .waive-balance-page {
-  animation: waive-balance-enter 220ms var(--ease-out) both;
-}
-
-@keyframes waive-balance-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
 
 /* ── Page header (Record a Payment) ── */
@@ -4636,10 +4675,6 @@ body.sidebar-open {
   .waive-balance-skel__amount {
     animation: none;
   }
-
-  #view-waive-balance.view--active > .waive-balance-page {
-    animation: waive-balance-enter-fade 120ms ease both;
-  }
 }
 
 @keyframes waive-balance-enter-fade {
@@ -5649,13 +5684,6 @@ body.sidebar-open {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  animation: waive-balance-enter 220ms var(--ease-out) both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  #view-waived-payments.view--active > .waived-payments-page {
-    animation: waive-balance-enter-fade 120ms ease both;
-  }
 }
 
 /* ── Sheet tabs ── */
@@ -5767,9 +5795,31 @@ body.sidebar-open {
   outline-offset: 2px;
 }
 
-.main.is-sheet-switch #view-waive-balance.view--active > .waive-balance-page,
-.main.is-sheet-switch #view-waived-payments.view--active > .waived-payments-page {
-  animation: none;
+.main:not(.is-sheet-switch):has(#view-waive-balance.view--active) > .sheet-tabs,
+.main:not(.is-sheet-switch):has(#view-waived-payments.view--active) > .sheet-tabs,
+.main:not(.is-sheet-switch):has(#view-waive-balance.view--active) > #view-waive-balance,
+.main:not(.is-sheet-switch):has(#view-waived-payments.view--active) > #view-waived-payments {
+  animation: waive-sheet-enter 240ms var(--ease-out) both;
+}
+
+@keyframes waive-sheet-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main:not(.is-sheet-switch):has(#view-waive-balance.view--active) > .sheet-tabs,
+  .main:not(.is-sheet-switch):has(#view-waived-payments.view--active) > .sheet-tabs,
+  .main:not(.is-sheet-switch):has(#view-waive-balance.view--active) > #view-waive-balance,
+  .main:not(.is-sheet-switch):has(#view-waived-payments.view--active) > #view-waived-payments {
+    animation: waive-balance-enter-fade 120ms ease both;
+  }
 }
 
 @media (min-width: 1201px) {
@@ -7575,10 +7625,6 @@ body.sidebar-open {
     gap: 16px;
   }
 
-  .dash-donut__facts {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
 
 }
 

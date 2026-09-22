@@ -25,8 +25,6 @@
   const paymentsNavGroup = document.getElementById("paymentsNavGroup");
   const paymentsNavToggle = document.getElementById("paymentsNavToggle");
   const paymentNavViews = new Set(["receipts", "payment-entry"]);
-  let chartInitialized = false;
-  let collectionChart = null;
 
   const ACTIVE_VIEW_KEY = "rentledger:activeView";
 
@@ -63,10 +61,6 @@
     syncWorkbookSheets(viewId);
 
     document.title = APP_TITLE;
-
-    if (viewId === "dashboard" && !chartInitialized) {
-      initChart();
-    }
 
     if (viewId === "waive-balance") {
       resetWaiveBalanceForm({ animate: false });
@@ -3858,7 +3852,7 @@
     setDashText("dashTotalCollected", summary.totalCollectedDisplay);
     setDashText(
       "dashMonthCollectedSub",
-      `${summary.collectionRate ?? 0}% of expected`
+      `${summary.collectionRate ?? 0}% of ${summary.totalExpectedDisplay ?? "UGX 0"} expected`
     );
     setDashText("dashTotalOutstanding", summary.totalOutstandingDisplay);
     const unpaidThisMonth = Math.max(0, (Number(summary.totalExpected) || 0) - (Number(summary.totalCollected) || 0));
@@ -3896,10 +3890,7 @@
       occupancyRing.style.setProperty("--p", String(Math.min(100, Math.max(0, summary.occupancyRate ?? 0))));
     }
 
-    const progress = document.getElementById("dashCollectionProgress");
-    if (progress) {
-      progress.style.width = `${Math.min(100, Math.max(0, summary.collectionRate))}%`;
-    }
+    syncCollectRing(summary.collectionRate);
 
     const yearProgress = document.getElementById("dashYearCollectionProgress");
     if (yearProgress) {
@@ -3907,7 +3898,6 @@
     }
 
     renderAttentionList(summary.attention);
-    updateCollectionChart(summary);
   }
 
   /* ── Render receipts table ── */
@@ -5425,95 +5415,26 @@
     receiptFiltersInitialized = true;
   }
 
-  /* ── Collection overview chart ── */
+  /* ── Collected-this-month ring ── */
 
-  function paymentsChartValues(summary) {
-    const paid = Math.max(0, Number(summary?.totalCollected) || 0);
-    const expected = Math.max(0, Number(summary?.totalExpected) || 0);
-    const unpaid = Math.max(0, expected - paid);
-    return { paid, unpaid };
-  }
-
-  function applyPaymentsChartData(chart, summary) {
-    if (!chart) return;
-    const { paid, unpaid } = paymentsChartValues(summary);
-    const empty = paid === 0 && unpaid === 0;
-    const dataset = chart.data.datasets[0];
-    chart.data.labels = empty ? ["No rent due"] : ["Not paid", "Paid"];
-    dataset.data = empty ? [1] : [unpaid, paid];
-    dataset.backgroundColor = empty ? ["#E7E5E4"] : ["#F59E0B", "#047857"];
-    dataset.hoverBackgroundColor = empty ? ["#E7E5E4"] : ["#D97706", "#065F46"];
-  }
-
-  function initChart() {
-    const chartCanvas = document.getElementById("collectionChart");
-    if (!chartCanvas || typeof Chart === "undefined" || chartInitialized) return;
-
-    chartInitialized = true;
-    const ctx = chartCanvas.getContext("2d");
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    collectionChart = new Chart(ctx, {
-      type: "doughnut",
-      data: {
-        labels: ["Not paid", "Paid"],
-        datasets: [
-          {
-            data: [0, 0],
-            backgroundColor: ["#F59E0B", "#047857"],
-            hoverBackgroundColor: ["#D97706", "#065F46"],
-            borderWidth: 0,
-            spacing: 6,
-            borderRadius: 8,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        resizeDelay: 0,
-        cutout: "74%",
-        animation: reduceMotion ? false : { duration: 400, easing: "easeOutQuart" },
-        animations: { resize: { duration: 0 } },
-        layout: {
-          padding: 8,
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: "#1b1b1c",
-            titleFont: { family: "Plus Jakarta Sans", size: 13 },
-            bodyFont: { family: "Plus Jakarta Sans", size: 12 },
-            padding: 12,
-            cornerRadius: 10,
-            filter: (item) => item.label !== "No rent due",
-            callbacks: {
-              label: (item) => {
-                const v = Number(item.raw) || 0;
-                return ` ${item.label}: ${formatUgx(v)}`;
-              },
-            },
-          },
-        },
-      },
-    });
-    applyPaymentsChartData(collectionChart, dashboardSummary);
-  }
-
-  function updateCollectionChart(summaryOrChart) {
-    const summary = summaryOrChart && "totalCollected" in (summaryOrChart || {})
-      ? summaryOrChart
-      : dashboardSummary;
-
-    if (!chartInitialized) {
-      initChart();
-      if (!collectionChart) return;
+  function syncCollectRing(rate) {
+    const ring = document.getElementById("dashCollectRing");
+    if (!ring) return;
+    const next = Math.min(100, Math.max(0, Number(rate) || 0));
+    ring.dataset.state = next >= 100 ? "full" : next <= 0 ? "empty" : "partial";
+    const apply = () => ring.style.setProperty("--p", String(next));
+    if (ring.dataset.drawn === "true") {
+      apply();
+      return;
     }
-    applyPaymentsChartData(collectionChart, summary);
-    collectionChart.update();
+    ring.dataset.drawn = "true";
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) {
+      apply();
+      return;
+    }
+    requestAnimationFrame(() => requestAnimationFrame(apply));
   }
-
-  initChart();
 
   /* ── Animate progress bar on load ── */
 
