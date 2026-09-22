@@ -2559,42 +2559,47 @@
   <!-- Payment success modal -->
   <div class="tenant-modal" id="paymentSuccessModal" hidden aria-hidden="true">
     <div class="tenant-modal__backdrop" id="paymentSuccessBackdrop"></div>
-    <button type="button" class="receipt-modal__close" id="paymentSuccessClose" aria-label="Close">
-      <span class="material-symbols-outlined">close</span>
-    </button>
-    <div class="tenant-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="paymentSuccessTitle">
+    <div class="tenant-modal__dialog payment-success-dialog" role="dialog" aria-modal="true" aria-labelledby="paymentSuccessTitle">
       <div class="payment-success">
-        <span class="material-symbols-outlined payment-success__icon" aria-hidden="true">check_circle</span>
-        <h2 class="payment-success__title" id="paymentSuccessTitle">Payment recorded</h2>
-        <p class="payment-success__subtitle" id="paymentSuccessSubtitle" hidden></p>
+        <header class="payment-success__header">
+          <div class="payment-success__heading">
+            <h2 class="payment-success__title" id="paymentSuccessTitle">Payment recorded</h2>
+            <p class="payment-success__subtitle" id="paymentSuccessSubtitle" hidden></p>
+            <p class="payment-success__receipt" id="paymentSuccessReceipt">
+              <span class="payment-success__receipt-label">Receipt</span>
+              <span class="payment-success__receipt-no" id="paymentSuccessReceiptNo">—</span>
+            </p>
+            <p class="payment-success__notice" id="paymentSuccessNotice" role="status" hidden>No receipt was generated.</p>
+          </div>
+          <button type="button" class="payment-success__close" id="paymentSuccessClose" aria-label="Close">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </header>
 
-        <div class="payment-success__receipt">
-          <span class="payment-success__receipt-label">Receipt No.</span>
-          <span class="payment-success__receipt-no" id="paymentSuccessReceiptNo">—</span>
+        <div class="payment-success__scroll">
+          <dl class="payment-success__details">
+            <div class="payment-success__detail">
+              <dt>Tenant</dt>
+              <dd id="paymentSuccessTenant">—</dd>
+            </div>
+            <div class="payment-success__detail">
+              <dt>Amount</dt>
+              <dd id="paymentSuccessAmount">—</dd>
+            </div>
+            <div class="payment-success__detail">
+              <dt>Bank reference</dt>
+              <dd id="paymentSuccessBankRef">—</dd>
+            </div>
+            <div class="payment-success__detail payment-success__detail--coverage">
+              <dt>Months covered</dt>
+              <dd id="paymentSuccessMonths">—</dd>
+            </div>
+          </dl>
         </div>
 
-        <dl class="payment-success__details">
-          <div class="payment-success__detail">
-            <dt>Tenant</dt>
-            <dd id="paymentSuccessTenant">—</dd>
-          </div>
-          <div class="payment-success__detail">
-            <dt>Amount</dt>
-            <dd id="paymentSuccessAmount">—</dd>
-          </div>
-          <div class="payment-success__detail">
-            <dt>Bank reference</dt>
-            <dd id="paymentSuccessBankRef">—</dd>
-          </div>
-          <div class="payment-success__detail">
-            <dt>Months covered</dt>
-            <dd id="paymentSuccessMonths">—</dd>
-          </div>
-        </dl>
-      </div>
-
-      <div class="tenant-modal__actions tenant-modal__actions--center">
-        <button type="button" class="btn btn--primary" id="paymentSuccessDone">Done</button>
+        <div class="payment-success__footer">
+          <button type="button" class="btn btn--primary payment-success__done" id="paymentSuccessDone">Done</button>
+        </div>
       </div>
     </div>
   </div>

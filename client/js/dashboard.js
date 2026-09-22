@@ -5572,11 +5572,52 @@
     backdrop?.addEventListener("click", closePaymentSuccessModal);
     closeBtn?.addEventListener("click", closePaymentSuccessModal);
     doneBtn?.addEventListener("click", closePaymentSuccessModal);
+    modal.addEventListener("click", (e) => {
+      const toggle = e.target.closest(".payment-months__toggle");
+      if (!toggle || !modal.contains(toggle)) return;
+      const list = document.getElementById(toggle.getAttribute("aria-controls"));
+      const open = toggle.getAttribute("aria-expanded") === "true";
+      toggle.setAttribute("aria-expanded", open ? "false" : "true");
+      toggle.textContent = open ? toggle.dataset.showLabel || "Show months" : "Hide months";
+      if (list) list.hidden = open;
+    });
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && !modal.hidden) closePaymentSuccessModal();
     });
 
     paymentSuccessModalInitialized = true;
+  }
+
+  function parseCoveredMonths(value) {
+    const raw = String(value || "").trim();
+    if (!raw || raw === "—") return [];
+    return raw.split(",").map((part) => part.trim()).filter(Boolean);
+  }
+
+  function renderPaymentSuccessMonths(value) {
+    const monthsEl = document.getElementById("paymentSuccessMonths");
+    if (!monthsEl) return;
+
+    const months = parseCoveredMonths(value);
+    if (!months.length) {
+      monthsEl.textContent = "—";
+      return;
+    }
+
+    if (months.length <= 4) {
+      monthsEl.textContent = months.join(", ");
+      return;
+    }
+
+    const showLabel = `Show ${months.length} months`;
+    monthsEl.innerHTML = `
+      <div class="payment-months">
+        <span class="payment-months__range">${escapeHtml(months[0])} – ${escapeHtml(months[months.length - 1])}</span>
+        <button type="button" class="payment-months__toggle" aria-expanded="false" aria-controls="paymentSuccessMonthsList" data-show-label="${escapeHtml(showLabel)}">${escapeHtml(showLabel)}</button>
+        <ul class="payment-months__list" id="paymentSuccessMonthsList" hidden>
+          ${months.map((month) => `<li>${escapeHtml(month)}</li>`).join("")}
+        </ul>
+      </div>`;
   }
 
   function showPaymentSuccessModal(result, tenant, options = {}) {
@@ -5585,13 +5626,13 @@
     const modal = document.getElementById("paymentSuccessModal");
     const titleEl = document.getElementById("paymentSuccessTitle");
     const subtitleEl = document.getElementById("paymentSuccessSubtitle");
-    const receiptBlock = modal?.querySelector(".payment-success__receipt");
+    const receiptBlock = document.getElementById("paymentSuccessReceipt");
+    const noticeEl = document.getElementById("paymentSuccessNotice");
     const details = modal?.querySelector(".payment-success__details");
     const receiptEl = document.getElementById("paymentSuccessReceiptNo");
     const tenantEl = document.getElementById("paymentSuccessTenant");
     const amountEl = document.getElementById("paymentSuccessAmount");
     const bankRefEl = document.getElementById("paymentSuccessBankRef");
-    const monthsEl = document.getElementById("paymentSuccessMonths");
     if (!modal) return;
 
     if (titleEl) titleEl.textContent = options.title || "Payment recorded";
@@ -5601,23 +5642,23 @@
     }
 
     const showBreakdown = !options.summaryOnly && Boolean(result);
-    if (receiptBlock) receiptBlock.hidden = !showBreakdown;
+    if (receiptBlock) receiptBlock.hidden = true;
+    if (noticeEl) noticeEl.hidden = true;
     if (details) details.hidden = !showBreakdown;
 
     if (showBreakdown) {
       const receiptNo = result.payment?.receiptNo || result.receipt?.receiptNo;
       const hasReceipt = Boolean(receiptNo && isReceiptDisplayable(result.receipt));
-      const displayReceipt = hasReceipt ? formatReceiptNumber(receiptNo) : RECEIPT_UNAVAILABLE_MESSAGE;
 
-      if (receiptEl) receiptEl.textContent = displayReceipt;
+      if (receiptBlock) receiptBlock.hidden = !hasReceipt;
+      if (noticeEl) noticeEl.hidden = hasReceipt;
+      if (receiptEl && hasReceipt) receiptEl.textContent = formatReceiptNumber(receiptNo);
       if (tenantEl) tenantEl.textContent = tenant?.name || result.payment?.tenantName || "—";
       if (amountEl) {
         amountEl.textContent = formatUgxAmount(result.payment?.amount || result.receipt?.amount || 0);
       }
       if (bankRefEl) bankRefEl.textContent = result.payment?.bankRef || getBankRefValue() || "—";
-      if (monthsEl) {
-        monthsEl.textContent = result.receipt?.monthsCovered || result.allocation?.monthsCovered || "—";
-      }
+      renderPaymentSuccessMonths(result.receipt?.monthsCovered || result.allocation?.monthsCovered || "—");
     }
 
     lastPaymentSuccessTrigger = document.activeElement;
