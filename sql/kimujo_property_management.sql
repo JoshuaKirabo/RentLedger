@@ -505,6 +505,60 @@ BEGIN
 END;
 
 -- ============================================================================
+-- Waivers
+-- ============================================================================
+-- A waiver reduces what is still owed. It is not money collected, so it does
+-- not increase allocated_amount or produce a receipt.
+
+CREATE TABLE waivers (
+    waiver_id       INTEGER PRIMARY KEY,
+    tenant_id       INTEGER NOT NULL,
+    tenancy_id      INTEGER NOT NULL,
+    kind            TEXT NOT NULL CHECK (kind IN ('RENT', 'DEPOSIT')),
+    reason          TEXT NOT NULL CHECK (length(trim(reason)) > 0),
+    approved_by     TEXT NOT NULL CHECK (length(trim(approved_by)) > 0),
+    waived_on       TEXT NOT NULL CHECK (waived_on GLOB '????-??-??'),
+    deposit_amount  INTEGER CHECK (deposit_amount IS NULL OR deposit_amount > 0),
+    created_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (tenant_id)
+        REFERENCES tenants(tenant_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    FOREIGN KEY (tenancy_id)
+        REFERENCES tenancy_assignments(tenancy_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CHECK (
+        (kind = 'RENT' AND deposit_amount IS NULL)
+        OR (kind = 'DEPOSIT' AND deposit_amount IS NOT NULL)
+    )
+);
+
+CREATE UNIQUE INDEX ux_one_deposit_waiver_per_tenancy
+    ON waivers(tenancy_id)
+    WHERE kind = 'DEPOSIT';
+
+CREATE TABLE waiver_lines (
+    waiver_line_id      INTEGER PRIMARY KEY,
+    waiver_id           INTEGER NOT NULL,
+    rent_obligation_id  INTEGER NOT NULL UNIQUE,
+    amount              INTEGER NOT NULL CHECK (amount > 0),
+
+    FOREIGN KEY (waiver_id)
+        REFERENCES waivers(waiver_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (rent_obligation_id)
+        REFERENCES rent_obligations(rent_obligation_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+-- ============================================================================
 -- Application settings
 -- ============================================================================
 -- Operator identity lives here so the client never hardcodes a person's name.

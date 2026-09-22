@@ -19,7 +19,11 @@ function getRentTotals(rentMonth) {
       COALESCE(SUM(
         CASE
           WHEN ro.rent_month >= ? AND ro.rent_month <= ?
-            THEN ro.amount_due - ro.allocated_amount
+            THEN MAX(0, ro.amount_due - ro.allocated_amount - COALESCE((
+              SELECT wl.amount
+              FROM waiver_lines wl
+              WHERE wl.rent_obligation_id = ro.rent_obligation_id
+            ), 0))
           ELSE 0
         END
       ), 0) AS outstanding
@@ -76,7 +80,7 @@ function getTenantCounts() {
       COUNT(*) AS totalActive,
       COALESCE(SUM(CASE WHEN pending_months_owed = 0 THEN 1 ELSE 0 END), 0) AS paid,
       COALESCE(SUM(CASE WHEN pending_months_owed > 0 THEN 1 ELSE 0 END), 0) AS pending,
-      COALESCE(SUM(CASE WHEN security_deposit_status <> 'PAID' THEN 1 ELSE 0 END), 0) AS depositsPending
+      COALESCE(SUM(CASE WHEN security_deposit_balance > 0 THEN 1 ELSE 0 END), 0) AS depositsPending
     FROM v_tenant_account_status
   `).get();
 }
@@ -92,7 +96,11 @@ function getPendingRentMonthsCount(upToMonth) {
      AND ta.end_date IS NULL
     WHERE ro.rent_month >= ?
       AND ro.rent_month <= ?
-      AND ro.allocated_amount < ro.amount_due
+      AND ro.amount_due - ro.allocated_amount - COALESCE((
+        SELECT wl.amount
+        FROM waiver_lines wl
+        WHERE wl.rent_obligation_id = ro.rent_obligation_id
+      ), 0) > 0
   `).get(OUTSTANDING_START_MONTH, upToMonth);
   return row?.total || 0;
 }
@@ -164,7 +172,11 @@ function getOutstandingRentObligations(upToMonth) {
       e.estate_name,
       u.unit_number AS house_number,
       ro.rent_month,
-      (ro.amount_due - ro.allocated_amount) AS outstanding
+      MAX(0, ro.amount_due - ro.allocated_amount - COALESCE((
+        SELECT wl.amount
+        FROM waiver_lines wl
+        WHERE wl.rent_obligation_id = ro.rent_obligation_id
+      ), 0)) AS outstanding
     FROM rent_obligations ro
     JOIN tenancy_assignments ta
       ON ta.tenancy_id = ro.tenancy_id
@@ -174,7 +186,11 @@ function getOutstandingRentObligations(upToMonth) {
     JOIN estates e ON e.estate_id = u.estate_id
     WHERE ro.rent_month >= ?
       AND ro.rent_month <= ?
-      AND ro.allocated_amount < ro.amount_due
+      AND ro.amount_due - ro.allocated_amount - COALESCE((
+        SELECT wl.amount
+        FROM waiver_lines wl
+        WHERE wl.rent_obligation_id = ro.rent_obligation_id
+      ), 0) > 0
     ORDER BY t.tenant_id, ro.rent_month
   `).all(OUTSTANDING_START_MONTH, upToMonth);
 }

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RentLedger</title>
   <link rel="stylesheet" href="css/fonts.css">
-  <link rel="stylesheet" href="css/dashboard.css?v=20260922i">
+  <link rel="stylesheet" href="css/dashboard.css?v=20260922z">
 </head>
 <body>
   <div class="window-drag-region" aria-hidden="true"></div>
@@ -377,26 +377,19 @@
       </div>
 
       <!-- Waive Balance View -->
-      <div id="view-waive-balance" class="view">
+      <div id="view-waive-balance" class="view" role="tabpanel" aria-labelledby="sheet-tab-balances">
         <div class="page-content waive-balance-page">
           <header class="balances-hero">
             <div class="balances-hero__lead" aria-live="polite">
               <h1 class="balances-hero__title">
-                <span class="balances-hero__kicker">Outstanding balances</span>
                 <span class="balances-hero__total" id="waiveBalancesHeroTotal">—</span>
               </h1>
               <p class="balances-hero__context" id="waiveBalancesHeroContext">Loading what is still owed.</p>
             </div>
-            <div class="balances-hero__actions">
-              <button type="button" class="btn btn--outline btn--icon" id="viewWaivedPaymentsLink">
-                <span class="material-symbols-outlined icon icon--btn" aria-hidden="true">visibility</span>
-                View waived payments
-              </button>
-            </div>
           </header>
 
           <div class="waive-balance-layout">
-            <section class="card outstanding-report-card waive-balances-list-card" aria-label="Balances still owed">
+            <section class="waive-balances-list-card" aria-label="Balances still owed">
               <div class="outstanding-filters waive-balances-filters">
                 <label class="outstanding-search" for="waiveBalancesSearch">
                   <span class="material-symbols-outlined" aria-hidden="true">search</span>
@@ -409,6 +402,7 @@
                 </div>
               </div>
 
+              <div class="waive-balance-head" id="waiveBalancesHead" hidden></div>
               <div class="waive-balance-list" id="waiveBalancesList"></div>
 
               <footer class="outstanding-report-card__footer" hidden>
@@ -486,92 +480,72 @@
       </div>
 
       <!-- Waived Payments View -->
-      <div id="view-waived-payments" class="view">
+      <div id="view-waived-payments" class="view" role="tabpanel" aria-labelledby="sheet-tab-waived">
         <div class="page-content outstanding-page waived-payments-page">
-          <header class="page-header page-header--actions">
-            <div>
-              <h1 class="page-header__title">Waived Payments</h1>
-              <p class="page-header__subtitle">Balances removed from tenant arrears.</p>
-            </div>
-            <div class="page-header__actions">
-              <button type="button" class="btn btn--outline btn--icon" id="waiveBalanceLink">
-                <span class="material-symbols-outlined icon icon--btn" aria-hidden="true">schedule</span>
-                Outstanding Balances
-              </button>
+          <header class="balances-hero">
+            <div class="balances-hero__lead" aria-live="polite">
+              <h1 class="balances-hero__title">
+                <span class="balances-hero__total" id="waivedPaymentsTotal">UGX 0</span>
+              </h1>
+              <p class="balances-hero__context" id="waivedPaymentsContext">No waived payments yet.</p>
             </div>
           </header>
 
-          <section class="metrics metrics--outstanding" aria-label="Waived payment summary">
-            <article class="card outstanding-stat-card outstanding-stat-card--waived">
-              <div>
-                <span class="outstanding-stat-card__label">Total waived</span>
-                <strong class="outstanding-stat-card__value" id="waivedPaymentsTotal">UGX 0</strong>
-                <span class="outstanding-stat-card__hint">Across all approved waivers</span>
+          <div class="waive-balance-layout" id="waivedPaymentsLayout">
+            <section class="waive-balances-list-card waived-payments-card" aria-label="Waived payments">
+              <div class="outstanding-filters waive-balances-filters waived-payments-filters">
+                <label class="outstanding-search" for="waivedPaymentsSearch">
+                  <span class="material-symbols-outlined" aria-hidden="true">search</span>
+                  <input id="waivedPaymentsSearch" type="search" placeholder="Name, house, or reason" autocomplete="off">
+                </label>
+                <div class="waive-kind-filter" id="waivedKindFilter" role="group" aria-label="Filter by category">
+                  <button type="button" class="waive-kind-filter__btn is-active" data-kind="all" aria-pressed="true">All</button>
+                  <button type="button" class="waive-kind-filter__btn" data-kind="rent" aria-pressed="false">Rent</button>
+                  <button type="button" class="waive-kind-filter__btn" data-kind="deposit" aria-pressed="false">Deposit</button>
+                </div>
               </div>
-              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--success">
-                <span class="material-symbols-outlined">money_off</span>
-              </span>
-            </article>
 
-            <article class="card outstanding-stat-card">
-              <div>
-                <span class="outstanding-stat-card__label">Waived records</span>
-                <strong class="outstanding-stat-card__value" id="waivedPaymentsCount">0</strong>
-                <span class="outstanding-stat-card__hint">Approved balance adjustments</span>
-              </div>
-              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--neutral">
-                <span class="material-symbols-outlined">receipt_long</span>
-              </span>
-            </article>
+              <div class="waive-balance-head" id="waivedPaymentsHead" hidden></div>
+              <div class="waive-balance-list" id="waivedPaymentsList"></div>
 
-            <article class="card outstanding-stat-card">
-              <div>
-                <span class="outstanding-stat-card__label">Tenants affected</span>
-                <strong class="outstanding-stat-card__value" id="waivedPaymentsTenants">0</strong>
-                <span class="outstanding-stat-card__hint">Unique tenants with waived balances</span>
-              </div>
-              <span class="outstanding-stat-card__icon outstanding-stat-card__icon--neutral">
-                <span class="material-symbols-outlined">group</span>
-              </span>
-            </article>
-          </section>
+              <footer class="outstanding-report-card__footer">
+                <span id="waivedPaymentsTableCount">Showing 0 waived payments</span>
+              </footer>
+            </section>
 
-          <section class="card outstanding-report-card waived-payments-card">
-            <div class="outstanding-report-card__header">
-              <div>
-                <h2 class="card__title">Waiver History</h2>
-              </div>
+            <div class="waive-balance-detail" id="waivedPaymentsDetail" aria-hidden="true">
+              <article class="card payment-form-card waive-balance-form-card">
+                <div class="waive-balance-stage">
+                  <div class="waive-balance-stage__top">
+                    <div>
+                      <h2 class="waive-selection" id="waivedDetailTitle"></h2>
+                      <p class="waived-detail-meta" id="waivedDetailMeta"></p>
+                    </div>
+                    <button type="button" class="waive-balance-close" id="waivedDetailClose" aria-label="Close">
+                      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                    </button>
+                  </div>
+                  <div class="waive-balance-stage__body">
+                    <section class="waive-balance-review" aria-labelledby="waivedDetailTitle">
+                      <p class="waive-period-kicker" id="waivedDetailKicker"></p>
+                      <ul class="waive-period-list" id="waivedDetailLines"></ul>
+                      <p class="waived-detail-reason" id="waivedDetailReason" hidden></p>
+                      <div class="waive-owed" id="waivedDetailTotal"></div>
+                      <div class="waive-balance-summary" id="waivedDetailSummary"></div>
+                      <p class="waived-detail-edit-note" id="waivedDetailEditNote" hidden></p>
+                      <div class="form-actions waived-detail-actions" id="waivedDetailActions" hidden>
+                        <button type="button" class="btn btn--outline" id="waivedDetailEdit">Edit waiver</button>
+                      </div>
+                      <div class="form-actions waived-detail-actions" id="waivedDetailEditActions" hidden>
+                        <button type="button" class="btn btn--outline" id="waivedDetailCancel">Cancel</button>
+                        <button type="button" class="btn btn--primary" id="waivedDetailSave" disabled>Save</button>
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              </article>
             </div>
-
-            <div class="outstanding-filters waived-payments-filters">
-              <label class="outstanding-search" for="waivedPaymentsSearch">
-                <span class="material-symbols-outlined">search</span>
-                <input id="waivedPaymentsSearch" type="search" placeholder="Search name, house number, or reason">
-              </label>
-            </div>
-
-            <div class="table-wrap outstanding-table-wrap waived-payments-table-wrap">
-              <table class="outstanding-table waived-payments-table">
-                <thead>
-                  <tr>
-                    <th>Date waived</th>
-                    <th>Tenant name</th>
-                    <th>Estate</th>
-                    <th>House no.</th>
-                    <th>Balance</th>
-                    <th class="text-right">Amount waived</th>
-                    <th>Reason</th>
-                    <th>Approved by</th>
-                  </tr>
-                </thead>
-                <tbody id="waivedPaymentsTable"></tbody>
-              </table>
-            </div>
-
-            <footer class="outstanding-report-card__footer">
-              <span id="waivedPaymentsTableCount">Showing 0 waived payments</span>
-            </footer>
-          </section>
+          </div>
         </div>
       </div>
 
@@ -1654,6 +1628,13 @@
           </section>
         </div>
       </div>
+
+      <nav class="sheet-tabs" aria-label="Sheets">
+        <div class="sheet-tabs__list" role="tablist">
+          <button type="button" class="sheet-tab" role="tab" id="sheet-tab-balances" data-sheet="waive-balance" data-text="Outstanding balances" aria-controls="view-waive-balance" aria-selected="false" tabindex="-1">Outstanding balances</button>
+          <button type="button" class="sheet-tab" role="tab" id="sheet-tab-waived" data-sheet="waived-payments" data-text="View Waived Payments" aria-controls="view-waived-payments" aria-selected="false" tabindex="-1">View Waived Payments</button>
+        </div>
+      </nav>
     </main>
   </div>
 
@@ -2409,6 +2390,6 @@
   <script src="vendor/html2pdf.js/html2pdf.bundle.min.js"></script>
   <script src="js/phone.js"></script>
   <script src="js/api.js"></script>
-  <script src="js/dashboard.js?v=20260922k"></script>
+  <script src="js/dashboard.js?v=20260922o"></script>
 </body>
 </html>

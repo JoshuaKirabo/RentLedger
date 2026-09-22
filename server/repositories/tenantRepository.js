@@ -147,7 +147,13 @@ function getTenantDirectory() {
       sd.security_deposit_id,
       sd.status AS security_deposit_status,
       sd.expected_amount AS security_deposit_expected,
-      sd.received_amount AS security_deposit_received
+      sd.received_amount AS security_deposit_received,
+      COALESCE((
+        SELECT w.deposit_amount
+        FROM waivers w
+        WHERE w.tenancy_id = ta.tenancy_id
+          AND w.kind = 'DEPOSIT'
+      ), 0) AS security_deposit_waived
     FROM tenants t
     LEFT JOIN tenancy_assignments ta
       ON ta.tenancy_id = (
@@ -237,7 +243,13 @@ function getTenantById(tenantId) {
       sd.security_deposit_id,
       sd.status AS security_deposit_status,
       sd.expected_amount AS security_deposit_expected,
-      sd.received_amount AS security_deposit_received
+      sd.received_amount AS security_deposit_received,
+      COALESCE((
+        SELECT w.deposit_amount
+        FROM waivers w
+        WHERE w.tenancy_id = ta.tenancy_id
+          AND w.kind = 'DEPOSIT'
+      ), 0) AS security_deposit_waived
     FROM tenants t
     LEFT JOIN tenancy_assignments ta
       ON ta.tenancy_id = (

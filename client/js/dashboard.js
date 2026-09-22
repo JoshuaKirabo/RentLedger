@@ -31,6 +31,13 @@
   const ACTIVE_VIEW_KEY = "rentledger:activeView";
 
   function showView(viewId) {
+    const previousId = Object.keys(views).find((id) => views[id]?.classList.contains("view--active"));
+    const sheetIds = new Set(["waive-balance", "waived-payments"]);
+    document.querySelector(".main")?.classList.toggle(
+      "is-sheet-switch",
+      sheetIds.has(previousId) && sheetIds.has(viewId)
+    );
+
     try {
       localStorage.setItem(ACTIVE_VIEW_KEY, viewId);
     } catch (_) {}
@@ -52,6 +59,8 @@
       document.querySelector('.sidebar__nav .sidebar__link[data-view="waive-balance"]')
         ?.classList.add("sidebar__link--active");
     }
+
+    syncWorkbookSheets(viewId);
 
     document.title = APP_TITLE;
 
@@ -285,12 +294,36 @@
     exitWaiveMode();
   });
 
-  document.getElementById("viewWaivedPaymentsLink")?.addEventListener("click", () => {
-    navigateToView("waived-payments");
+  const workbookSheetTabs = document.querySelectorAll(".sheet-tab");
+
+  function syncWorkbookSheets(viewId) {
+    const onSheet = viewId === "waive-balance" || viewId === "waived-payments";
+    workbookSheetTabs.forEach((tab) => {
+      const selected = onSheet && tab.dataset.sheet === viewId;
+      tab.classList.toggle("is-active", selected);
+      tab.setAttribute("aria-selected", selected ? "true" : "false");
+      tab.tabIndex = selected ? 0 : -1;
+    });
+  }
+
+  document.querySelector(".sheet-tabs")?.addEventListener("click", (e) => {
+    const tab = e.target.closest(".sheet-tab");
+    if (!tab || tab.classList.contains("is-active")) return;
+    navigateToView(tab.dataset.sheet);
   });
 
-  document.getElementById("waiveBalanceLink")?.addEventListener("click", () => {
-    navigateToView("waive-balance");
+  document.querySelector(".sheet-tabs")?.addEventListener("keydown", (e) => {
+    if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(e.key)) return;
+    const tabs = [...workbookSheetTabs];
+    const current = Math.max(0, tabs.findIndex((tab) => tab.classList.contains("is-active")));
+    let next = current;
+    if (e.key === "ArrowRight") next = (current + 1) % tabs.length;
+    if (e.key === "ArrowLeft") next = (current - 1 + tabs.length) % tabs.length;
+    if (e.key === "Home") next = 0;
+    if (e.key === "End") next = tabs.length - 1;
+    e.preventDefault();
+    tabs[next]?.focus();
+    navigateToView(tabs[next].dataset.sheet);
   });
 
   const dashDepositsPendingCard = document.getElementById("dashDepositsPendingCard");
@@ -384,77 +417,393 @@
   let outstandingBalances = [];
   let outstandingBalancesLoadState = "loading";
 
-  const waivedPayments = [];
+  let waivedPayments = [];
+  let selectedWaiverId = null;
+  let waivedKindFilter = "all";
+  let waivedListSortKey = "";
+  let waivedListSortDirection = "asc";
+  let waiverEditDraft = null;
 
   function formatOutstandingAmount(amount) {
     return `UGX ${Number(amount).toLocaleString("en-UG")}`;
   }
 
-  function getFilteredWaivedPayments() {
-    const search = document.getElementById("waivedPaymentsSearch")?.value.trim().toLowerCase() || "";
-    if (!search) return waivedPayments;
-
-    return waivedPayments.filter((row) =>
-      [row.tenantName, row.tenantId, row.estate, row.house, row.rentMonth, row.reason, row.approvedBy, row.date]
-        .join(" ")
-        .toLowerCase()
-        .includes(search)
-    );
+  function waiverCoverageLabel(waiver) {
+    const lines = waiver?.lines || [];
+    if (!lines.length) return waiver?.rentMonth || "—";
+    if (lines.length === 1) return lines[0].label;
+    return `${lines.length} months`;
   }
 
-  function renderWaivedPaymentsScreen() {
+  function waiverMatchesKind(row, kind = waivedKindFilter) {
+    if (kind === "rent") return row.kind !== "deposit";
+    if (kind === "deposit") return row.kind === "deposit";
+    return true;
+  }
+
+  function waivedPaymentMeta(row) {
+    return [estateShortName(row.estate || ""), row.house, waiverCoverageLabel(row)]
+      .filter((part) => part && part !== "—")
+      .join(" · ");
+  }
+
+  function waivedPaymentMatchesSearch(row, search) {
+    if (!search) return true;
+    const months = (row.lines || []).map((line) => line.label).join(" ");
+    return [row.tenantName, row.tenantId, row.estate, row.house, row.rentMonth, months, row.reason, row.approvedBy, row.date, waiveCategoryLabel(row.kind)]
+      .join(" ")
+      .toLowerCase()
+      .includes(search);
+  }
+
+  function getFilteredWaivedPayments() {
+    const search = document.getElementById("waivedPaymentsSearch")?.value.trim().toLowerCase() || "";
+    return waivedPayments.filter((row) => waiverMatchesKind(row) && waivedPaymentMatchesSearch(row, search));
+  }
+
+  function compareWaivedPayments(a, b) {
+    let comparison = 0;
+    if (waivedListSortKey === "category") {
+      comparison = waiveCategoryLabel(a.kind).localeCompare(waiveCategoryLabel(b.kind), "en", { sensitivity: "base" });
+    } else if (waivedListSortKey === "amount") {
+      comparison = (Number(a.amount) || 0) - (Number(b.amount) || 0);
+    }
+    if (waivedListSortDirection === "desc") comparison = -comparison;
+    if (comparison) return comparison;
+    return (a.tenantName || "").localeCompare(b.tenantName || "", "en", { sensitivity: "base" });
+  }
+
+  function waivedSortButton(label, key, alignRight) {
+    const active = waivedListSortKey === key;
+    const direction = waivedListSortDirection === "asc" ? "A to Z" : "Z to A";
+    const icon = active
+      ? (waivedListSortDirection === "asc" ? "expand_less" : "expand_more")
+      : "unfold_more";
+    return `<button type="button" class="outstanding-column-sort${alignRight ? " outstanding-column-sort--right" : ""}" data-sort-key="${key}" aria-pressed="${active}" aria-label="Sort by ${label}, ${active ? direction : "A to Z"}"><span>${label}</span><span class="material-symbols-outlined waive-sort-chevron" aria-hidden="true">${icon}</span></button>`;
+  }
+
+  function renderWaivedPaymentsHead(visible) {
+    const head = document.getElementById("waivedPaymentsHead");
+    if (!head) return;
+    if (!visible) {
+      head.hidden = true;
+      head.innerHTML = "";
+      return;
+    }
+    head.hidden = false;
+    head.innerHTML = `
+      <span>Tenant</span>
+      ${waivedSortButton("Category", "category")}
+      ${waivedSortButton("Amount", "amount", true)}
+    `;
+  }
+
+  function renderWaivedPaymentItems(rows) {
+    return rows.map((row) => {
+      const selected = row.id === selectedWaiverId;
+      return `
+        <button type="button" class="waive-balance-item${selected ? " waive-balance-item--selected" : ""}" data-waiver-id="${escapeHtml(row.id)}" data-balance-key="${escapeHtml(row.id)}" aria-pressed="${selected}">
+          <span class="waive-balance-item__main">
+            <span class="waive-balance-item__name">${escapeHtml(row.tenantName || "—")}</span>
+            <span class="waive-balance-item__meta">${escapeHtml(waivedPaymentMeta(row))}</span>
+          </span>
+          <span class="waive-balance-item__category">${escapeHtml(waiveCategoryLabel(row.kind))}</span>
+          <span class="waive-balance-item__amount">${formatOutstandingAmount(row.amount || 0)}</span>
+        </button>`;
+    }).join("");
+  }
+
+  function renderWaivedPaymentsScreen(options = {}) {
     const total = waivedPayments.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
     const tenantCount = new Set(waivedPayments.map((row) => row.tenantId || row.tenantName).filter(Boolean)).size;
     const filtered = getFilteredWaivedPayments();
-    const table = document.getElementById("waivedPaymentsTable");
+    const list = document.getElementById("waivedPaymentsList");
     const countEl = document.getElementById("waivedPaymentsTableCount");
+    const kindTotal = waivedPayments.filter((row) => waiverMatchesKind(row)).length;
 
     const totalEl = document.getElementById("waivedPaymentsTotal");
-    const recordsEl = document.getElementById("waivedPaymentsCount");
-    const tenantsEl = document.getElementById("waivedPaymentsTenants");
+    const contextEl = document.getElementById("waivedPaymentsContext");
     if (totalEl) totalEl.textContent = formatOutstandingAmount(total);
-    if (recordsEl) recordsEl.textContent = String(waivedPayments.length);
-    if (tenantsEl) tenantsEl.textContent = String(tenantCount);
+    if (contextEl) {
+      const records = waivedPayments.length;
+      const waiverWord = `waiver${records === 1 ? "" : "s"}`;
+      contextEl.textContent = !records
+        ? "No waived payments yet."
+        : tenantCount > 1
+          ? `${records} ${waiverWord} across ${tenantCount} tenants`
+          : `${records} ${waiverWord}`;
+    }
     if (countEl) {
-      countEl.textContent = filtered.length === waivedPayments.length
-        ? `Showing ${filtered.length} waived payment${filtered.length === 1 ? "" : "s"}`
-        : `Showing ${filtered.length} of ${waivedPayments.length} waived payments`;
+      if (waivedKindFilter === "rent") {
+        countEl.textContent = `Showing ${filtered.length} of ${kindTotal} rent`;
+      } else if (waivedKindFilter === "deposit") {
+        countEl.textContent = `Showing ${filtered.length} of ${kindTotal} deposit${kindTotal === 1 ? "" : "s"}`;
+      } else if (filtered.length === waivedPayments.length) {
+        countEl.textContent = `Showing ${filtered.length} waived payment${filtered.length === 1 ? "" : "s"}`;
+      } else {
+        countEl.textContent = `Showing ${filtered.length} of ${waivedPayments.length} waived payments`;
+      }
     }
 
-    if (!table) return;
-    if (!waivedPayments.length) {
-      table.innerHTML = `
-        <tr class="outstanding-empty">
-          <td colspan="8"><span class="material-symbols-outlined">money_off</span>No waived payments recorded yet.</td>
-        </tr>`;
-      return;
-    }
+    if (!list) return;
+    const scrollTop = list.scrollTop;
+    renderWaivedPaymentsHead(true);
 
     if (!filtered.length) {
-      table.innerHTML = `
-        <tr class="outstanding-empty">
-          <td colspan="8"><span class="material-symbols-outlined">search_off</span>No waived payments match your search.</td>
-        </tr>`;
+      let emptyMessage = "No waived payments recorded yet.";
+      if (waivedPayments.length) {
+        if (waivedKindFilter === "rent" && !kindTotal) emptyMessage = "No rent has been waived.";
+        else if (waivedKindFilter === "deposit" && !kindTotal) emptyMessage = "No deposits have been waived.";
+        else emptyMessage = "No waived payments match your search.";
+      }
+      list.innerHTML = `<p class="waive-balance-list__empty">${emptyMessage}</p>`;
+      renderWaivedDetail([]);
       return;
     }
 
-    table.innerHTML = filtered
-      .map((row) => `
-        <tr>
-          <td>${escapeHtml(row.date || "—")}</td>
-          <td>
-            <span class="outstanding-tenant__name">${escapeHtml(row.tenantName || "—")}</span>
-            <span class="outstanding-tenant__id">${escapeHtml(row.tenantId || "")}</span>
-          </td>
-          <td><span class="estate-name">${escapeHtml(estateShortName(row.estate || "—"))}</span></td>
-          <td><span class="house-number">${escapeHtml(row.house || "—")}</span></td>
-          <td>${escapeHtml(row.rentMonth || "—")}</td>
-          <td class="text-right"><span class="waived-payment-amount">${formatOutstandingAmount(row.amount || 0)}</span></td>
-          <td><span class="waived-payment-reason" title="${escapeHtml(row.reason || "")}">${escapeHtml(row.reason || "—")}</span></td>
-          <td>${escapeHtml(row.approvedBy || "—")}</td>
-        </tr>`)
-      .join("");
+    const rows = waivedListSortKey ? [...filtered].sort(compareWaivedPayments) : filtered;
+    const previousRects = options.motion === "reorder"
+      ? new Map([...list.querySelectorAll(".waive-balance-item")].map((row) => [row.dataset.balanceKey, row.getBoundingClientRect()]))
+      : null;
+    list.innerHTML = renderWaivedPaymentItems(rows);
+    list.scrollTop = scrollTop;
+    if (previousRects) animateWaiveListReorder(list, previousRects);
+    renderWaivedDetail(rows);
   }
+
+  function renderWaivedDetail(visibleRows) {
+    const layout = document.getElementById("waivedPaymentsLayout");
+    const detail = document.getElementById("waivedPaymentsDetail");
+    const waiver = waivedPayments.find((row) => row.id === selectedWaiverId);
+    const open = !!waiver && (!visibleRows || visibleRows.some((row) => row.id === waiver.id));
+    layout?.classList.toggle("waive-balance-layout--open", open);
+    if (detail) detail.setAttribute("aria-hidden", String(!open));
+    if (!open || !waiver) {
+      document.getElementById("waivedDetailActions")?.setAttribute("hidden", "");
+      document.getElementById("waivedDetailEditActions")?.setAttribute("hidden", "");
+      const note = document.getElementById("waivedDetailEditNote");
+      if (note) {
+        note.hidden = true;
+        note.textContent = "";
+      }
+      return;
+    }
+
+    const lines = waiver.lines || [];
+    const title = document.getElementById("waivedDetailTitle");
+    const meta = document.getElementById("waivedDetailMeta");
+    const kicker = document.getElementById("waivedDetailKicker");
+    const list = document.getElementById("waivedDetailLines");
+    const reason = document.getElementById("waivedDetailReason");
+    const total = document.getElementById("waivedDetailTotal");
+    const summary = document.getElementById("waivedDetailSummary");
+    if (title) title.textContent = waiver.tenantName || "Waiver";
+    if (meta) {
+      meta.textContent = [estateShortName(waiver.estate || ""), waiver.house, waiver.date]
+        .filter(Boolean)
+        .join(" · ");
+    }
+    const editing = waiverEditDraft?.id === waiver.id && waiver.kind !== "deposit";
+    const removed = editing ? waiverEditDraft.removed : new Set();
+    const keptLines = lines.filter((_, index) => !removed.has(index));
+    const shownAmount = editing
+      ? keptLines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0)
+      : (Number(waiver.amount) || 0);
+    if (kicker) {
+      if (editing) kicker.textContent = "Remove months";
+      else if (waiver.kind === "deposit") kicker.textContent = "Security deposit";
+      else if (lines.length === 1) kicker.textContent = "Month waived";
+      else kicker.textContent = "Months waived";
+    }
+    if (list) {
+      list.innerHTML = lines.map((line, index) => {
+        const isRemoved = removed.has(index);
+        const action = editing
+          ? `<button type="button" class="waive-period-row__remove" data-line-index="${index}" aria-label="${escapeHtml(isRemoved ? `Undo remove ${line.label}` : `Remove ${line.label}`)}">${isRemoved ? "Undo" : "Remove"}</button>`
+          : "";
+        return `
+        <li class="waive-period-row${isRemoved ? " is-removed" : ""}">
+          <span class="waive-period-row__label">${escapeHtml(line.label)}</span>
+          <span class="waive-period-row__amount">${escapeHtml(formatOutstandingAmount(line.amount || 0))}</span>
+          ${action}
+        </li>`;
+      }).join("");
+    }
+    if (reason) {
+      const text = waiver.reason || "";
+      reason.hidden = !text;
+      reason.innerHTML = text
+        ? `<span class="waived-detail-reason__label">Reason</span>${escapeHtml(text)}`
+        : "";
+    }
+    if (total) {
+      total.innerHTML = `
+        <span class="waive-owed__label">Waived</span>
+        <strong class="waive-owed__value">${escapeHtml(formatOutstandingAmount(shownAmount))}</strong>`;
+    }
+    if (summary) {
+      summary.innerHTML = `
+        <div class="waive-balance-summary__row">
+          <span class="waive-balance-summary__label">Approved by</span>
+          <span class="waive-balance-summary__value">${escapeHtml(waiver.approvedBy || "—")}</span>
+        </div>`;
+    }
+    syncWaiverEditActions(waiver, lines, editing, removed);
+  }
+
+  function syncWaiverEditActions(waiver, lines, editing, removed) {
+    const viewActions = document.getElementById("waivedDetailActions");
+    const editActions = document.getElementById("waivedDetailEditActions");
+    const note = document.getElementById("waivedDetailEditNote");
+    const saveBtn = document.getElementById("waivedDetailSave");
+    const canEdit = waiver.kind !== "deposit" && lines.length > 0;
+    viewActions?.toggleAttribute("hidden", editing || !canEdit);
+    editActions?.toggleAttribute("hidden", !editing);
+    if (!note) return;
+    if (!editing) {
+      note.hidden = true;
+      note.textContent = "";
+      return;
+    }
+    const removedCount = removed.size;
+    note.hidden = false;
+    if (!removedCount) {
+      note.textContent = "Take months off this waiver. Save keeps the rest.";
+    } else if (removedCount >= lines.length) {
+      note.textContent = "Every month is off. Saving removes this waiver.";
+    } else {
+      const monthWord = removedCount === 1 ? "month" : "months";
+      note.textContent = `${removedCount} ${monthWord} will come off. The amount updates when you save.`;
+    }
+    if (!saveBtn) return;
+    const removingAll = removedCount > 0 && removedCount >= lines.length;
+    saveBtn.disabled = removedCount === 0;
+    saveBtn.textContent = removingAll ? "Remove waiver" : "Save";
+    saveBtn.classList.toggle("btn--primary", !removingAll);
+    saveBtn.classList.toggle("btn--danger", removingAll);
+  }
+
+  function beginWaiverEdit() {
+    const waiver = waivedPayments.find((row) => row.id === selectedWaiverId);
+    if (!waiver || waiver.kind === "deposit" || !(waiver.lines || []).length) return;
+    waiverEditDraft = { id: waiver.id, removed: new Set() };
+    renderWaivedPaymentsScreen();
+    document.querySelector("#waivedDetailLines .waive-period-row__remove")?.focus();
+  }
+
+  function cancelWaiverEdit() {
+    if (!waiverEditDraft) return;
+    waiverEditDraft = null;
+    renderWaivedPaymentsScreen();
+    document.getElementById("waivedDetailEdit")?.focus();
+  }
+
+  async function saveWaiverEdit() {
+    if (!waiverEditDraft?.removed.size) return;
+    const draft = waiverEditDraft;
+    const waiver = waivedPayments.find((row) => row.id === draft.id);
+    if (!waiver) {
+      waiverEditDraft = null;
+      renderWaivedPaymentsScreen();
+      return;
+    }
+    const kept = (waiver.lines || []).filter((_, lineIndex) => !draft.removed.has(lineIndex));
+    const saveBtn = document.getElementById("waivedDetailSave");
+    if (saveBtn) saveBtn.disabled = true;
+    try {
+      if (!kept.length) {
+        await RentLedgerApi.del(`/api/waivers/${encodeURIComponent(waiver.id)}`);
+        selectedWaiverId = null;
+      } else {
+        await RentLedgerApi.put(`/api/waivers/${encodeURIComponent(waiver.id)}`, {
+          months: kept.map((line) => line.label),
+        });
+      }
+      waiverEditDraft = null;
+      await refreshFromApi();
+      if (selectedWaiverId) document.getElementById("waivedDetailEdit")?.focus();
+      else document.getElementById("waivedPaymentsSearch")?.focus();
+    } catch (err) {
+      alert(`Could not update waiver: ${err.message}`);
+      if (saveBtn) saveBtn.disabled = false;
+    }
+  }
+
+  function selectWaivedPayment(id) {
+    waiverEditDraft = null;
+    selectedWaiverId = selectedWaiverId === id ? null : id;
+    renderWaivedPaymentsScreen();
+  }
+
+  document.getElementById("waivedPaymentsList")?.addEventListener("click", (e) => {
+    const row = e.target.closest(".waive-balance-item");
+    if (!row) return;
+    selectWaivedPayment(row.dataset.waiverId);
+  });
+
+  document.getElementById("waivedPaymentsHead")?.addEventListener("click", (e) => {
+    const sortButton = e.target.closest("[data-sort-key]");
+    if (!sortButton) return;
+    const nextSortKey = sortButton.dataset.sortKey;
+    if (nextSortKey === waivedListSortKey) {
+      waivedListSortDirection = waivedListSortDirection === "asc" ? "desc" : "asc";
+    } else {
+      waivedListSortKey = nextSortKey;
+      waivedListSortDirection = "asc";
+    }
+    renderWaivedPaymentsScreen({ motion: "reorder" });
+    document.getElementById("waivedPaymentsHead")
+      ?.querySelector(`[data-sort-key="${CSS.escape(nextSortKey)}"]`)
+      ?.focus();
+  });
+
+  document.getElementById("waivedKindFilter")?.addEventListener("click", (e) => {
+    const button = e.target.closest(".waive-kind-filter__btn");
+    if (!button) return;
+    waivedKindFilter = button.dataset.kind || "all";
+    button.parentElement?.querySelectorAll(".waive-kind-filter__btn").forEach((peer) => {
+      const active = peer === button;
+      peer.classList.toggle("is-active", active);
+      peer.setAttribute("aria-pressed", String(active));
+    });
+    renderWaivedPaymentsScreen({ motion: "reorder" });
+  });
+
+  document.getElementById("waivedDetailLines")?.addEventListener("click", (e) => {
+    const button = e.target.closest("[data-line-index]");
+    if (!button || !waiverEditDraft) return;
+    const index = Number(button.dataset.lineIndex);
+    if (!Number.isInteger(index)) return;
+    if (waiverEditDraft.removed.has(index)) waiverEditDraft.removed.delete(index);
+    else waiverEditDraft.removed.add(index);
+    renderWaivedPaymentsScreen();
+    document.querySelector(`#waivedDetailLines [data-line-index="${index}"]`)?.focus();
+  });
+
+  document.getElementById("waivedDetailEdit")?.addEventListener("click", beginWaiverEdit);
+  document.getElementById("waivedDetailCancel")?.addEventListener("click", cancelWaiverEdit);
+  document.getElementById("waivedDetailSave")?.addEventListener("click", saveWaiverEdit);
+
+  document.getElementById("waivedDetailClose")?.addEventListener("click", () => {
+    const id = selectedWaiverId;
+    selectedWaiverId = null;
+    waiverEditDraft = null;
+    renderWaivedPaymentsScreen();
+    if (id) {
+      document.querySelector(`#waivedPaymentsList [data-waiver-id="${CSS.escape(id)}"]`)?.focus();
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (!document.getElementById("view-waived-payments")?.classList.contains("view--active")) return;
+    if (waiverEditDraft) {
+      cancelWaiverEdit();
+      return;
+    }
+    if (!selectedWaiverId) return;
+    document.getElementById("waivedDetailClose")?.click();
+  });
 
   document.getElementById("waivedPaymentsSearch")?.addEventListener("input", renderWaivedPaymentsScreen);
 
@@ -479,7 +828,8 @@
   function getDepositBalance(tenant) {
     const required = Number(tenant.depositRequiredAmount) || 0;
     const paid = Number(tenant.depositPaidAmount) || 0;
-    return Math.max(0, required - paid);
+    const waived = Number(tenant.depositWaivedAmount) || 0;
+    return Math.max(0, required - paid - waived);
   }
 
   function tenantOwesSecurityDeposit(tenant) {
@@ -3312,6 +3662,15 @@
     }
 
     try {
+      waivedPayments = await RentLedgerApi.get("/api/waivers");
+      if (selectedWaiverId && !waivedPayments.some((row) => row.id === selectedWaiverId)) {
+        selectedWaiverId = null;
+      }
+    } catch {
+      waivedPayments = [];
+    }
+
+    try {
       payments = await RentLedgerApi.get("/api/payments");
     } catch {
       payments = [];
@@ -3360,6 +3719,9 @@
     }
     if (document.getElementById("view-waive-balance")?.classList.contains("view--active")) {
       renderWaiveBalancesList();
+    }
+    if (document.getElementById("view-waived-payments")?.classList.contains("view--active")) {
+      renderWaivedPaymentsScreen();
     }
     if (document.getElementById("view-pending-deposits")?.classList.contains("view--active")) {
       renderPendingDepositsReport();
@@ -6012,7 +6374,6 @@
   let waiveBalanceInitialized = false;
   let waiveCloseToken = 0;
   let waiveMode = false;
-  let waiveHeroSettled = false;
   let waiveKindFilter = "all";
   let waiveListSortKey = "";
   let waiveListSortDirection = "asc";
@@ -6095,7 +6456,6 @@
   function renderWaiveHero(rentTotal, depositTotal) {
     const totalEl = document.getElementById("waiveBalancesHeroTotal");
     const contextEl = document.getElementById("waiveBalancesHeroContext");
-    const hero = document.querySelector("#view-waive-balance .balances-hero");
     if (!totalEl || !contextEl) return;
 
     if (outstandingBalancesLoadState === "loading") {
@@ -6131,11 +6491,6 @@
     } else {
       contextEl.textContent = `${rentLabel} · ${depositLabel}`;
     }
-
-    if (!waiveHeroSettled) {
-      waiveHeroSettled = true;
-      hero?.classList.add("is-settling");
-    }
   }
 
   function waiveCategoryLabel(kind) {
@@ -6158,9 +6513,25 @@
     const active = waiveListSortKey === key;
     const direction = waiveListSortDirection === "asc" ? "A to Z" : "Z to A";
     const icon = active
-      ? (waiveListSortDirection === "asc" ? "arrow_upward" : "arrow_downward")
+      ? (waiveListSortDirection === "asc" ? "expand_less" : "expand_more")
       : "unfold_more";
-    return `<button type="button" class="outstanding-column-sort${alignRight ? " outstanding-column-sort--right" : ""}" data-sort-key="${key}" aria-pressed="${active}" aria-label="Sort by ${label}, ${active ? direction : "A to Z"}"><span>${label}</span><span class="material-symbols-outlined" aria-hidden="true">${icon}</span></button>`;
+    return `<button type="button" class="outstanding-column-sort${alignRight ? " outstanding-column-sort--right" : ""}" data-sort-key="${key}" aria-pressed="${active}" aria-label="Sort by ${label}, ${active ? direction : "A to Z"}"><span>${label}</span><span class="material-symbols-outlined waive-sort-chevron" aria-hidden="true">${icon}</span></button>`;
+  }
+
+  function renderWaiveBalanceHead(visible) {
+    const head = document.getElementById("waiveBalancesHead");
+    if (!head) return;
+    if (!visible) {
+      head.hidden = true;
+      head.innerHTML = "";
+      return;
+    }
+    head.hidden = false;
+    head.innerHTML = `
+      <span>Tenant</span>
+      ${waiveSortButton("Category", "category")}
+      ${waiveSortButton("Amount", "amount", true)}
+    `;
   }
 
   function renderWaiveBalanceItems(items) {
@@ -6178,6 +6549,61 @@
     }).join("");
   }
 
+  function waiveRowInView(rect, view) {
+    return rect.bottom > view.top && rect.top < view.bottom;
+  }
+
+  function animateWaiveListReorder(list, previousRects) {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const view = list.getBoundingClientRect();
+    const rows = [...list.querySelectorAll(".waive-balance-item")];
+    rows.forEach((row) => {
+      const prev = previousRects.get(row.dataset.balanceKey);
+      const next = row.getBoundingClientRect();
+      const wasVisible = prev && waiveRowInView(prev, view);
+      const isVisible = waiveRowInView(next, view);
+      if (!wasVisible) {
+        if (!isVisible) return;
+        row.dataset.waiveEnter = "1";
+        row.style.opacity = "0";
+        if (!reduceMotion) row.style.transform = "translateY(8px)";
+        return;
+      }
+      if (reduceMotion || !isVisible) return;
+      const dy = prev.top - next.top;
+      if (Math.abs(dy) < 0.5) return;
+      row.style.transform = `translateY(${dy}px)`;
+    });
+
+    void list.offsetHeight;
+
+    requestAnimationFrame(() => {
+      rows.forEach((row) => {
+        const entering = row.dataset.waiveEnter === "1";
+        if (!entering && !row.style.transform) return;
+        const clear = (event) => {
+          if (event.propertyName !== "transform" && event.propertyName !== "opacity") return;
+          row.style.transition = "";
+          row.style.transform = "";
+          row.style.opacity = "";
+          delete row.dataset.waiveEnter;
+          row.removeEventListener("transitionend", clear);
+        };
+        row.addEventListener("transitionend", clear);
+        if (entering) {
+          row.style.transition = reduceMotion
+            ? "opacity 120ms ease"
+            : "transform 180ms var(--ease-out), opacity 180ms var(--ease-out)";
+          row.style.opacity = "1";
+          row.style.transform = "translateY(0)";
+          return;
+        }
+        row.style.transition = "transform 200ms var(--ease-in-out)";
+        row.style.transform = "translateY(0)";
+      });
+    });
+  }
+
   function renderWaiveBalancesList(options = {}) {
     const list = document.getElementById("waiveBalancesList");
     const countEl = document.getElementById("waiveBalancesTableCount");
@@ -6189,35 +6615,28 @@
     const depositTotal = getPendingDepositTenants().filter((tenant) => getDepositBalance(tenant) > 0).length;
     renderWaiveHero(rentTotal, depositTotal);
 
-    const expectedRent = waiveKindFilter === "deposit" ? 0 : rentTotal;
-    const expectedDeposits = waiveKindFilter === "rent" ? 0 : depositTotal;
-    const narrowed = outstandingBalancesLoadState === "ready"
-      && (waiveKindFilter !== "all" || rent.length !== expectedRent || deposits.length !== expectedDeposits);
     if (countEl && footer) {
-      if (!narrowed) {
-        countEl.textContent = "";
-        footer.setAttribute("hidden", "");
-      } else {
-        let countText = "";
+      let countText = "";
+      if (outstandingBalancesLoadState === "ready") {
         if (waiveKindFilter === "rent") {
           countText = `Showing ${rent.length} of ${rentTotal} rent`;
         } else if (waiveKindFilter === "deposit") {
           countText = `Showing ${deposits.length} of ${depositTotal} deposit${depositTotal === 1 ? "" : "s"}`;
         } else {
-          const parts = [];
-          if (rentTotal) parts.push(`${rent.length} of ${rentTotal} rent`);
-          if (depositTotal) parts.push(`${deposits.length} of ${depositTotal} deposit${depositTotal === 1 ? "" : "s"}`);
-          countText = parts.length ? `Showing ${parts.join(" · ")}` : "";
+          const shown = rent.length + deposits.length;
+          const total = rentTotal + depositTotal;
+          countText = `Showing ${shown} of ${total} participant${total === 1 ? "" : "s"}`;
         }
-        countEl.textContent = countText;
-        footer.toggleAttribute("hidden", !countEl.textContent);
       }
+      countEl.textContent = countText;
+      footer.toggleAttribute("hidden", !countText);
     }
 
     if (!list) return;
     const scrollTop = list.scrollTop;
 
     if (outstandingBalancesLoadState === "loading") {
+      renderWaiveBalanceHead(false);
       list.innerHTML = `
         <div class="waive-balance-list__loading" role="status" aria-label="Loading balances">
           ${Array.from({ length: 6 }, () => `
@@ -6233,6 +6652,7 @@
     }
 
     if (outstandingBalancesLoadState === "error") {
+      renderWaiveBalanceHead(false);
       list.innerHTML = `
         <div class="waive-balance-list__empty">
           <p>Balances could not be loaded.</p>
@@ -6248,6 +6668,7 @@
         else if (waiveKindFilter === "deposit" && !depositTotal) emptyMessage = "No deposits are outstanding.";
         else emptyMessage = "No balances match your search.";
       }
+      renderWaiveBalanceHead(true);
       list.innerHTML = `<p class="waive-balance-list__empty">${emptyMessage}</p>`;
       return;
     }
@@ -6256,16 +6677,16 @@
       ? [...rent, ...deposits].sort(compareWaiveListItems)
       : null;
 
-    list.innerHTML = `
-      <div class="waive-balance-head">
-        <span>Tenant</span>
-        ${waiveSortButton("Category", "category")}
-        ${waiveSortButton("Amount", "amount", true)}
-      </div>
-      ${sortedItems
-        ? renderWaiveBalanceItems(sortedItems)
-        : `${renderWaiveBalanceItems(rent)}${renderWaiveBalanceItems(deposits)}`}`;
+    const previousRects = options.motion === "reorder"
+      ? new Map([...list.querySelectorAll(".waive-balance-item")].map((row) => [row.dataset.balanceKey, row.getBoundingClientRect()]))
+      : null;
+
+    renderWaiveBalanceHead(true);
+    list.innerHTML = sortedItems
+      ? renderWaiveBalanceItems(sortedItems)
+      : `${renderWaiveBalanceItems(rent)}${renderWaiveBalanceItems(deposits)}`;
     list.scrollTop = scrollTop;
+    if (previousRects) animateWaiveListReorder(list, previousRects);
 
     if (options.restoreFocus && waiveSelectedItem) {
       list.querySelector(`[data-balance-key="${CSS.escape(waiveSelectedItem.key)}"]`)?.focus();
@@ -6521,12 +6942,7 @@
     const leftText = remaining.length
       ? `${formatOutstandingAmount(leftAmount)} · ${remaining.length} month${remaining.length === 1 ? "" : "s"}`
       : "Clears";
-    const stillDue = remaining.length > 0 && remaining.length <= 4
-      ? `<div class="waive-balance-summary__row">
-          <span class="waive-balance-summary__label">Still due</span>
-          <span class="waive-balance-summary__value">${escapeHtml(remaining.join(", "))}</span>
-        </div>`
-      : "";
+    const stillDueText = remaining.length ? remaining.join(", ") : "UGX 0";
 
     summary.innerHTML = `
       <div class="waive-balance-summary__row">
@@ -6537,7 +6953,10 @@
         <span class="waive-balance-summary__label">Rent left</span>
         <span class="waive-balance-summary__value ${remaining.length ? "waive-balance-summary__value--due" : "waive-balance-summary__value--clear"}">${leftText}</span>
       </div>
-      ${stillDue}
+      <div class="waive-balance-summary__row">
+        <span class="waive-balance-summary__label">Still due</span>
+        <span class="waive-balance-summary__value ${remaining.length ? "" : "waive-balance-summary__value--clear"}">${escapeHtml(stillDueText)}</span>
+      </div>
       <div class="waive-balance-summary__row">
         <span class="waive-balance-summary__label">Deposit still owed</span>
         <span class="waive-balance-summary__value ${depositLeft > 0 ? "waive-balance-summary__value--due" : "waive-balance-summary__value--clear"}">${depositLeftText}</span>
@@ -6630,7 +7049,7 @@
         peer.classList.toggle("is-active", active);
         peer.setAttribute("aria-pressed", String(active));
       });
-      renderWaiveBalancesList();
+      renderWaiveBalancesList({ motion: "reorder" });
     });
 
     document.getElementById("waiveBalanceClose")?.addEventListener("click", () => {
@@ -6638,22 +7057,23 @@
       waiveBalancesSearchInput?.focus();
     });
 
-    document.getElementById("waiveBalancesList")?.addEventListener("click", (e) => {
-      const sortButton = e.target.closest(".waive-balance-head [data-sort-key]");
-      if (sortButton) {
-        const nextSortKey = sortButton.dataset.sortKey;
-        if (nextSortKey === waiveListSortKey) {
-          waiveListSortDirection = waiveListSortDirection === "asc" ? "desc" : "asc";
-        } else {
-          waiveListSortKey = nextSortKey;
-          waiveListSortDirection = "asc";
-        }
-        renderWaiveBalancesList();
-        document.getElementById("waiveBalancesList")
-          ?.querySelector(`[data-sort-key="${CSS.escape(nextSortKey)}"]`)
-          ?.focus();
-        return;
+    document.getElementById("waiveBalancesHead")?.addEventListener("click", (e) => {
+      const sortButton = e.target.closest("[data-sort-key]");
+      if (!sortButton) return;
+      const nextSortKey = sortButton.dataset.sortKey;
+      if (nextSortKey === waiveListSortKey) {
+        waiveListSortDirection = waiveListSortDirection === "asc" ? "desc" : "asc";
+      } else {
+        waiveListSortKey = nextSortKey;
+        waiveListSortDirection = "asc";
       }
+      renderWaiveBalancesList({ motion: "reorder" });
+      document.getElementById("waiveBalancesHead")
+        ?.querySelector(`[data-sort-key="${CSS.escape(nextSortKey)}"]`)
+        ?.focus();
+    });
+
+    document.getElementById("waiveBalancesList")?.addEventListener("click", (e) => {
       if (e.target.closest("#waiveBalancesRetry")) {
         refreshFromApi();
         return;
@@ -6703,7 +7123,7 @@
     });
     waiveReasonInput?.addEventListener("input", syncWaiveSubmitState);
 
-    waiveBalanceForm?.addEventListener("submit", (e) => {
+    waiveBalanceForm?.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!canSubmitWaiveBalance()) {
         syncWaiveSubmitState();
@@ -6731,32 +7151,21 @@
         return;
       }
 
-      const balance = getOutstandingBalanceForTenant(waiveSelectedTenant);
-      const monthAmounts = balance?.monthAmounts || {};
-      const waiveBase = {
-        date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
-        tenantId: waiveSelectedTenant.tenantId || waiveSelectedTenant.id || "",
-        tenantName: waiveSelectedTenant.name,
-        estate: waiveSelectedTenant.estate || balance?.estate || "",
-        house: waiveSelectedTenant.unit || waiveSelectedTenant.house || balance?.house || "",
-        reason: waiveReasonInput.value.trim(),
-        approvedBy: waiverApprovedBy || "—",
-      };
-
-      const newWaivers = isDeposit
-        ? [{
-          ...waiveBase,
-          rentMonth: "Security deposit",
-          amount: waiveAmount,
-        }]
-        : selectedMonths.map((month) => ({
-          ...waiveBase,
-          rentMonth: month,
-          amount: Number(monthAmounts[month]) || 0,
-        }));
-      waivedPayments.unshift(...newWaivers);
-
-      navigateToView("waived-payments");
+      if (waiveBalanceSubmit) waiveBalanceSubmit.disabled = true;
+      try {
+        const created = await RentLedgerApi.post("/api/waivers", {
+          tenantId: waiveSelectedTenant.tenantId || waiveSelectedTenant.id || "",
+          kind: isDeposit ? "deposit" : "rent",
+          reason: waiveReasonInput.value.trim(),
+          months: isDeposit ? [] : selectedMonths,
+        });
+        selectedWaiverId = String(created?.id || "");
+        await refreshFromApi();
+        navigateToView("waived-payments");
+      } catch (err) {
+        alert(`Could not save waiver: ${err.message}`);
+        syncWaiveSubmitState();
+      }
     });
 
     syncWaiveSelectionUI();

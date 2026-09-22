@@ -292,10 +292,18 @@ function getOpenRentObligations(tenancyId) {
       ro.rent_month,
       ro.amount_due,
       ro.allocated_amount,
-      (ro.amount_due - ro.allocated_amount) AS balance
+      MAX(0, ro.amount_due - ro.allocated_amount - COALESCE((
+        SELECT wl.amount
+        FROM waiver_lines wl
+        WHERE wl.rent_obligation_id = ro.rent_obligation_id
+      ), 0)) AS balance
     FROM rent_obligations ro
     WHERE ro.tenancy_id = ?
-      AND ro.status IN ('UNPAID', 'PARTIAL')
+      AND ro.amount_due - ro.allocated_amount - COALESCE((
+        SELECT wl.amount
+        FROM waiver_lines wl
+        WHERE wl.rent_obligation_id = ro.rent_obligation_id
+      ), 0) > 0
     ORDER BY ro.rent_month ASC
   `).all(tenancyId);
 }
@@ -611,7 +619,13 @@ function getSecurityDepositForActiveTenant(tenantId) {
         SELECT SUM(sdp.allocated_amount)
         FROM security_deposit_payments sdp
         WHERE sdp.security_deposit_id = sd.security_deposit_id
-      ), 0) AS ledger_received
+      ), 0) AS ledger_received,
+      COALESCE((
+        SELECT w.deposit_amount
+        FROM waivers w
+        WHERE w.tenancy_id = sd.tenancy_id
+          AND w.kind = 'DEPOSIT'
+      ), 0) AS waived_amount
     FROM security_deposits sd
     JOIN tenancy_assignments ta ON ta.tenancy_id = sd.tenancy_id
     WHERE ta.tenant_id = ?
@@ -630,12 +644,14 @@ function securityDepositPosition(deposit) {
   const received = Number(deposit?.received_amount) || 0;
   const ledgerReceived = Number(deposit?.ledger_received) || 0;
   const covered = Math.max(received, ledgerReceived);
+  const waived = Number(deposit?.waived_amount) || 0;
   return {
     expected,
     received,
     ledgerReceived,
     covered,
-    outstanding: Math.max(0, expected - covered),
+    waived,
+    outstanding: Math.max(0, expected - covered - waived),
     unbackedReceived: Math.max(0, received - ledgerReceived),
   };
 }

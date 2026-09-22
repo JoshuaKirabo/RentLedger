@@ -1438,6 +1438,21 @@ body.sidebar-open {
   display: block;
 }
 
+#view-waive-balance.view--active > .waive-balance-page {
+  animation: waive-balance-enter 220ms var(--ease-out) both;
+}
+
+@keyframes waive-balance-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* ── Page header (Record a Payment) ── */
 
 .page-content {
@@ -4621,13 +4636,22 @@ body.sidebar-open {
   .waive-balance-skel__amount {
     animation: none;
   }
+
+  #view-waive-balance.view--active > .waive-balance-page {
+    animation: waive-balance-enter-fade 120ms ease both;
+  }
+}
+
+@keyframes waive-balance-enter-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .outstanding-filters.waive-balances-filters {
   grid-template-columns: minmax(180px, 1fr) auto;
   align-items: center;
-  padding: 16px 20px 12px;
-  border-bottom: 1px solid var(--gray-100);
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--gray-200);
   background: transparent;
 }
 
@@ -4962,26 +4986,38 @@ body.sidebar-open {
 .waived-payments-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
-.waived-payments-page .page-header,
-.waived-payments-page .metrics--outstanding {
+.waived-payments-page .balances-hero {
   flex-shrink: 0;
-  margin-bottom: 0;
+}
+
+.waived-payments-page .waive-balance-layout {
+  flex: 1;
+  min-height: 0;
 }
 
 .waived-payments-card {
-  flex: 1;
+  min-width: 0;
   min-height: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .waived-payments-filters {
-  grid-template-columns: 1fr;
-  padding-top: 0;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  align-items: center;
+  padding: 0 0 12px;
+  border: 0;
+  border-bottom: 1px solid var(--gray-200);
+  background: transparent;
   flex-shrink: 0;
 }
 
@@ -4989,39 +5025,98 @@ body.sidebar-open {
   max-width: none;
 }
 
-.waived-payments-card > .outstanding-report-card__header {
-  flex-shrink: 0;
-  padding: 20px 24px 16px;
-}
-
-.waived-payments-card > .outstanding-report-card__header .card__title {
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.waived-payments-filters .outstanding-search input {
+  height: 44px;
+  font-size: 16px;
 }
 
 .waived-payments-card > .outstanding-report-card__footer {
   flex-shrink: 0;
+  padding: 10px 0 0;
+  border: 0;
+  background: transparent;
 }
 
-.waived-payments-table-wrap {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
-  padding: 0;
+.waived-payments-page .waive-period-list {
+  flex: 0 1 auto;
+  max-height: min(360px, 50vh);
 }
 
-.waived-payments-table {
-  table-layout: fixed;
-  width: 100%;
-  min-width: 0;
+.waived-detail-meta {
+  margin: 6px 0 0;
+  color: var(--gray-500);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
-.waived-payments-table th,
-.waived-payments-table td {
-  width: 12.5%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.waived-detail-reason {
+  margin: 0;
+  color: var(--gray-900);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.waived-detail-reason[hidden] {
+  display: none;
+}
+
+.waived-detail-reason__label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--gray-500);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.waived-detail-edit-note {
+  margin: 0;
+  color: var(--gray-500);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.waived-detail-edit-note[hidden],
+.waived-detail-actions[hidden] {
+  display: none;
+}
+
+.waive-period-row__remove {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 6px 0 6px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--red-600);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.waive-period-row.is-removed .waive-period-row__remove {
+  color: var(--green-800);
+}
+
+.waive-period-row.is-removed .waive-period-row__label,
+.waive-period-row.is-removed .waive-period-row__amount {
+  color: var(--gray-500);
+  text-decoration: line-through;
+}
+
+.waive-period-row__remove:focus-visible {
+  outline: 2px solid var(--green-800);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .waive-period-row__remove:hover {
+    color: var(--gray-900);
+  }
 }
 
 .waive-balances-list-card {
@@ -5030,19 +5125,65 @@ body.sidebar-open {
   min-height: 0;
   height: 100%;
   overflow: hidden;
+  background: transparent;
 }
 
 .waive-balances-list-card > .outstanding-report-card__header,
 .waive-balances-list-card > .outstanding-filters,
+.waive-balances-list-card > .waive-balance-head,
 .waive-balances-list-card > .outstanding-report-card__footer {
   flex-shrink: 0;
+}
+
+.waive-balances-list-card > .outstanding-report-card__footer {
+  padding-left: 0;
+  padding-right: 0;
+  border-top: 0;
+  background: transparent;
 }
 
 .waive-balance-list {
   flex: 1;
   min-height: 120px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: scroll;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  border-left: 1px solid var(--gray-300);
+  border-bottom: 1px solid var(--gray-300);
+}
+
+.waive-balance-list::-webkit-scrollbar {
+  width: 14px;
+}
+
+.waive-balance-list::-webkit-scrollbar-track {
+  background: var(--gray-200);
+}
+
+.waive-balance-list::-webkit-scrollbar-thumb {
+  background: var(--gray-400);
+  border: 3px solid var(--gray-200);
+  border-radius: 999px;
+}
+
+.waive-balance-list:has(> .waive-balance-list__empty) {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.waive-balance-list:has(> .waive-balance-list__empty)::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -10px;
+  width: 6px;
+  height: 72px;
+  border-radius: 999px;
+  background: var(--gray-400);
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
 .waive-balances-list-card > .outstanding-report-card__footer[hidden] {
@@ -5064,16 +5205,6 @@ body.sidebar-open {
   margin: 0;
   color: var(--gray-900);
   font-weight: inherit;
-}
-
-.balances-hero__kicker {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--gray-500);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: -0.011em;
-  line-height: 1.3;
 }
 
 .balances-hero__total {
@@ -5163,22 +5294,51 @@ body.sidebar-open {
 .waive-balance-head,
 .waive-balance-item {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 108px minmax(128px, auto);
-  column-gap: 16px;
+  grid-template-columns: minmax(0, 1fr) 132px 188px;
+  column-gap: 0;
+  align-items: stretch;
+}
+
+.waive-balance-head > span,
+.waive-balance-head .outstanding-column-sort,
+.waive-balance-item > span {
+  display: flex;
   align-items: center;
+  min-width: 0;
+  padding: 10px 16px;
+  border-right: 1px solid var(--gray-300);
+}
+
+.waive-balance-head > :last-child,
+.waive-balance-item > :last-child {
+  border-right: 0;
 }
 
 .waive-balance-head {
-  position: sticky;
-  top: 0;
-  z-index: 2;
   margin: 0;
-  padding: 10px 20px;
-  border-bottom: 1px solid var(--gray-100);
-  background: var(--surface);
+  padding: 0;
+  border-left: 1px solid var(--gray-300);
+  border-bottom: 1px solid var(--gray-300);
+  background: var(--page-bg);
   color: var(--gray-500);
   font-size: 13px;
   font-weight: 600;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.waive-balance-head::-webkit-scrollbar {
+  width: 14px;
+}
+
+.waive-balance-head[hidden] {
+  display: none;
+}
+
+.waive-balance-head > span,
+.waive-balance-head .outstanding-column-sort > span:first-child {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .waive-balance-head .outstanding-column-sort {
@@ -5191,12 +5351,17 @@ body.sidebar-open {
   justify-content: flex-end;
 }
 
+.waive-balance-head .waive-sort-chevron {
+  font-size: 18px;
+  font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 20;
+}
+
 .waive-balance-item {
   width: 100%;
   min-height: 64px;
-  padding: 12px 20px;
+  padding: 0;
   border: 0;
-  border-bottom: 1px solid var(--gray-100);
+  border-bottom: 1px solid var(--gray-300);
   background: transparent;
   font-family: inherit;
   text-align: left;
@@ -5207,7 +5372,7 @@ body.sidebar-open {
 }
 
 .waive-balance-item:hover {
-  background: var(--gray-50);
+  background: rgba(28, 25, 23, 0.04);
 }
 
 .waive-balance-item:active {
@@ -5219,16 +5384,23 @@ body.sidebar-open {
   background: var(--sidebar-active);
 }
 
+.waive-balance-item:last-child {
+  border-bottom: 0;
+}
+
 .waive-balance-item:focus-visible {
   outline: 2px solid var(--green-800);
   outline-offset: -2px;
 }
 
-.waive-balance-item__main {
+.waive-balance-item > .waive-balance-item__main {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
   gap: 2px;
+  text-align: left;
 }
 
 .waive-balance-item__name {
@@ -5251,6 +5423,7 @@ body.sidebar-open {
 }
 
 .waive-balance-item__amount {
+  justify-content: flex-end;
   font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -5268,17 +5441,20 @@ body.sidebar-open {
 
 .waive-balance-list__empty {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   gap: 14px;
-  min-height: 180px;
-  padding: 28px 20px;
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 28px 16px;
   color: var(--gray-700);
   font-size: 15px;
   font-weight: 500;
   line-height: 1.45;
-  text-align: left;
+  text-align: center;
 }
 
 .waive-balance-list__empty .btn {
@@ -5296,8 +5472,8 @@ body.sidebar-open {
   align-items: center;
   gap: 16px;
   min-height: 72px;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--gray-100);
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--gray-300);
 }
 
 .waive-balance-skel__copy {
@@ -5329,6 +5505,10 @@ body.sidebar-open {
   width: 96px;
   height: 16px;
   justify-self: end;
+}
+
+.waive-balance-skel:last-child {
+  border-bottom: 0;
 }
 
 .waive-balance-skel:nth-child(2n) .waive-balance-skel__name {
@@ -5382,10 +5562,15 @@ body.sidebar-open {
 
   .waive-balance-head,
   .waive-balance-item {
-    grid-template-columns: minmax(0, 1fr) 76px minmax(108px, auto);
-    column-gap: 10px;
-    padding-left: 16px;
-    padding-right: 16px;
+    grid-template-columns: minmax(0, 1fr) 112px 148px;
+    column-gap: 0;
+    padding: 0;
+  }
+
+  .waive-balance-head > span,
+  .waive-balance-head .outstanding-column-sort,
+  .waive-balance-item > span {
+    padding: 10px 8px;
   }
 
   .waive-balance-item {
@@ -5412,7 +5597,7 @@ body.sidebar-open {
   display: none !important;
 }
 
-/* The page stays put. The balance list scrolls inside its card. */
+/* The page stays put. The balance list scrolls in place. */
 @media (min-width: 1201px) {
   .main:has(#view-waive-balance.view--active) {
     height: 100vh;
@@ -5446,24 +5631,6 @@ body.sidebar-open {
   }
 }
 
-.waived-payment-reason {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-  color: var(--gray-700);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.45;
-  white-space: normal;
-}
-
-.waived-payment-amount {
-  color: var(--green-800);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
 /* Lock the waived payments screen; only the history card scrolls. */
 .main:has(#view-waived-payments.view--active) {
   height: 100vh;
@@ -5482,6 +5649,188 @@ body.sidebar-open {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  animation: waive-balance-enter 220ms var(--ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #view-waived-payments.view--active > .waived-payments-page {
+    animation: waive-balance-enter-fade 120ms ease both;
+  }
+}
+
+/* ── Sheet tabs ── */
+
+.main:has(#view-waive-balance.view--active),
+.main:has(#view-waived-payments.view--active) {
+  background: var(--page-bg);
+}
+
+#view-waive-balance.view--active,
+#view-waived-payments.view--active {
+  background: var(--surface);
+}
+
+.sheet-tabs {
+  display: none;
+  flex-shrink: 0;
+  order: -1;
+  align-items: flex-end;
+  padding: 16px 32px 0;
+  background: var(--page-bg);
+}
+
+.main:has(#view-waive-balance.view--active) > .sheet-tabs,
+.main:has(#view-waived-payments.view--active) > .sheet-tabs {
+  display: flex;
+}
+
+.sheet-tabs__list {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.sheet-tab {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-height: 44px;
+  margin-bottom: -1px;
+  padding: 8px 18px;
+  border: 1px solid var(--gray-200);
+  border-bottom: 0;
+  border-radius: 14px 14px 0 0;
+  background: var(--page-bg);
+  color: var(--gray-700);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.011em;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+  transition: background 150ms ease-out, color 150ms ease-out;
+}
+
+.sheet-tab:hover {
+  background: var(--gray-100);
+  color: var(--gray-900);
+}
+
+.sheet-tab:active {
+  background: var(--gray-200);
+}
+
+.sheet-tab::before {
+  content: attr(data-text);
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sheet-tab.is-active {
+  z-index: 1;
+  background: var(--surface);
+  color: var(--green-800);
+  font-weight: 700;
+}
+
+.sheet-tab.is-active::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: var(--surface);
+}
+
+.sheet-tab.is-active:hover,
+.sheet-tab.is-active:active {
+  background: var(--surface);
+  color: var(--green-800);
+}
+
+.sheet-tab:focus-visible {
+  outline: 2px solid var(--green-800);
+  outline-offset: 2px;
+}
+
+.main.is-sheet-switch #view-waive-balance.view--active > .waive-balance-page,
+.main.is-sheet-switch #view-waived-payments.view--active > .waived-payments-page {
+  animation: none;
+}
+
+@media (min-width: 1201px) {
+  .main:has(#view-waive-balance.view--active) > .sheet-tabs,
+  .main:has(#view-waived-payments.view--active) > .sheet-tabs {
+    padding-right: 28px;
+    padding-left: 28px;
+  }
+
+  #view-waive-balance.view--active > .waive-balance-page,
+  #view-waived-payments.view--active > .waived-payments-page {
+    padding: 8px 28px 16px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .main:has(#view-waive-balance.view--active) {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  #view-waive-balance.view--active {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #view-waive-balance.view--active > .waive-balance-page {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+}
+
+@media (max-width: 992px) {
+  .sheet-tabs {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .sheet-tab {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 12px;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .sheet-tab::before {
+    content: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-tab {
+    transition: none;
+  }
 }
 
 .outstanding-tenant__name {

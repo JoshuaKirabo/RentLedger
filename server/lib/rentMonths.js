@@ -2,6 +2,29 @@
 
 const OUTSTANDING_START_MONTH = "2025-12";
 
+const MONTH_NUMBERS = {
+  Jan: "01",
+  Feb: "02",
+  Mar: "03",
+  Apr: "04",
+  May: "05",
+  Jun: "06",
+  Jul: "07",
+  Aug: "08",
+  Sep: "09",
+  Oct: "10",
+  Nov: "11",
+  Dec: "12",
+};
+
+function parseRentMonthLabel(label) {
+  const match = String(label || "").trim().match(/^([A-Za-z]{3}) (\d{4})$/);
+  if (!match) return null;
+  const month = MONTH_NUMBERS[match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase()];
+  if (!month) return null;
+  return `${match[2]}-${month}`;
+}
+
 function formatRentMonthLabel(rentMonth) {
   const d = new Date(`${rentMonth}-01T12:00:00`);
   if (Number.isNaN(d.getTime())) return rentMonth;
@@ -58,6 +81,7 @@ function monthFromDate(isoDate) {
 
 module.exports = {
   OUTSTANDING_START_MONTH,
+  parseRentMonthLabel,
   formatRentMonthLabel,
   formatRentMonthLabelLong,
   formatRentPaymentPurpose,

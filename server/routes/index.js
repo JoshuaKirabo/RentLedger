@@ -8,6 +8,7 @@ const receiptsRoutes = require("./receipts");
 const dashboardRoutes = require("./dashboard");
 const estatesRoutes = require("./estates");
 const settingsRoutes = require("./settings");
+const waiversRoutes = require("./waivers");
 
 const router = express.Router();
 
@@ -18,5 +19,6 @@ router.use("/receipts", receiptsRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/estates", estatesRoutes);
 router.use("/settings", settingsRoutes);
+router.use("/waivers", waiversRoutes);
 
 module.exports = router;

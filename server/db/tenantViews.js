@@ -2,6 +2,14 @@
 
 const { OUTSTANDING_START_MONTH } = require("../lib/rentMonths");
 
+const WAIVED_RENT_SQL = `COALESCE((
+  SELECT wl.amount
+  FROM waiver_lines wl
+  WHERE wl.rent_obligation_id = ro.rent_obligation_id
+), 0)`;
+
+const RENT_STILL_OWED_SQL = `MAX(0, ro.amount_due - ro.allocated_amount - ${WAIVED_RENT_SQL})`;
+
 function recreateTenantDirectoryViews(db) {
   db.exec("DROP VIEW IF EXISTS v_tenant_account_status");
   db.exec("DROP VIEW IF EXISTS v_current_tenant_directory");
@@ -62,10 +70,10 @@ function recreateTenantDirectoryViews(db) {
               AND ta.end_date IS NULL
               AND ro.rent_month >= '${OUTSTANDING_START_MONTH}'
               AND ro.rent_month <= strftime('%Y-%m', 'now')
-              AND ro.status <> 'PAID'
+              AND ${RENT_STILL_OWED_SQL} > 0
         ), 0) AS pending_months_owed,
         COALESCE((
-            SELECT SUM(ro.amount_due - ro.allocated_amount)
+            SELECT SUM(${RENT_STILL_OWED_SQL})
             FROM rent_obligations ro
             JOIN tenancy_assignments ta ON ta.tenancy_id = ro.tenancy_id
             WHERE ta.tenant_id = d.tenant_id
@@ -73,9 +81,19 @@ function recreateTenantDirectoryViews(db) {
               AND ro.rent_month >= '${OUTSTANDING_START_MONTH}'
               AND ro.rent_month <= strftime('%Y-%m', 'now')
         ), 0) AS rent_outstanding_balance,
-        d.security_deposit_expected - d.security_deposit_received AS security_deposit_balance,
+        MAX(0, d.security_deposit_expected - d.security_deposit_received - COALESCE((
+            SELECT w.deposit_amount
+            FROM waivers w
+            WHERE w.tenancy_id = d.tenancy_id
+              AND w.kind = 'DEPOSIT'
+        ), 0)) AS security_deposit_balance,
         CASE
-            WHEN d.security_deposit_status <> 'PAID'
+            WHEN MAX(0, d.security_deposit_expected - d.security_deposit_received - COALESCE((
+                SELECT w.deposit_amount
+                FROM waivers w
+                WHERE w.tenancy_id = d.tenancy_id
+                  AND w.kind = 'DEPOSIT'
+            ), 0)) > 0
                  AND COALESCE((
                      SELECT COUNT(*)
                      FROM rent_obligations ro
@@ -84,7 +102,7 @@ function recreateTenantDirectoryViews(db) {
                        AND ta.end_date IS NULL
                        AND ro.rent_month >= '${OUTSTANDING_START_MONTH}'
                        AND ro.rent_month <= strftime('%Y-%m', 'now')
-                       AND ro.status <> 'PAID'
+                       AND ${RENT_STILL_OWED_SQL} > 0
                  ), 0) = 0
             THEN 'MISSING_SECURITY_DEPOSIT'
 
@@ -96,7 +114,7 @@ function recreateTenantDirectoryViews(db) {
                   AND ta.end_date IS NULL
                   AND ro.rent_month >= '${OUTSTANDING_START_MONTH}'
                   AND ro.rent_month <= strftime('%Y-%m', 'now')
-                  AND ro.status <> 'PAID'
+                  AND ${RENT_STILL_OWED_SQL} > 0
             ), 0) > 0
             THEN 'IN_ARREARS'
 

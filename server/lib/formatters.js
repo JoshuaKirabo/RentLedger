@@ -7,6 +7,7 @@ const {
   OUTSTANDING_START_MONTH,
 } = require("../lib/rentMonths");
 const { amountInWords } = require("./amountInWords");
+const waiverRepository = require("../repositories/waiverRepository");
 
 function formatDisplayDate(isoDate) {
   const d = new Date(isoDate + "T12:00:00");
@@ -158,8 +159,10 @@ function summarizeTenantDirectory(rows) {
     if (isCaretakerRow(row)) return;
     if (!isOperationallyActiveRow(row)) return;
     activeTenants += 1;
-    const depositStatus = row.security_deposit_status;
-    if (!depositStatus || depositStatus !== "PAID") {
+    const depositExpected = Number(row.security_deposit_expected) || 0;
+    const depositReceived = Number(row.security_deposit_received) || 0;
+    const depositWaived = Number(row.security_deposit_waived) || 0;
+    if (depositExpected - depositReceived - depositWaived > 0) {
       securityDepositsPending += 1;
     }
   });
@@ -228,11 +231,13 @@ function tenantBusinessName(row) {
 }
 
 function toApiTenants(rows) {
+  const waivedByTenant = waiverRepository.depositWaivedByTenantId();
   return rows.map((row) => {
     const id = formatTenantId(row.tenant_id);
     const monthlyRent = row.expected_monthly_rent || 0;
     const depositExpected = row.security_deposit_expected || 0;
     const depositReceived = row.security_deposit_received || 0;
+    const depositWaived = Number(row.security_deposit_waived) || waivedByTenant.get(row.tenant_id) || 0;
     const rentDueDay = Number(row.rent_due_day) || 1;
     const gracePeriodDays = Number(row.grace_period_days) || 5;
     const moveOutIso = row.end_date || row.scheduled_move_out_date || null;
@@ -273,6 +278,7 @@ function toApiTenants(rows) {
       depositRequired: depositExpected ? `UGX ${formatAmount(depositExpected)}` : "—",
       depositPaidAmount: depositReceived,
       depositPaid: `UGX ${formatAmount(depositReceived)}`,
+      depositWaivedAmount: depositWaived,
       rentDueDay,
       gracePeriodDays,
       dueDay: `${ordinalDay(rentDueDay)} of every month`,
