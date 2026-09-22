@@ -1944,21 +1944,27 @@
   <!-- Edit payment modal -->
   <div class="receipt-modal tenant-create-modal" id="editPaymentModal" hidden aria-hidden="true">
     <div class="receipt-modal__backdrop" id="editPaymentModalBackdrop"></div>
-    <button type="button" class="receipt-modal__close" id="editPaymentModalClose" aria-label="Close edit payment form">
-      <span class="material-symbols-outlined">close</span>
-    </button>
-    <div class="receipt-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="editPaymentModalTitle">
+    <div class="receipt-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="editPaymentModalTitle" aria-describedby="editPaymentNote">
       <form class="tenant-create-card payment-edit-card" id="editPaymentForm">
-        <header class="tenant-create-card__header">
-          <span class="tenant-create-card__icon material-symbols-outlined" aria-hidden="true">edit_note</span>
-          <div>
-            <h2 class="tenant-create-card__title" id="editPaymentModalTitle">Edit payment</h2>
-            <p class="tenant-create-card__subtitle" id="editPaymentModalSubtitle">Correct the payment details. Rent balances and the receipt will be updated automatically.</p>
+        <header class="payment-edit-card__mast">
+          <div class="payment-edit-card__identity">
+            <h2 class="payment-edit-card__title" id="editPaymentModalTitle">Edit payment</h2>
+            <p class="payment-edit-card__receipt" id="editPaymentReceiptNo">#000000</p>
+            <p class="payment-edit-card__who" id="editPaymentModalSubtitle">Tenant</p>
           </div>
+          <button type="button" class="receipt-modal__close payment-edit-card__close" id="editPaymentModalClose" aria-label="Close edit payment form">
+            <span class="material-symbols-outlined">close</span>
+          </button>
         </header>
 
         <div class="tenant-create-card__body">
           <p class="tenant-create-form__message" id="editPaymentFormMessage" role="alert" aria-live="polite" hidden></p>
+
+          <div class="form-group payment-edit-card__amount-group">
+            <label class="form-label" for="editPaymentAmount">Amount paid (UGX) <span class="form-label__required" aria-hidden="true">*</span></label>
+            <input class="form-input payment-edit-card__amount" id="editPaymentAmount" type="text" inputmode="numeric" autocomplete="off" maxlength="15" required>
+          </div>
+
           <div class="form-group payment-edit-card__tenant">
             <label class="form-label" id="editPaymentTenantLabel" for="editPaymentTenantTrigger">Tenant <span class="form-label__required" aria-hidden="true">*</span></label>
             <div class="custom-select tenant-create-select" id="editPaymentTenantSelect">
@@ -2000,13 +2006,6 @@
               </div>
             </div>
             <div class="form-group">
-              <label class="form-label" for="editPaymentAmount">Amount paid (UGX) <span class="form-label__required" aria-hidden="true">*</span></label>
-              <input class="form-input" id="editPaymentAmount" type="text" inputmode="numeric" autocomplete="off" maxlength="15" required>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
               <label class="form-label" id="editPaymentMethodLabel" for="editPaymentMethodTrigger">Deposit channel <span class="form-label__required" aria-hidden="true">*</span></label>
               <div class="custom-select tenant-create-select" id="editPaymentMethodSelect">
                 <button type="button" class="custom-select__trigger" id="editPaymentMethodTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="editPaymentMethodLabel editPaymentMethodDisplay">
@@ -2030,28 +2029,28 @@
                 </ul>
               </div>
             </div>
-            <div class="form-group">
-              <label class="form-label" for="editPaymentBankRef">Bank reference <span class="form-label__required" aria-hidden="true">*</span></label>
-              <input class="form-input" id="editPaymentBankRef" type="text" autocomplete="off" required>
-            </div>
           </div>
 
-          <p class="payment-edit-card__notice">
-            <span class="material-symbols-outlined" aria-hidden="true">info</span>
-            Saving recalculates the rent months covered. Deleting reverses this payment from the tenant's balance.
-          </p>
+          <div class="form-group payment-edit-card__ref">
+            <label class="form-label" for="editPaymentBankRef">Bank reference <span class="form-label__required" aria-hidden="true">*</span></label>
+            <input class="form-input" id="editPaymentBankRef" type="text" autocomplete="off" required>
+          </div>
+
+          <p class="payment-edit-card__note" id="editPaymentNote">Saving recalculates the months this receipt covers. Deleting reverses the payment from the tenant’s balance.</p>
         </div>
 
         <footer class="tenant-create-card__actions payment-edit-card__actions">
-          <button type="button" class="btn btn--danger btn--icon payment-edit-card__delete" id="editPaymentDelete">
+          <button type="button" class="btn btn--icon payment-edit-card__delete" id="editPaymentDelete">
             <span class="material-symbols-outlined icon icon--btn">delete</span>
-            Delete Payment
+            Delete payment
           </button>
-          <button type="button" class="btn btn--outline" id="editPaymentCancel">Cancel</button>
-          <button type="submit" class="btn btn--primary btn--icon" id="editPaymentSave">
-            <span class="material-symbols-outlined icon icon--btn">save</span>
-            Save Changes
-          </button>
+          <div class="payment-edit-card__commit">
+            <button type="button" class="btn btn--outline" id="editPaymentCancel">Cancel</button>
+            <button type="submit" class="btn btn--primary btn--icon payment-edit-card__save" id="editPaymentSave">
+              <span class="material-symbols-outlined icon icon--btn">save</span>
+              Save changes
+            </button>
+          </div>
         </footer>
       </form>
     </div>

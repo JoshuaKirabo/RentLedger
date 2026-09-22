@@ -9,6 +9,7 @@
 
   --red-600: #dc3545;
   --red-50: #fdf0f1;
+  --receipt-ink: #c0392b;
 
   --blue-600: #0b57d0;
   --blue-50: #eef4ff;
@@ -2154,8 +2155,114 @@ body.sidebar-open {
   background: var(--surface);
 }
 
+#editPaymentModal .receipt-modal__dialog {
+  max-width: 560px;
+}
+
+.payment-edit-card {
+  border-radius: 14px;
+  border-color: rgba(28, 25, 23, 0.08);
+  box-shadow:
+    0 1px 2px rgba(28, 25, 23, 0.06),
+    0 24px 48px rgba(28, 25, 23, 0.18);
+  animation: payment-edit-enter 220ms var(--ease-out);
+}
+
+.payment-edit-card__mast {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.payment-edit-card__title {
+  margin: 0;
+  color: var(--gray-500);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.payment-edit-card__receipt {
+  display: inline-block;
+  margin: 4px 0 0;
+  color: var(--receipt-ink);
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.payment-edit-card__who {
+  margin: 8px 0 0;
+  color: var(--gray-700);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.payment-edit-card__close.receipt-modal__close {
+  position: static;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  margin-top: 2px;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--gray-500);
+}
+
+.payment-edit-card__close.receipt-modal__close:hover {
+  background: var(--gray-100);
+  color: var(--gray-900);
+}
+
+.payment-edit-card__close.receipt-modal__close:focus-visible {
+  outline: 2px solid var(--green-800);
+  outline-offset: 2px;
+}
+
+.payment-edit-card .form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-700);
+}
+
+.payment-edit-card__amount-group {
+  margin-bottom: 16px;
+}
+
+.payment-edit-card__amount-group .form-label {
+  color: var(--gray-500);
+  font-size: 12px;
+}
+
+.payment-edit-card .form-input.payment-edit-card__amount {
+  min-height: 56px;
+  padding: 12px 14px;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--gray-900);
+}
+
+.payment-edit-card .form-input.payment-edit-card__amount:focus {
+  border-color: var(--green-800);
+  box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.16);
+}
+
 .payment-edit-card__tenant {
   margin-bottom: 16px;
+}
+
+.payment-edit-card__ref {
+  margin-top: 0;
 }
 
 .payment-edit-card .custom-select__trigger,
@@ -2163,30 +2270,116 @@ body.sidebar-open {
   width: 100%;
 }
 
-.payment-edit-card__notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
+.payment-edit-card__note {
   margin: 18px 0 0;
-  padding: 12px 14px;
-  border-radius: var(--radius-sm);
-  background: var(--green-50);
-  color: var(--green-800);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.payment-edit-card__notice .material-symbols-outlined {
-  flex-shrink: 0;
-  font-size: 18px;
+  max-width: 48ch;
+  color: var(--gray-500);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .payment-edit-card__actions {
   align-items: center;
+  justify-content: space-between;
+  border-top: none;
 }
 
-.payment-edit-card__delete {
-  margin-right: auto;
+.payment-edit-card__commit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.payment-edit-card__actions .btn {
+  min-height: 44px;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease,
+    transform 120ms var(--ease-out);
+}
+
+.payment-edit-card__actions .btn:active:not(:disabled) {
+  transform: scale(0.97);
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease,
+    transform 160ms var(--ease-out);
+}
+
+.payment-edit-card__actions .btn--outline {
+  background: var(--surface);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-300);
+}
+
+.payment-edit-card__actions .payment-edit-card__delete {
+  background: transparent;
+  color: var(--receipt-ink);
+  border: 1px solid var(--receipt-ink);
+}
+
+.payment-edit-card__delete:focus-visible {
+  outline: 2px solid var(--receipt-ink);
+  outline-offset: 2px;
+}
+
+.payment-edit-card__save:focus-visible,
+.payment-edit-card__actions .btn--outline:focus-visible {
+  outline: 2px solid var(--green-800);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .payment-edit-card__delete:hover:not(:disabled) {
+    background: var(--receipt-ink);
+    border-color: var(--receipt-ink);
+    color: var(--white);
+  }
+
+  .payment-edit-card__save:hover:not(:disabled) {
+    background: var(--green-900);
+  }
+
+  .payment-edit-card__actions .btn--outline:hover {
+    background: var(--gray-100);
+    border-color: var(--gray-400);
+    color: var(--gray-900);
+  }
+}
+
+.payment-edit-card__delete:active:not(:disabled) {
+  background: var(--receipt-ink);
+  border-color: var(--receipt-ink);
+  color: var(--white);
+}
+
+.payment-edit-card__save:active:not(:disabled) {
+  background: var(--green-900);
+}
+
+@keyframes payment-edit-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payment-edit-card {
+    animation: none;
+  }
+
+  .payment-edit-card__actions .btn,
+  .payment-edit-card__actions .btn:active {
+    transform: none;
+    transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+  }
 }
 
 /* ── Record multiple payments modal ── */
@@ -2462,7 +2655,7 @@ body.sidebar-open {
 }
 
 .receipt-paper__number span {
-  color: #c0392b;
+  color: var(--receipt-ink);
   font-weight: 800;
 }
 

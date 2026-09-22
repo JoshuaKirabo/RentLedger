@@ -4394,6 +4394,7 @@
 
     const modal = document.getElementById("editPaymentModal");
     const subtitle = document.getElementById("editPaymentModalSubtitle");
+    const receiptNo = document.getElementById("editPaymentReceiptNo");
     if (!modal) return;
 
     editingPayment = receipt;
@@ -4415,14 +4416,17 @@
     document.getElementById("editPaymentAmount").value = Number(receipt.amountValue || parseReceiptAmount(receipt)).toLocaleString("en-UG");
     editPaymentMethodControl?.setValue(paymentMethodCode(receipt));
     document.getElementById("editPaymentBankRef").value = receipt.paymentRef || "";
+    if (receiptNo) {
+      receiptNo.textContent = formatReceiptNumber(receipt.receipt || receipt.no);
+    }
     if (subtitle) {
-      subtitle.textContent = `Receipt ${receipt.receipt || receipt.no} · ${receipt.tenant}`;
+      subtitle.textContent = receipt.tenant || "";
     }
 
     modal.hidden = false;
     modal.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
-    document.getElementById("editPaymentTenantTrigger")?.focus();
+    document.getElementById("editPaymentAmount")?.focus();
   }
 
   /* ── Record multiple payments ── */
