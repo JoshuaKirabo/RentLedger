@@ -4286,6 +4286,7 @@
           title: "Payment deleted",
           subtitle: "The tenant's balance has been updated.",
           summaryOnly: true,
+          trigger: deleteBtn,
         });
       } catch (error) {
         setMessage(error?.message || "Could not delete this payment.");
@@ -4331,6 +4332,7 @@
           title: "Payment updated",
           subtitle: "The receipt and tenant balance have been recalculated.",
           summaryOnly: true,
+          trigger: saveBtn,
         });
       } catch (error) {
         setMessage(error?.message || "Could not update this payment.");
@@ -4870,6 +4872,7 @@
           title: `Recorded ${count} payment${count === 1 ? "" : "s"}`,
           subtitle: "Receipts and tenant balances have been updated.",
           summaryOnly: true,
+          trigger: saveBtn,
         });
       } catch (err) {
         setMultiPaymentMessage(err?.message || "Could not save payments.");
@@ -5555,6 +5558,213 @@
   let paymentSuccessModalInitialized = false;
   let paymentDatePickerControl = null;
   let lastPaymentSuccessTrigger = null;
+  let paymentSuccessMotion = null;
+  let paymentSuccessGeneration = 0;
+  let paymentMonthsMotion = null;
+
+  function prefersReducedMotion() {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  // Critically damped spring (damping ratio 1). New input retargets from the
+  // current value and velocity so a close mid-open reverses without a jump.
+  function runSpring({
+    from,
+    to,
+    velocity = 0,
+    response = 0.36,
+    settleDistance = 0.004,
+    settleVelocity = 0.02,
+    onUpdate,
+    onSettle,
+  }) {
+    const stiffness = (2 * Math.PI / response) ** 2;
+    const damping = 2 * Math.sqrt(stiffness);
+    const state = { value: from, velocity, target: to, stop() {} };
+    let last = performance.now();
+    let frameId = 0;
+    let stopped = false;
+
+    state.stop = () => {
+      stopped = true;
+      cancelAnimationFrame(frameId);
+    };
+
+    if (Math.abs(from - to) < settleDistance && Math.abs(velocity) < settleVelocity) {
+      state.value = to;
+      state.velocity = 0;
+      onUpdate(to, 0);
+      onSettle?.();
+      return state;
+    }
+
+    function frame(now) {
+      if (stopped) return;
+      const dt = Math.min(0.032, (now - last) / 1000);
+      last = now;
+      const accel = -stiffness * (state.value - to) - damping * state.velocity;
+      state.velocity += accel * dt;
+      state.value += state.velocity * dt;
+      onUpdate(state.value, state.velocity);
+      if (Math.abs(state.value - to) < settleDistance && Math.abs(state.velocity) < settleVelocity) {
+        state.value = to;
+        state.velocity = 0;
+        onUpdate(to, 0);
+        onSettle?.();
+        return;
+      }
+      frameId = requestAnimationFrame(frame);
+    }
+
+    onUpdate(from, velocity);
+    frameId = requestAnimationFrame(frame);
+    return state;
+  }
+
+  function paymentSuccessParts(modal) {
+    return {
+      dialog: modal.querySelector(".payment-success-dialog"),
+      backdrop: document.getElementById("paymentSuccessBackdrop"),
+    };
+  }
+
+  function applyPaymentSuccessProgress(dialog, backdrop, value, reduceMotion) {
+    const progress = Math.min(1, Math.max(0, value));
+    if (dialog) {
+      dialog.style.opacity = String(progress);
+      dialog.style.transform = reduceMotion
+        ? "none"
+        : `translate3d(0, 0, 0) scale(${0.94 + 0.06 * progress})`;
+    }
+    if (backdrop) backdrop.style.opacity = String(progress);
+  }
+
+  function clearPaymentSuccessMotionStyles(modal) {
+    const { dialog, backdrop } = paymentSuccessParts(modal);
+    if (dialog) {
+      dialog.style.opacity = "";
+      dialog.style.transform = "";
+      dialog.style.transformOrigin = "";
+    }
+    if (backdrop) backdrop.style.opacity = "";
+  }
+
+  function anchorPaymentSuccessDialog(dialog, trigger) {
+    if (!dialog) return;
+    const triggerRect = trigger?.getBoundingClientRect?.();
+    const dialogRect = dialog.getBoundingClientRect();
+    if (!triggerRect || !dialogRect.width || !dialogRect.height) {
+      dialog.style.transformOrigin = "50% 50%";
+      return;
+    }
+    const x = triggerRect.left + triggerRect.width / 2 - dialogRect.left;
+    const y = triggerRect.top + triggerRect.height / 2 - dialogRect.top;
+    dialog.style.transformOrigin = `${x}px ${y}px`;
+  }
+
+  function finishPaymentSuccessClose(modal, generation) {
+    if (generation !== paymentSuccessGeneration) return;
+    modal.hidden = true;
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+    clearPaymentSuccessMotionStyles(modal);
+    paymentMonthsMotion?.stop();
+    paymentMonthsMotion = null;
+    if (lastPaymentSuccessTrigger?.isConnected) {
+      lastPaymentSuccessTrigger.focus();
+    }
+    lastPaymentSuccessTrigger = null;
+  }
+
+  function animatePaymentSuccess(modal, target, onSettle) {
+    const generation = ++paymentSuccessGeneration;
+    const { dialog, backdrop } = paymentSuccessParts(modal);
+    const reduceMotion = prefersReducedMotion();
+    const from = paymentSuccessMotion?.value ?? (target === 1 ? 0 : 1);
+    const velocity = paymentSuccessMotion?.velocity ?? 0;
+    paymentSuccessMotion?.stop();
+    paymentSuccessMotion = runSpring({
+      from,
+      to: target,
+      velocity,
+      response: reduceMotion ? 0.16 : 0.36,
+      onUpdate: (value) => applyPaymentSuccessProgress(dialog, backdrop, value, reduceMotion),
+      onSettle: () => {
+        if (generation !== paymentSuccessGeneration) return;
+        onSettle?.();
+      },
+    });
+    paymentSuccessMotion.generation = generation;
+  }
+
+  function openPaymentSuccessMotion(modal, trigger) {
+    const { dialog, backdrop } = paymentSuccessParts(modal);
+    const continuing = !modal.hidden && paymentSuccessMotion;
+    const from = continuing ? paymentSuccessMotion.value : 0;
+    if (!continuing) {
+      if (dialog) {
+        dialog.style.opacity = "0";
+        dialog.style.transform = "none";
+      }
+      if (backdrop) backdrop.style.opacity = "0";
+    }
+    modal.hidden = false;
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    if (!continuing) anchorPaymentSuccessDialog(dialog, trigger);
+    if (paymentSuccessMotion) paymentSuccessMotion.value = from;
+    animatePaymentSuccess(modal, 1);
+    document.getElementById("paymentSuccessDone")?.focus();
+  }
+
+  function animatePaymentMonths(list, open) {
+    if (!list) return;
+    const velocity = paymentMonthsMotion?.velocity || 0;
+    paymentMonthsMotion?.stop();
+
+    if (prefersReducedMotion()) {
+      list.hidden = !open;
+      list.style.height = "";
+      list.style.overflow = "";
+      paymentMonthsMotion = null;
+      return;
+    }
+
+    if (open && list.hidden) {
+      list.style.height = "0px";
+      list.style.overflow = "hidden";
+      list.hidden = false;
+    }
+    const measured = paymentMonthsMotion?.value;
+    const from = Number.isFinite(measured) ? measured : list.getBoundingClientRect().height;
+    list.style.overflow = "hidden";
+    const maxHeight = Number.parseFloat(getComputedStyle(list).maxHeight);
+    const to = open
+      ? (Number.isFinite(maxHeight) ? Math.min(list.scrollHeight, maxHeight) : list.scrollHeight)
+      : 0;
+
+    paymentMonthsMotion = runSpring({
+      from,
+      to,
+      velocity,
+      response: 0.32,
+      settleDistance: 0.5,
+      settleVelocity: 12,
+      onUpdate: (value) => {
+        list.style.height = `${Math.max(0, value)}px`;
+      },
+      onSettle: () => {
+        if (open) {
+          list.style.height = "";
+          list.style.overflow = "";
+          return;
+        }
+        list.hidden = true;
+        list.style.height = "";
+        list.style.overflow = "";
+      },
+    });
+  }
 
   function initPaymentSuccessModalOnce() {
     const modal = document.getElementById("paymentSuccessModal");
@@ -5564,13 +5774,10 @@
     if (!modal || paymentSuccessModalInitialized) return;
 
     function closePaymentSuccessModal() {
-      modal.hidden = true;
-      modal.setAttribute("aria-hidden", "true");
-      document.body.style.overflow = "";
-      if (lastPaymentSuccessTrigger) {
-        lastPaymentSuccessTrigger.focus();
-        lastPaymentSuccessTrigger = null;
-      }
+      if (modal.hidden) return;
+      if (paymentSuccessMotion?.target === 0) return;
+      const generation = paymentSuccessGeneration + 1;
+      animatePaymentSuccess(modal, 0, () => finishPaymentSuccessClose(modal, generation));
     }
 
     backdrop?.addEventListener("click", closePaymentSuccessModal);
@@ -5580,10 +5787,10 @@
       const toggle = e.target.closest(".payment-months__toggle");
       if (!toggle || !modal.contains(toggle)) return;
       const list = document.getElementById(toggle.getAttribute("aria-controls"));
-      const open = toggle.getAttribute("aria-expanded") === "true";
-      toggle.setAttribute("aria-expanded", open ? "false" : "true");
-      toggle.textContent = open ? toggle.dataset.showLabel || "Show months" : "Hide months";
-      if (list) list.hidden = open;
+      const nextOpen = toggle.getAttribute("aria-expanded") !== "true";
+      toggle.setAttribute("aria-expanded", nextOpen ? "true" : "false");
+      toggle.textContent = nextOpen ? "Hide months" : (toggle.dataset.showLabel || "Show months");
+      animatePaymentMonths(list, nextOpen);
     });
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && !modal.hidden) closePaymentSuccessModal();
@@ -5599,6 +5806,8 @@
   }
 
   function renderPaymentSuccessMonths(value) {
+    paymentMonthsMotion?.stop();
+    paymentMonthsMotion = null;
     const monthsEl = document.getElementById("paymentSuccessMonths");
     if (!monthsEl) return;
 
@@ -5665,11 +5874,9 @@
       renderPaymentSuccessMonths(result.receipt?.monthsCovered || result.allocation?.monthsCovered || "—");
     }
 
-    lastPaymentSuccessTrigger = document.activeElement;
-    modal.hidden = false;
-    modal.setAttribute("aria-hidden", "false");
-    document.body.style.overflow = "hidden";
-    document.getElementById("paymentSuccessDone")?.focus();
+    const trigger = options.trigger || document.activeElement;
+    lastPaymentSuccessTrigger = trigger instanceof Element ? trigger : null;
+    openPaymentSuccessMotion(modal, lastPaymentSuccessTrigger);
   }
 
   previewBtn?.addEventListener("click", renderPreview);
@@ -6225,6 +6432,7 @@
 
   paymentForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
+    const paymentTrigger = e.submitter || recordBtn;
     if (!canRecordPayment()) {
       syncRecordBtnState();
       return;
@@ -6262,7 +6470,7 @@
         recordBtn.disabled = true;
         const result = await RentLedgerApi.post("/api/payments", payload);
         await refreshFromApi();
-        showPaymentSuccessModal(result, tenant);
+        showPaymentSuccessModal(result, tenant, { trigger: paymentTrigger });
       } catch (err) {
         alert(`Could not save payment: ${err.message}`);
         syncRecordBtnState();
