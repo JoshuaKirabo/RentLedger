@@ -13,6 +13,50 @@ function previewPayment(data) {
   return allocationService.computeAllocation(data.tenantId, data.amount);
 }
 
+function previewSecurityDeposit(tenantId, amount) {
+  if (!Number.isSafeInteger(amount) || amount <= 0) {
+    const err = new Error("Amount must be a positive whole number of shillings");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const deposit = ledgerRepository.getSecurityDepositForActiveTenant(tenantId);
+  if (!deposit) {
+    const err = new Error("This tenant has no security deposit to pay");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const position = ledgerRepository.securityDepositPosition(deposit);
+  const outstanding = position.outstanding;
+  if (outstanding <= 0) {
+    const err = new Error("This security deposit is already paid");
+    err.statusCode = 400;
+    throw err;
+  }
+  if (amount > outstanding) {
+    const err = new Error(`Enter UGX ${outstanding.toLocaleString("en-UG")} or less.`);
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const remaining = outstanding - amount;
+  return {
+    kind: "security_deposit",
+    tenancyId: deposit.tenancy_id,
+    outstandingBalance: remaining,
+    purpose: "Security deposit",
+    monthsCovered: "Security deposit",
+    rows: [{
+      month: "Security deposit",
+      opening: outstanding,
+      applied: amount,
+      balanceRemaining: remaining,
+      isAdvance: false,
+    }],
+  };
+}
+
 function requireTenant(tenantId) {
   const tenantRow = tenantRepository.getTenantById(tenantId);
   const tenant = tenantRow ? toApiTenants([tenantRow])[0] : null;
@@ -92,7 +136,24 @@ function insertAllocatedPayment(data, allocation, receiptOptions = {}) {
   );
 }
 
+function createSecurityDepositInTransaction(data) {
+  const tenant = requireTenant(data.tenantId);
+  const allocation = previewSecurityDeposit(data.tenantId, data.amount);
+  const inserted = ledgerRepository.insertSecurityDepositPayment({
+    tenantId: data.tenantId,
+    date: data.date,
+    amount: data.amount,
+    method: data.method,
+    bankRef: data.bankRef,
+  });
+  return buildPaymentResult(data, tenant, allocation, inserted);
+}
+
 function createPaymentInTransaction(data) {
+  if (data.kind === "security_deposit") {
+    return createSecurityDepositInTransaction(data);
+  }
+
   const tenant = requireTenant(data.tenantId);
   const allocation = allocationService.computeAllocation(data.tenantId, data.amount);
   const inserted = insertAllocatedPayment(data, allocation);
@@ -207,4 +268,11 @@ function deletePayment(paymentId) {
   });
 }
 
-module.exports = { previewPayment, createPayment, createPayments, updatePayment, deletePayment };
+module.exports = {
+  previewPayment,
+  previewSecurityDeposit,
+  createPayment,
+  createPayments,
+  updatePayment,
+  deletePayment,
+};

@@ -45,6 +45,15 @@ function parsePaymentMethod(rawMethod) {
   return method;
 }
 
+function parsePaymentKind(rawKind) {
+  const kind = String(rawKind || "rent").trim().toLowerCase();
+  if (!kind || kind === "rent") return "rent";
+  if (kind === "security_deposit") return "security_deposit";
+  const err = new Error("Choose rent or security deposit");
+  err.statusCode = 400;
+  throw err;
+}
+
 function parsePaymentInput(body = {}) {
   const { tenantId, date, amount, method, bankRef, notes, monthsCovered, purpose } = body;
   if (!tenantId || !date || amount === undefined || amount === null || amount === "") {
@@ -69,6 +78,7 @@ function parsePaymentInput(body = {}) {
     notes,
     monthsCovered,
     purpose,
+    kind: parsePaymentKind(body.kind),
   };
 }
 
@@ -89,10 +99,14 @@ router.get("/preview", (req, res) => {
       return res.status(400).json({ error: "tenantId and amount are required" });
     }
 
-    const preview = paymentService.previewPayment({
-      tenantId,
-      amount: parsePaymentAmount(amount),
-    });
+    const paymentAmount = parsePaymentAmount(amount);
+    const kind = parsePaymentKind(req.query.kind);
+    const preview = kind === "security_deposit"
+      ? paymentService.previewSecurityDeposit(tenantId, paymentAmount)
+      : paymentService.previewPayment({
+        tenantId,
+        amount: paymentAmount,
+      });
     res.json(preview);
   } catch (err) {
     if (err.statusCode === 400) return res.status(400).json({ error: err.message });

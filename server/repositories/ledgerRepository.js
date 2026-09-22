@@ -52,15 +52,18 @@ function getAllPayments() {
       p.payment_reference AS bankRef,
       '' AS notes,
       COALESCE(r.receipt_number, '') AS receiptNo,
-      COALESCE(
-        (
-          SELECT GROUP_CONCAT(ro.rent_month, ', ')
-          FROM payment_allocations pa
-          JOIN rent_obligations ro ON ro.rent_obligation_id = pa.rent_obligation_id
-          WHERE pa.payment_id = p.payment_id
-        ),
-        '—'
-      ) AS monthsCovered,
+      CASE p.payment_type
+        WHEN 'SECURITY_DEPOSIT' THEN 'Security deposit'
+        ELSE COALESCE(
+          (
+            SELECT GROUP_CONCAT(ro.rent_month, ', ')
+            FROM payment_allocations pa
+            JOIN rent_obligations ro ON ro.rent_obligation_id = pa.rent_obligation_id
+            WHERE pa.payment_id = p.payment_id
+          ),
+          '—'
+        )
+      END AS monthsCovered,
       'Paid' AS status,
       printf('T%03d', t.tenant_id) AS tenantId,
       ${TENANT_DISPLAY_NAME_SQL} AS tenantName,
@@ -115,16 +118,22 @@ function getAllReceipts() {
         ELSE 'agb'
       END AS methodCode,
       p.payment_reference AS paymentRef,
-      'Rent payment' AS purpose,
-      COALESCE(
-        (
-          SELECT GROUP_CONCAT(ro.rent_month, ', ')
-          FROM payment_allocations pa
-          JOIN rent_obligations ro ON ro.rent_obligation_id = pa.rent_obligation_id
-          WHERE pa.payment_id = p.payment_id
-        ),
-        '—'
-      ) AS monthsCovered,
+      CASE p.payment_type
+        WHEN 'SECURITY_DEPOSIT' THEN 'Security deposit'
+        ELSE 'Rent payment'
+      END AS purpose,
+      CASE p.payment_type
+        WHEN 'SECURITY_DEPOSIT' THEN 'Security deposit'
+        ELSE COALESCE(
+          (
+            SELECT GROUP_CONCAT(ro.rent_month, ', ')
+            FROM payment_allocations pa
+            JOIN rent_obligations ro ON ro.rent_obligation_id = pa.rent_obligation_id
+            WHERE pa.payment_id = p.payment_id
+          ),
+          '—'
+        )
+      END AS monthsCovered,
       r.balance_after AS balance,
       'Pending' AS emailStatus,
       'Pending' AS smsStatus
@@ -587,6 +596,147 @@ function insertPaymentWithReceipt(paymentData, allocationRows, options = {}) {
   return transaction();
 }
 
+function getSecurityDepositForActiveTenant(tenantId) {
+  const numericId = parseTenantId(tenantId);
+  if (!numericId) return null;
+
+  return open().prepare(`
+    SELECT
+      sd.security_deposit_id,
+      sd.tenancy_id,
+      sd.expected_amount,
+      sd.received_amount,
+      sd.status,
+      COALESCE((
+        SELECT SUM(sdp.allocated_amount)
+        FROM security_deposit_payments sdp
+        WHERE sdp.security_deposit_id = sd.security_deposit_id
+      ), 0) AS ledger_received
+    FROM security_deposits sd
+    JOIN tenancy_assignments ta ON ta.tenancy_id = sd.tenancy_id
+    WHERE ta.tenant_id = ?
+      AND ta.end_date IS NULL
+  `).get(numericId);
+}
+
+function securityDepositLedgerStatus(receivedAmount, expectedAmount) {
+  if (receivedAmount <= 0) return "UNPAID";
+  if (receivedAmount >= expectedAmount) return "PAID";
+  return "PARTIAL";
+}
+
+function securityDepositPosition(deposit) {
+  const expected = Number(deposit?.expected_amount) || 0;
+  const received = Number(deposit?.received_amount) || 0;
+  const ledgerReceived = Number(deposit?.ledger_received) || 0;
+  const covered = Math.max(received, ledgerReceived);
+  return {
+    expected,
+    received,
+    ledgerReceived,
+    covered,
+    outstanding: Math.max(0, expected - covered),
+    unbackedReceived: Math.max(0, received - ledgerReceived),
+  };
+}
+
+function insertSecurityDepositPayment(paymentData) {
+  const db = open();
+  const numericTenantId = parseTenantId(paymentData.tenantId);
+  if (!numericTenantId) {
+    const err = new Error("Invalid tenant ID");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const paymentReference = buildPaymentReference(paymentData.bankRef);
+  const paymentMethod = METHOD_TO_DB[paymentData.method] || "CASH";
+  const receiptNumber = String(getNextReceiptNumber()).padStart(6, "0");
+  const amount = Number(paymentData.amount);
+
+  const insertPayment = db.prepare(`
+    INSERT INTO payments (
+      tenant_id,
+      payment_reference,
+      payment_type,
+      amount,
+      payment_date,
+      payment_method,
+      payment_status
+    ) VALUES (?, ?, 'SECURITY_DEPOSIT', ?, ?, ?, 'POSTED')
+  `);
+  const insertAllocation = db.prepare(`
+    INSERT INTO security_deposit_payments (security_deposit_id, payment_id, allocated_amount)
+    VALUES (?, ?, ?)
+  `);
+  const insertReceipt = db.prepare(`
+    INSERT INTO receipts (
+      payment_id,
+      receipt_number,
+      issued_at,
+      issued_by,
+      balance_after
+    ) VALUES (?, ?, ?, 'SYSTEM', ?)
+  `);
+  const restoreReceived = db.prepare(`
+    UPDATE security_deposits
+    SET received_amount = ?,
+        status = ?
+    WHERE security_deposit_id = ?
+  `);
+
+  const transaction = db.transaction(() => {
+    const deposit = getSecurityDepositForActiveTenant(paymentData.tenantId);
+    if (!deposit) {
+      const err = new Error("This tenant has no security deposit to pay");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const position = securityDepositPosition(deposit);
+    const { expected, outstanding, ledgerReceived, unbackedReceived } = position;
+    if (outstanding <= 0) {
+      const err = new Error("This security deposit is already paid");
+      err.statusCode = 400;
+      throw err;
+    }
+    if (amount > outstanding) {
+      const err = new Error(`Enter UGX ${outstanding.toLocaleString("en-UG")} or less.`);
+      err.statusCode = 400;
+      throw err;
+    }
+    const paymentResult = insertPayment.run(
+      numericTenantId,
+      paymentReference,
+      amount,
+      paymentData.date,
+      paymentMethod
+    );
+    const paymentId = paymentResult.lastInsertRowid;
+    insertAllocation.run(deposit.security_deposit_id, paymentId, amount);
+
+    if (unbackedReceived > 0) {
+      const restored = ledgerReceived + amount + unbackedReceived;
+      restoreReceived.run(
+        restored,
+        securityDepositLedgerStatus(restored, expected),
+        deposit.security_deposit_id
+      );
+    }
+
+    insertReceipt.run(
+      paymentId,
+      receiptNumber,
+      `${paymentData.date}T09:00:00`,
+      outstanding - amount
+    );
+
+    return { paymentId, receiptNumber, paymentReference };
+  });
+
+  return transaction();
+}
+
 function getSetting(_key) {
   return null;
 }
@@ -623,4 +773,7 @@ module.exports = {
   refreshReceiptBalancesForTenant,
   getReceiptBalanceForPayment,
   insertPaymentWithReceipt,
+  getSecurityDepositForActiveTenant,
+  securityDepositPosition,
+  insertSecurityDepositPayment,
 };

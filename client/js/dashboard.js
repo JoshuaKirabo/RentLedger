@@ -724,6 +724,12 @@
     return Math.max(0, required - paid);
   }
 
+  function tenantOwesSecurityDeposit(tenant) {
+    if (!tenant || isCaretakerTenant(tenant)) return false;
+    if (!isTenantOperationallyActive(tenant)) return false;
+    return getDepositBalance(tenant) > 0;
+  }
+
   function isPendingDepositTenant(tenant) {
     if (isCaretakerTenant(tenant)) return false;
     if (!isTenantOperationallyActive(tenant)) return false;
@@ -835,21 +841,19 @@
 
     const table = document.getElementById("pendingDepositsTable");
     table?.addEventListener("click", (event) => {
-      const row = event.target.closest(".pending-deposits-table__row");
-      if (!row) return;
+      const recordButton = event.target.closest("[data-record-deposit]");
+      const profileButton = event.target.closest("[data-open-profile]");
+      const button = recordButton || profileButton;
+      if (!button) return;
       const filtered = getFilteredPendingDeposits();
-      const index = parseInt(row.dataset.tenantIndex, 10);
-      openTenantProfile(filtered[index]);
-    });
-
-    table?.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" && event.key !== " ") return;
-      const row = event.target.closest(".pending-deposits-table__row");
-      if (!row) return;
-      event.preventDefault();
-      const filtered = getFilteredPendingDeposits();
-      const index = parseInt(row.dataset.tenantIndex, 10);
-      openTenantProfile(filtered[index]);
+      const index = parseInt(button.dataset.tenantIndex, 10);
+      const tenant = filtered[index];
+      if (!tenant) return;
+      if (recordButton) {
+        openSecurityDepositPayment(tenant);
+        return;
+      }
+      openTenantProfile(tenant);
     });
 
     pendingDepositsInitialized = true;
@@ -894,7 +898,7 @@
     if (tenantsLoadState === "loading") {
       table.innerHTML = `
         <tr class="outstanding-empty">
-          <td colspan="9">
+          <td colspan="10">
             <span class="loading-spinner" role="status" aria-label="Loading">
               <img src="assets/spinner.svg" alt="">
               Loading pending security deposits...
@@ -907,7 +911,7 @@
     if (tenantsLoadState === "error") {
       table.innerHTML = `
         <tr class="outstanding-empty">
-          <td colspan="9"><span class="material-symbols-outlined">cloud_off</span>Could not load tenant data.</td>
+          <td colspan="10"><span class="material-symbols-outlined">cloud_off</span>Could not load tenant data.</td>
         </tr>`;
       if (countEl) countEl.textContent = "Could not load tenant data.";
       return;
@@ -918,7 +922,7 @@
         : "All active tenants have paid their security deposits.";
       table.innerHTML = `
         <tr class="outstanding-empty">
-          <td colspan="9"><span class="material-symbols-outlined">verified_user</span>${emptyMessage}</td>
+          <td colspan="10"><span class="material-symbols-outlined">verified_user</span>${emptyMessage}</td>
         </tr>`;
       return;
     }
@@ -927,10 +931,12 @@
       .map((tenant, index) => {
         const balance = getDepositBalance(tenant);
         return `
-        <tr class="pending-deposits-table__row" data-tenant-index="${index}" tabindex="0" role="button" aria-label="View profile for ${escapeHtml(tenant.name)}">
+        <tr class="pending-deposits-table__row">
           <td>
-            <span class="outstanding-tenant__name">${escapeHtml(tenant.name)}</span>
-            <span class="outstanding-tenant__id">${escapeHtml(tenant.id)}</span>
+            <button type="button" class="pending-deposits-profile" data-open-profile data-tenant-index="${index}">
+              <span class="outstanding-tenant__name">${escapeHtml(tenant.name)}</span>
+              <span class="outstanding-tenant__id">${escapeHtml(tenant.id)}</span>
+            </button>
           </td>
           <td><span class="estate-name">${escapeHtml(estateShortName(tenant.estate))}</span></td>
           <td><span class="house-number">${escapeHtml(tenant.house)}</span></td>
@@ -940,6 +946,9 @@
           <td class="text-right">${formatOutstandingAmount(tenant.depositPaidAmount || 0)}</td>
           <td class="text-right"><span class="outstanding-amount">${formatOutstandingAmount(balance)}</span></td>
           <td>${escapeHtml(tenant.dateBecame || "—")}</td>
+          <td>
+            <button type="button" class="btn btn--outline btn--sm pending-deposits-table__record" data-record-deposit data-tenant-index="${index}" aria-label="Record security deposit for ${escapeHtml(tenant.name)}">Record</button>
+          </td>
         </tr>`;
       })
       .join("");
@@ -2338,6 +2347,10 @@
       if (!button) return;
       if (button.id === "tenantEditBtn" && activeTenantProfile) {
         renderTenantProfileEdit(activeTenantProfile);
+      } else if (button.id === "tenantRecordDepositBtn" && activeTenantProfile) {
+        const tenant = activeTenantProfile;
+        closeTenantProfile();
+        openSecurityDepositPayment(tenant);
       } else if (button.id === "tenantCancelEditBtn" && activeTenantProfile) {
         renderTenantProfileView(activeTenantProfile);
       } else if (button.id === "tenantSaveBtn") {
@@ -2369,6 +2382,11 @@
     const isEdit = mode === "edit";
     const actions = document.getElementById("tenantProfileActions");
     if (!actions) return;
+    const canRecordDeposit = !isEdit
+      && activeTenantProfile
+      && isTenantOperationallyActive(activeTenantProfile)
+      && !isCaretakerTenant(activeTenantProfile)
+      && getDepositBalance(activeTenantProfile) > 0;
     actions.innerHTML = isEdit
       ? `
         <button type="button" class="btn btn--outline" id="tenantCancelEditBtn">Cancel</button>
@@ -2377,6 +2395,11 @@
           Save changes
         </button>`
       : `
+        ${canRecordDeposit ? `
+        <button type="button" class="btn btn--outline btn--icon" id="tenantRecordDepositBtn">
+          <span class="material-symbols-outlined icon icon--btn">account_balance_wallet</span>
+          Record security deposit
+        </button>` : ""}
         <button type="button" class="btn btn--primary btn--icon" id="tenantEditBtn">
           <span class="material-symbols-outlined icon icon--btn">edit</span>
           Edit Tenant
@@ -3611,12 +3634,16 @@
     if (estateEl) estateEl.textContent = "-";
     if (unitEl) unitEl.textContent = "-";
     if (rentEl) rentEl.textContent = "-";
+    syncSecurityDepositForm();
   }
 
   function findTenantBySearch(query) {
     const q = query.trim().toLowerCase();
     if (!q) return null;
-    return tenants.find(
+    const pool = isSecurityDepositPayment()
+      ? tenants.filter(tenantOwesSecurityDeposit)
+      : tenants;
+    return pool.find(
       (t) =>
         t.name.toLowerCase().includes(q) ||
         t.tenantId.toLowerCase() === q ||
@@ -3629,6 +3656,7 @@
       tenantId,
       amount: String(amount),
     });
+    if (isSecurityDepositPayment()) params.set("kind", "security_deposit");
     return RentLedgerApi.get(`/api/payments/preview?${params.toString()}`);
   }
 
@@ -5372,6 +5400,7 @@
   const totalEl = document.getElementById("totalToDistribute");
   const previewBody = document.getElementById("previewTableBody");
   const paymentForm = document.getElementById("paymentForm");
+  let paymentKindControl = null;
 
   const MAX_PAYMENT_AMOUNT = 999_999_999_999n;
   const AMOUNT_VALIDATION_MESSAGE = "Whole shillings only. Maximum UGX 999,999,999,999 per payment.";
@@ -5405,26 +5434,120 @@
     return { amount, invalid: false, exceedsMaximum: amount > MAX_PAYMENT_AMOUNT };
   }
 
-  function setAmountValidationState(invalid) {
+  function setAmountValidationState(invalid, message = "") {
     amountInput?.classList.toggle("form-input--invalid", invalid);
     amountInput?.setAttribute("aria-invalid", String(invalid));
     totalEl?.classList.toggle("preview-total__value--invalid", invalid);
 
     if (!amountHint) return;
     amountHint.hidden = !invalid;
-    amountHint.textContent = invalid ? AMOUNT_VALIDATION_MESSAGE : "";
+    amountHint.textContent = invalid ? (message || AMOUNT_VALIDATION_MESSAGE) : "";
+  }
+
+  function isSecurityDepositPayment() {
+    return document.getElementById("paymentKind")?.value === "security_deposit";
+  }
+
+  function securityDepositAmountError(amount) {
+    if (!isSecurityDepositPayment() || amount <= 0n) return "";
+    const tenant = getPaymentEntryTenant();
+    if (!tenant) return "";
+    const balance = getDepositBalance(tenant);
+    if (balance <= 0) return "This tenant has already paid the security deposit.";
+    if (amount > BigInt(balance)) {
+      return `Enter ${formatUgxAmount(balance)} or less.`;
+    }
+    return "";
+  }
+
+  let paymentPreviewOn = false;
+  let previewRequestId = 0;
+  let previewRefreshTimer = 0;
+
+  function applyPaymentPreviewPanel() {
+    const show = paymentPreviewOn && !isSecurityDepositPayment();
+    document.querySelector("#view-payment-entry .payment-layout")?.classList.toggle("payment-layout--preview", show);
+    document.getElementById("paymentPreview")?.setAttribute("aria-hidden", show ? "false" : "true");
+    previewBtn?.setAttribute("aria-pressed", show ? "true" : "false");
+    previewBtn?.setAttribute("aria-expanded", show ? "true" : "false");
+  }
+
+  function setPaymentPreviewOn(on) {
+    paymentPreviewOn = Boolean(on);
+    clearTimeout(previewRefreshTimer);
+    previewRequestId += 1;
+    applyPaymentPreviewPanel();
+    if (paymentPreviewOn && !isSecurityDepositPayment()) renderPreview();
+  }
+
+  function refreshPreviewIfOn() {
+    if (!paymentPreviewOn || isSecurityDepositPayment()) return;
+    clearTimeout(previewRefreshTimer);
+    previewRefreshTimer = setTimeout(() => {
+      if (paymentPreviewOn && !isSecurityDepositPayment()) renderPreview();
+    }, 200);
+  }
+
+  function syncSecurityDepositForm() {
+    const deposit = isSecurityDepositPayment();
+    const tenant = getPaymentEntryTenant();
+    document.querySelector("#view-payment-entry .payment-layout")?.classList.toggle("payment-layout--deposit", deposit);
+    applyPaymentPreviewPanel();
+    const label = document.getElementById("tenantRentLabel");
+    const value = document.getElementById("tenantRent");
+    if (label) label.textContent = deposit ? "Security deposit" : "Monthly Rent";
+    if (!value) return;
+    if (!tenant) {
+      value.textContent = "-";
+      return;
+    }
+    if (deposit) {
+      value.textContent = formatUgxAmount(getDepositBalance(tenant));
+      return;
+    }
+    value.textContent = tenant.monthlyRent
+      ? `UGX ${formatNumber(Number(tenant.monthlyRent))}`
+      : "—";
+  }
+
+  function prefillSecurityDepositAmount(tenant) {
+    const balance = getDepositBalance(tenant);
+    if (balance <= 0) return;
+    lastValidAmountDisplay = formatDigitsWithCommas(String(balance));
+    syncAmountInput(String(balance));
+  }
+
+  function openSecurityDepositPayment(tenant) {
+    if (!tenant) return;
+    const modal = document.getElementById("tenantModal");
+    if (modal && !modal.hidden) {
+      modal.hidden = true;
+      modal.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+      tenantProfileMode = "view";
+      activeTenantProfile = null;
+    }
+    navigateToView("payment-entry");
+    chooseTenant(tenant);
+    paymentKindControl?.setValue("security_deposit");
+    if (isSecurityDepositPayment()) prefillSecurityDepositAmount(tenant);
+    syncSecurityDepositForm();
+    syncRecordBtnState();
   }
 
   function syncAmountInput(rawValue) {
     const validation = getAmountValidation(rawValue);
-    const invalid = validation.invalid || validation.exceedsMaximum;
+    const depositError = validation.invalid || validation.exceedsMaximum
+      ? ""
+      : securityDepositAmountError(validation.amount);
+    const invalid = validation.invalid || validation.exceedsMaximum || Boolean(depositError);
 
     if (amountInput && !invalid) {
       const digits = validation.amount.toString();
       amountInput.value = digits === "0" ? "0" : formatDigitsWithCommas(digits);
     }
 
-    setAmountValidationState(invalid);
+    setAmountValidationState(invalid, depositError);
 
     if (totalEl) {
       totalEl.textContent = invalid ? "UGX —" : formatUgxAmount(validation.amount);
@@ -5443,6 +5566,11 @@
 
     const { amount, invalid } = getAmountValidation(amountInput?.value ?? "0");
     if (invalid || amount <= 0n) return false;
+    if (securityDepositAmountError(amount)) return false;
+    if (isSecurityDepositPayment()) {
+      const balance = getDepositBalance(getPaymentEntryTenant());
+      if (balance <= 0) return false;
+    }
     if (!getBankRefValue()) return false;
     if (!document.getElementById("paymentDate")?.value) return false;
 
@@ -5454,6 +5582,9 @@
   }
 
   async function renderPreview() {
+    if (!paymentPreviewOn || isSecurityDepositPayment()) return;
+
+    const requestId = ++previewRequestId;
     const { amount, invalid } = syncAmountInput(amountInput?.value ?? "0");
 
     if (amount <= 0n || invalid) {
@@ -5461,7 +5592,7 @@
         <tr class="preview-empty">
           <td colspan="4">
             <span class="material-symbols-outlined icon icon--empty">touch_app</span>
-            Enter amount and click "Preview" to see allocation
+            Enter an amount to see how this payment will be allocated
           </td>
         </tr>`;
       return;
@@ -5490,7 +5621,6 @@
       return;
     }
 
-    previewBtn.disabled = true;
     previewBody.innerHTML = `
       <tr class="preview-empty">
         <td colspan="4">
@@ -5501,6 +5631,7 @@
 
     try {
       const preview = await fetchPaymentPreview(tenant.tenantId, Number(amount));
+      if (requestId !== previewRequestId || !paymentPreviewOn || isSecurityDepositPayment()) return;
       const rows = preview.rows || [];
 
       if (!rows.length) {
@@ -5526,6 +5657,7 @@
         )
         .join("");
     } catch (err) {
+      if (requestId !== previewRequestId || !paymentPreviewOn) return;
       previewBody.innerHTML = `
         <tr class="preview-empty">
           <td colspan="4">
@@ -5533,8 +5665,6 @@
             ${escapeHtml(err.message || "Could not load preview")}
           </td>
         </tr>`;
-    } finally {
-      previewBtn.disabled = false;
     }
   }
 
@@ -5852,7 +5982,13 @@
     const bankRefEl = document.getElementById("paymentSuccessBankRef");
     if (!modal) return;
 
-    if (titleEl) titleEl.textContent = options.title || "Payment recorded";
+    const isDepositReceipt = result?.receipt?.purpose === "Security deposit"
+      || result?.allocation?.purpose === "Security deposit";
+    if (titleEl) {
+      titleEl.textContent = options.title || (isDepositReceipt ? "Security deposit recorded" : "Payment recorded");
+    }
+    const coverageLabel = document.getElementById("paymentSuccessCoverageLabel");
+    if (coverageLabel) coverageLabel.textContent = isDepositReceipt ? "Applied to" : "Months covered";
     if (subtitleEl) {
       subtitleEl.textContent = options.subtitle || "";
       subtitleEl.hidden = !options.subtitle;
@@ -5883,7 +6019,9 @@
     openPaymentSuccessMotion(modal, lastPaymentSuccessTrigger);
   }
 
-  previewBtn?.addEventListener("click", renderPreview);
+  previewBtn?.addEventListener("click", () => {
+    setPaymentPreviewOn(!paymentPreviewOn);
+  });
 
   function resetPaymentDateToToday() {
     if (!paymentDatePickerControl?.setDate) return;
@@ -5909,7 +6047,10 @@
     syncRecordBtnState();
   }
 
-  amountInput?.addEventListener("input", handleAmountInput);
+  amountInput?.addEventListener("input", () => {
+    handleAmountInput();
+    refreshPreviewIfOn();
+  });
 
   amountInput?.addEventListener("blur", () => {
     handleAmountInput();
@@ -5947,9 +6088,12 @@
   function getTenantMatches(query) {
     const q = query.trim().toLowerCase();
     if (!q) return [];
+    const pool = isSecurityDepositPayment()
+      ? tenants.filter(tenantOwesSecurityDeposit)
+      : tenants;
     const starts = [];
     const contains = [];
-    for (const t of tenants) {
+    for (const t of pool) {
       const name = (t.name || "").toLowerCase();
       const id = (t.tenantId || "").toLowerCase();
       const unit = (t.unit || "").toLowerCase();
@@ -5990,7 +6134,10 @@
     tenantSuggestions = getTenantMatches(query);
 
     if (!tenantSuggestions.length) {
-      tenantSearchResults.innerHTML = `<li class="tenant-suggest__empty">No tenants match "${escapeHtml(query.trim())}"</li>`;
+      const emptyCopy = isSecurityDepositPayment()
+        ? `No tenants owing a security deposit match "${escapeHtml(query.trim())}"`
+        : `No tenants match "${escapeHtml(query.trim())}"`;
+      tenantSearchResults.innerHTML = `<li class="tenant-suggest__empty">${emptyCopy}</li>`;
       openTenantSuggestions();
       return;
     }
@@ -6030,16 +6177,21 @@
 
   function chooseTenant(tenant) {
     if (!tenant) return;
+    if (isSecurityDepositPayment() && !tenantOwesSecurityDeposit(tenant)) return;
     selectedTenant = tenant;
     if (tenantSearchInput) tenantSearchInput.value = tenant.name;
     fillTenantInfo(tenant);
     closeTenantSuggestions();
+    if (isSecurityDepositPayment()) prefillSecurityDepositAmount(tenant);
+    syncSecurityDepositForm();
     syncRecordBtnState();
+    refreshPreviewIfOn();
   }
 
   tenantSearchInput?.addEventListener("input", () => {
     selectedTenant = null;
     renderTenantSuggestions(tenantSearchInput.value);
+    refreshPreviewIfOn();
     syncRecordBtnState();
   });
 
@@ -6467,6 +6619,7 @@
       method: document.getElementById("paymentMethod")?.value,
       bankRef: getBankRefValue(),
       notes: document.getElementById("paymentNotes")?.value || "",
+      kind: document.getElementById("paymentKind")?.value || "rent",
     };
 
     if (apiLoaded) {
@@ -6487,12 +6640,14 @@
 
     paymentForm.reset();
     clearTenantInfo();
+    paymentKindControl?.setValue("rent");
+    syncSecurityDepositForm();
     setBankRefValidationState(false);
     lastValidAmountDisplay = "0";
     syncAmountInput("0");
     resetPaymentDateToToday();
-    renderPreview();
     syncRecordBtnState();
+    if (paymentPreviewOn) renderPreview();
   });
 
   /* ── Bank Statement Review ── */
@@ -7792,6 +7947,39 @@
     menu: document.getElementById("paymentMethodMenu"),
     display: document.getElementById("paymentMethodDisplay"),
     hidden: document.getElementById("paymentMethod"),
+  });
+
+  paymentKindControl = initCustomSelect({
+    container: document.getElementById("paymentKindSelect"),
+    trigger: document.getElementById("paymentKindTrigger"),
+    menu: document.getElementById("paymentKindMenu"),
+    display: document.getElementById("paymentKindDisplay"),
+    hidden: document.getElementById("paymentKind"),
+  });
+  document.getElementById("paymentKind")?.addEventListener("change", () => {
+    if (isSecurityDepositPayment() && selectedTenant && !tenantOwesSecurityDeposit(selectedTenant)) {
+      selectedTenant = null;
+      if (tenantSearchInput) tenantSearchInput.value = "";
+      const estateEl = document.getElementById("tenantEstate");
+      const unitEl = document.getElementById("tenantUnit");
+      if (estateEl) estateEl.textContent = "-";
+      if (unitEl) unitEl.textContent = "-";
+    }
+    const tenant = getPaymentEntryTenant();
+    if (isSecurityDepositPayment() && tenant && tenantOwesSecurityDeposit(tenant)) {
+      prefillSecurityDepositAmount(tenant);
+    }
+    syncSecurityDepositForm();
+    syncRecordBtnState();
+    refreshPreviewIfOn();
+    if (tenantSearchInput?.value.trim() && !selectedTenant) {
+      const query = tenantSearchInput.value;
+      setTimeout(() => {
+        if (tenantSearchInput.value === query && !selectedTenant) {
+          renderTenantSuggestions(query);
+        }
+      }, 0);
+    }
   });
 
   /* ── Monthly Collection Summary ── */

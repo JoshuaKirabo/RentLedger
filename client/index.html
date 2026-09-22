@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RentLedger</title>
   <link rel="stylesheet" href="css/fonts.css">
-  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/dashboard.css?v=20260922c">
 </head>
 <body>
   <div class="window-drag-region" aria-hidden="true"></div>
@@ -248,8 +248,23 @@
                     <span class="tenant-info__value" id="tenantUnit">-</span>
                   </div>
                   <div class="tenant-info__row">
-                    <span class="tenant-info__label">Monthly Rent</span>
+                    <span class="tenant-info__label" id="tenantRentLabel">Monthly Rent</span>
                     <span class="tenant-info__value" id="tenantRent">-</span>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" id="paymentKindLabel">Payment for</label>
+                  <div class="custom-select" id="paymentKindSelect">
+                    <button type="button" class="custom-select__trigger" id="paymentKindTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="paymentKindLabel paymentKindDisplay">
+                      <span class="custom-select__value" id="paymentKindDisplay">Rent</span>
+                      <span class="material-symbols-outlined icon icon--select">expand_more</span>
+                    </button>
+                    <input type="hidden" id="paymentKind" name="paymentKind" value="rent">
+                    <ul class="custom-select__menu" id="paymentKindMenu" role="listbox" hidden>
+                      <li class="custom-select__option custom-select__option--selected" role="option" data-value="rent" data-label="Rent" aria-selected="true">Rent</li>
+                      <li class="custom-select__option" role="option" data-value="security_deposit" data-label="Security deposit" aria-selected="false">Security deposit</li>
+                    </ul>
                   </div>
                 </div>
 
@@ -336,20 +351,15 @@
                 </div>
 
                 <div class="form-actions">
-                  <button type="button" class="btn btn--outline" id="previewBtn">Preview Distribution</button>
+                  <button type="button" class="btn btn--outline" id="previewBtn" aria-pressed="false" aria-expanded="false" aria-controls="paymentPreview">Preview Distribution</button>
                   <button type="submit" class="btn btn--primary" id="recordBtn" disabled>Record Payment</button>
                 </div>
               </form>
             </article>
 
-            <article class="card preview-card">
+            <article class="card preview-card" id="paymentPreview" aria-hidden="true">
               <div class="preview-card__header">
                 <h2 class="card__title">Payment Distribution Preview</h2>
-                <label class="toggle">
-                  <span class="toggle__label">Auto-Allocation</span>
-                  <input type="checkbox" id="autoAllocation" checked>
-                  <span class="toggle__track"><span class="toggle__thumb"></span></span>
-                </label>
               </div>
 
               <div class="preview-total">
@@ -361,7 +371,7 @@
                 <table class="preview-table">
                   <thead>
                     <tr>
-                      <th>Month</th>
+                      <th id="previewAllocationLabel">Month</th>
                       <th class="text-right">Opening Bal</th>
                       <th class="text-right">Applied</th>
                       <th class="text-right">Remaining</th>
@@ -868,6 +878,7 @@
                     <th class="text-right" aria-sort="none"><button type="button" class="outstanding-column-sort outstanding-column-sort--right" data-sort-key="depositPaid"><span>Paid</span><span class="material-symbols-outlined">unfold_more</span></button></th>
                     <th class="text-right" aria-sort="descending"><button type="button" class="outstanding-column-sort outstanding-column-sort--right" data-sort-key="balance"><span>Balance</span><span class="material-symbols-outlined">arrow_downward</span></button></th>
                     <th aria-sort="none"><button type="button" class="outstanding-column-sort" data-sort-key="dateBecame"><span>Move-in date</span><span class="material-symbols-outlined">unfold_more</span></button></th>
+                    <th>Record</th>
                   </tr>
                 </thead>
                 <tbody id="pendingDepositsTable"></tbody>
@@ -2590,7 +2601,7 @@
               <dd id="paymentSuccessBankRef">—</dd>
             </div>
             <div class="payment-success__detail payment-success__detail--coverage">
-              <dt>Months covered</dt>
+              <dt id="paymentSuccessCoverageLabel">Months covered</dt>
               <dd id="paymentSuccessMonths">—</dd>
             </div>
           </dl>
@@ -2607,6 +2618,6 @@
   <script src="vendor/html2pdf.js/html2pdf.bundle.min.js"></script>
   <script src="js/phone.js"></script>
   <script src="js/api.js"></script>
-  <script src="js/dashboard.js"></script>
+  <script src="js/dashboard.js?v=20260922f"></script>
 </body>
 </html>

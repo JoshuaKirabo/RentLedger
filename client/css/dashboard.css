@@ -48,6 +48,7 @@
   --motion-fast: 120ms;
   --motion-base: 200ms;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 *,
@@ -2824,13 +2825,85 @@ body.sidebar-open {
 
 #view-payment-entry.view--active .payment-form .form-actions {
   margin-top: auto;
+  flex-shrink: 0;
+}
+
+#view-payment-entry.view--active .payment-form > .form-group,
+#view-payment-entry.view--active .payment-form > .form-row,
+#view-payment-entry.view--active .payment-form > .tenant-info {
+  flex-shrink: 0;
+}
+
+#view-payment-entry.view--active .payment-form > .form-group:has(#paymentNotes) {
+  flex: 1 1 auto;
+  min-height: 76px;
+}
+
+#view-payment-entry.view--active #paymentNotes {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 44px;
+  max-height: 80px;
 }
 
 .payment-layout {
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0fr);
+  gap: 0;
   align-items: stretch;
+  transition:
+    grid-template-columns 210ms var(--ease-in-out),
+    gap 210ms var(--ease-in-out);
+}
+
+.payment-layout--preview {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 20px;
+  transition:
+    grid-template-columns 280ms var(--ease-in-out),
+    gap 280ms var(--ease-in-out);
+}
+
+.payment-layout--deposit #previewBtn {
+  display: none;
+}
+
+#view-payment-entry .preview-card {
+  min-width: 0;
+  overflow: hidden;
+  opacity: 1;
+  transform: translateX(0);
+  visibility: visible;
+  transition:
+    opacity 280ms var(--ease-out),
+    transform 280ms var(--ease-out),
+    visibility 0s linear 0s;
+}
+
+#view-payment-entry .payment-layout:not(.payment-layout--preview) .preview-card {
+  opacity: 0;
+  transform: translateX(8%);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 210ms var(--ease-out),
+    transform 210ms var(--ease-out),
+    visibility 0s linear 210ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payment-layout,
+  .payment-layout--preview {
+    transition: none;
+  }
+
+  #view-payment-entry .preview-card,
+  #view-payment-entry .payment-layout:not(.payment-layout--preview) .preview-card {
+    transform: none;
+    transition:
+      opacity 120ms ease,
+      visibility 0s linear 120ms;
+  }
 }
 
 .payment-form-card__header {
@@ -2838,9 +2911,7 @@ body.sidebar-open {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 20px 24px 0;
-  border-bottom: 1px solid var(--gray-100);
-  padding-bottom: 16px;
+  padding: 20px 24px 16px;
   margin-bottom: 0;
 }
 
@@ -3487,6 +3558,7 @@ body.sidebar-open {
   letter-spacing: 0.04em;
   color: var(--gray-500);
   margin-bottom: 4px;
+  white-space: nowrap;
 }
 
 .tenant-info__value {
@@ -3504,6 +3576,12 @@ body.sidebar-open {
   border-top: 1px solid var(--gray-100);
   margin-top: 4px;
   padding-top: 20px;
+}
+
+.payment-form .form-actions {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 0;
 }
 
 .btn {
@@ -3525,6 +3603,22 @@ body.sidebar-open {
 
 .btn--outline:hover {
   background: var(--green-50);
+}
+
+#previewBtn[aria-pressed="true"] {
+  background: var(--green-100);
+  color: var(--green-900);
+  border-color: var(--green-700);
+}
+
+#previewBtn[aria-pressed="true"]:active {
+  background: color-mix(in srgb, var(--green-100) 70%, var(--green-700));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #previewBtn[aria-pressed="true"]:hover {
+    background: color-mix(in srgb, var(--green-100) 78%, var(--green-700));
+  }
 }
 
 .btn--green-outline {
@@ -3559,57 +3653,6 @@ body.sidebar-open {
   gap: 16px;
   padding: 20px 24px;
   border-bottom: 1px solid var(--gray-100);
-}
-
-.toggle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.toggle__label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--gray-500);
-}
-
-.toggle input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.toggle__track {
-  position: relative;
-  width: 36px;
-  height: 20px;
-  background: var(--gray-200);
-  border-radius: 999px;
-  transition: background 0.2s;
-  flex-shrink: 0;
-}
-
-.toggle__thumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  background: var(--surface);
-  border-radius: 50%;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-  transition: transform 0.2s;
-}
-
-.toggle input:checked + .toggle__track {
-  background: var(--green-700);
-}
-
-.toggle input:checked + .toggle__track .toggle__thumb {
-  transform: translateX(16px);
 }
 
 .preview-total {
@@ -4959,12 +5002,27 @@ body.sidebar-open {
   overscroll-behavior: contain;
 }
 
-.pending-deposits-table__row {
+.pending-deposits-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
 
-.pending-deposits-table__row:hover {
-  background: var(--gray-50);
+.pending-deposits-profile:hover .outstanding-tenant__name,
+.pending-deposits-profile:focus-visible .outstanding-tenant__name {
+  text-decoration: underline;
+}
+
+.pending-deposits-table__record {
+  white-space: nowrap;
 }
 
 /* ── Tenants directory ── */
@@ -6272,9 +6330,22 @@ body.sidebar-open {
   .analytics-row,
   .dash-bottom,
   .dash-metrics,
-  .payment-layout,
   .waive-balance-layout {
     grid-template-columns: 1fr;
+  }
+
+  #view-payment-entry .payment-layout,
+  #view-payment-entry .payment-layout--preview {
+    grid-template-columns: minmax(0, 1fr);
+    transition: none;
+  }
+
+  #view-payment-entry .payment-layout--preview {
+    gap: 20px;
+  }
+
+  #view-payment-entry .payment-layout:not(.payment-layout--preview) .preview-card {
+    display: none;
   }
 
   #view-payment-entry.view--active .preview-table-wrap {

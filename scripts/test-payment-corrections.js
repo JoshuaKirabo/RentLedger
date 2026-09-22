@@ -115,6 +115,88 @@ try {
     "POSTED"
   );
 
+  const estateId = db.prepare("SELECT estate_id FROM estates LIMIT 1").get().estate_id;
+  const depositUnitId = db.prepare(`
+    INSERT INTO units (estate_id, unit_number, listed_monthly_rent)
+    VALUES (?, 'A02', 400000)
+  `).run(estateId).lastInsertRowid;
+  const depositTenantRowId = db.prepare(`
+    INSERT INTO tenants (first_name, last_name, phone_number)
+    VALUES ('Deposit', 'Tenant', '+256700000002')
+  `).run().lastInsertRowid;
+  const depositTenancyId = db.prepare(`
+    INSERT INTO tenancy_assignments (tenant_id, unit_id, start_date, agreed_monthly_rent)
+    VALUES (?, ?, '2026-01-01', 400000)
+  `).run(depositTenantRowId, depositUnitId).lastInsertRowid;
+  const depositId = db.prepare(`
+    INSERT INTO security_deposits (tenancy_id, expected_amount, received_amount, status)
+    VALUES (?, 400000, 100000, 'PARTIAL')
+  `).run(depositTenancyId).lastInsertRowid;
+  const depositTenantId = `T${String(depositTenantRowId).padStart(3, "0")}`;
+
+  const partialDeposit = paymentService.createPayment({
+    tenantId: depositTenantId,
+    date: "2026-08-01",
+    amount: 100000,
+    method: "bank",
+    bankRef: "DEP-001",
+    kind: "security_deposit",
+  });
+  assert.equal(partialDeposit.receipt.purpose, "Security deposit");
+  assert.equal(partialDeposit.allocation.monthsCovered, "Security deposit");
+  assert.equal(Number(partialDeposit.receipt.balance), 200000);
+  let depositRow = db.prepare(`
+    SELECT received_amount, status
+    FROM security_deposits
+    WHERE security_deposit_id = ?
+  `).get(depositId);
+  assert.equal(depositRow.received_amount, 200000);
+  assert.equal(depositRow.status, "PARTIAL");
+
+  assert.throws(
+    () => paymentService.createPayment({
+      tenantId: depositTenantId,
+      date: "2026-08-02",
+      amount: 250000,
+      method: "bank",
+      bankRef: "DEP-TOO-MUCH",
+      kind: "security_deposit",
+    }),
+    /or less/
+  );
+
+  const paidDeposit = paymentService.createPayment({
+    tenantId: depositTenantId,
+    date: "2026-08-03",
+    amount: 200000,
+    method: "mobile",
+    bankRef: "DEP-002",
+    kind: "security_deposit",
+  });
+  depositRow = db.prepare(`
+    SELECT received_amount, status
+    FROM security_deposits
+    WHERE security_deposit_id = ?
+  `).get(depositId);
+  assert.equal(depositRow.received_amount, 400000);
+  assert.equal(depositRow.status, "PAID");
+  assert.equal(Number(paidDeposit.receipt.balance), 0);
+  assert.equal(
+    db.prepare("SELECT payment_type FROM payments WHERE payment_reference = 'DEP-002'").get().payment_type,
+    "SECURITY_DEPOSIT"
+  );
+  assert.equal(
+    db.prepare("SELECT COUNT(*) AS total FROM rent_obligations WHERE tenancy_id = ?").get(depositTenancyId).total,
+    0
+  );
+  const depositReceipt = ledgerRepository.getAllReceipts().find((row) => row.paymentRef === "DEP-002");
+  assert.equal(depositReceipt.purpose, "Security deposit");
+  assert.equal(depositReceipt.monthsCovered, "Security deposit");
+  assert.throws(
+    () => paymentService.deletePayment(paidDeposit.payment.paymentId),
+    /Only rent payments/
+  );
+
   console.log("Payment edit/delete correction test passed.");
 } finally {
   close();

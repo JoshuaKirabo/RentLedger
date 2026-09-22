@@ -78,7 +78,6 @@ function toApiReceipts(receipts) {
       phone: PhoneNumbers.formatE164(r.phone),
       initials: getInitials(r.tenantName),
       amount: formatAmount(r.amount),
-      months: formatMonthsCovered(r.monthsCovered),
       date: formatDisplayDate(r.date),
       receipt: `#${receiptNo}`,
       email: String(r.emailStatus).toLowerCase(),
@@ -86,7 +85,12 @@ function toApiReceipts(receipts) {
       receiptDate: formatReceiptDate(r.date),
       receivedFrom: r.tenantName,
       amountWords: amountInWords(r.amount),
-      purpose: formatRentPaymentPurpose(r.monthsCovered),
+      purpose: r.paymentType === "SECURITY_DEPOSIT"
+        ? "Security deposit"
+        : formatRentPaymentPurpose(r.monthsCovered),
+      months: r.paymentType === "SECURITY_DEPOSIT"
+        ? "Security deposit"
+        : formatMonthsCovered(r.monthsCovered),
       paymentRef: r.paymentRef,
       balance: formatAmount(r.balance),
     };
