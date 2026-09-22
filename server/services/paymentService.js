@@ -59,6 +59,8 @@ function buildPaymentResult(data, tenant, allocation, inserted) {
     receiptNo: inserted.receiptNumber,
     tenantId: tenant.tenantId,
     tenantName: tenant.name,
+    tenant: tenant.name,
+    receivedFrom: tenant.name,
     phone: tenant.phone,
     amount: data.amount,
     monthsCovered: allocation.monthsCovered || "—",

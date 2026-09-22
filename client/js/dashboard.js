@@ -3877,11 +3877,15 @@
     );
   }
 
+  function receiptPayerName(receipt) {
+    return String(receipt?.receivedFrom || receipt?.tenant || receipt?.tenantName || "").trim();
+  }
+
   function isReceiptDisplayable(receipt) {
     return Boolean(
       receipt &&
       String(receipt.amountWords || "").trim() &&
-      String(receipt.receivedFrom || receipt.tenant || "").trim() &&
+      receiptPayerName(receipt) &&
       String(receipt.amount || "").trim()
     );
   }
@@ -3906,7 +3910,7 @@
 
     const no = esc(receiptDisplayValue(receipt.no));
     const date = esc(receiptDisplayValue(receipt.receiptDate));
-    const from = esc(receiptDisplayValue(receipt.receivedFrom || receipt.tenant));
+    const from = esc(receiptDisplayValue(receiptPayerName(receipt)));
     const words = esc(receiptDisplayValue(receipt.amountWords));
     const purpose = esc(receiptDisplayValue(receipt.purpose));
     const ref = esc(receiptDisplayValue(receipt.paymentRef));
@@ -5037,7 +5041,7 @@
       activeReceipt = receipt;
       fields.date.textContent = receipt.receiptDate;
       fields.no.textContent = receipt.no;
-      fields.from.textContent = receipt.receivedFrom;
+      fields.from.textContent = receiptPayerName(receipt);
       fields.words.textContent = receipt.amountWords;
       fields.purpose.textContent = receipt.purpose;
       setLine(fields.ref, receipt.paymentRef);
@@ -5648,7 +5652,7 @@
 
     if (showBreakdown) {
       const receiptNo = result.payment?.receiptNo || result.receipt?.receiptNo;
-      const hasReceipt = Boolean(receiptNo && isReceiptDisplayable(result.receipt));
+      const hasReceipt = Boolean(String(receiptNo || "").trim());
 
       if (receiptBlock) receiptBlock.hidden = !hasReceipt;
       if (noticeEl) noticeEl.hidden = hasReceipt;
