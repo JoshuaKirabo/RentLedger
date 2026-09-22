@@ -217,16 +217,26 @@
     if (viewId && views[viewId]) showView(viewId);
   }
 
+  function setNavGroupOpen(activeGroup, open) {
+    [
+      [paymentsNavGroup, paymentsNavToggle],
+      [outstandingNavGroup, outstandingNavToggle],
+    ].forEach(([group, toggle]) => {
+      if (!group || !toggle) return;
+      let nextOpen = group.classList.contains("sidebar__group--open");
+      if (group === activeGroup) nextOpen = open;
+      else if (open) nextOpen = false;
+      group.classList.toggle("sidebar__group--open", nextOpen);
+      toggle.setAttribute("aria-expanded", String(nextOpen));
+    });
+  }
+
   function setPaymentsNavOpen(open) {
-    if (!paymentsNavGroup || !paymentsNavToggle) return;
-    paymentsNavGroup.classList.toggle("sidebar__group--open", open);
-    paymentsNavToggle.setAttribute("aria-expanded", String(open));
+    setNavGroupOpen(paymentsNavGroup, open);
   }
 
   function setOutstandingNavOpen(open) {
-    if (!outstandingNavGroup || !outstandingNavToggle) return;
-    outstandingNavGroup.classList.toggle("sidebar__group--open", open);
-    outstandingNavToggle.setAttribute("aria-expanded", String(open));
+    setNavGroupOpen(outstandingNavGroup, open);
   }
 
   navLinks.forEach((link) => {

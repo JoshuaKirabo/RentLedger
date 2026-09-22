@@ -375,7 +375,7 @@ html.is-electron.platform-darwin .sidebar__toggle {
   margin-left: auto;
   color: var(--gray-500);
   font-size: 18px;
-  transition: transform 0.16s ease, opacity 0.2s ease;
+  transition: transform 280ms var(--ease-out), opacity 0.2s ease;
 }
 
 .sidebar__group--open .sidebar__parent-arrow {
@@ -383,19 +383,42 @@ html.is-electron.platform-darwin .sidebar__toggle {
 }
 
 .sidebar__submenu {
-  display: none;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 280ms var(--ease-out);
+}
+
+.sidebar__submenu-clip {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 2px 0 4px 32px;
+  padding-left: 20px;
+  visibility: hidden;
+  transition: visibility 0s linear 280ms;
+}
+
+.sidebar__submenu-clip > :first-child {
+  margin-top: 2px;
+}
+
+.sidebar__submenu-clip > :last-child {
+  margin-bottom: 4px;
 }
 
 .sidebar__group--open .sidebar__submenu {
-  display: flex;
+  grid-template-rows: 1fr;
+}
+
+.sidebar__group--open .sidebar__submenu-clip {
+  visibility: visible;
+  transition-delay: 0s;
 }
 
 .sidebar__sub-link {
-  gap: 10px;
-  padding: 8px 10px;
+  gap: 8px;
+  padding: 8px 8px 8px 10px;
   min-height: 40px;
   border-radius: var(--radius-sm);
   font-size: 13px;
@@ -980,7 +1003,9 @@ body.sidebar-open {
   .dash-pill,
   .dash-unpaid__row,
   .dash-count,
-  .sidebar__link {
+  .sidebar__link,
+  .sidebar__submenu,
+  .sidebar__parent-arrow {
     transition: none;
   }
 
@@ -6534,8 +6559,12 @@ body.sidebar-open {
     border-radius: 14px;
   }
 
-  .sidebar--collapsed .sidebar__group--open .sidebar__submenu {
-    display: flex;
+  .sidebar--collapsed .sidebar__submenu {
+    display: grid;
+  }
+
+  .sidebar--collapsed .sidebar__parent-arrow {
+    display: inline-block;
   }
 
   .sidebar--collapsed .sidebar__section {
