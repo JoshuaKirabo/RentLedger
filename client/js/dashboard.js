@@ -1395,39 +1395,6 @@
       .join("");
   }
 
-  function setTenantDirectorySelectValue(inputId, displayId, menuId, value, fallbackLabel) {
-    const input = document.getElementById(inputId);
-    const display = document.getElementById(displayId);
-    const menu = document.getElementById(menuId);
-    if (!input || !display || !menu) return;
-
-    const option = [...menu.querySelectorAll(".custom-select__option")]
-      .find((item) => item.dataset.value === value);
-    input.value = value;
-    display.textContent = option?.dataset.label || fallbackLabel;
-    menu.querySelectorAll(".custom-select__option").forEach((item) => {
-      const selected = item === option;
-      item.classList.toggle("custom-select__option--selected", selected);
-      item.setAttribute("aria-selected", String(selected));
-    });
-  }
-
-  function openEstateTenantDirectory(estateName) {
-    navigateToView("tenants");
-
-    const search = document.getElementById("tenantsSearch");
-    if (search) search.value = "";
-    setTenantDirectorySelectValue(
-      "tenantsEstateFilter",
-      "tenantsEstateDisplay",
-      "tenantsEstateMenu",
-      estateName,
-      estateShortName(estateName)
-    );
-    setTenantDirectorySelectValue("tenantsStatusFilter", "tenantsStatusDisplay", "tenantsStatusMenu", TENANTS_DEFAULT_STATUS, TENANTS_DEFAULT_STATUS);
-    renderTenantsDirectory();
-  }
-
   function initEstatesDirectoryOnce() {
     if (estatesDirectoryInitialized) return;
 
@@ -1460,8 +1427,8 @@
       navigateToView("estates");
     });
 
-    document.getElementById("estateDetailViewTenants")?.addEventListener("click", () => {
-      if (currentEstateDetailName) openEstateTenantDirectory(currentEstateDetailName);
+    document.getElementById("estateDetailAddTenant")?.addEventListener("click", () => {
+      openAddTenantModal({ estateName: currentEstateDetailName || "" });
     });
 
     document.getElementById("estateDetailRecordPayment")?.addEventListener("click", () => {
@@ -3024,7 +2991,18 @@
       || window.PhoneNumbers.normalizeE164(localValue);
   }
 
-  async function loadAddTenantEstates() {
+  function findAddTenantEstate(estates, preferredEstateName) {
+    const preferred = String(preferredEstateName || "").trim();
+    if (!preferred) return null;
+
+    const exact = estates.find((estate) => String(estate.estateName || "").trim() === preferred);
+    if (exact) return exact;
+
+    const preferredShort = estateShortName(preferred).toLowerCase();
+    return estates.find((estate) => estateShortName(estate.estateName).toLowerCase() === preferredShort) || null;
+  }
+
+  async function loadAddTenantEstates(preferredEstateName = "") {
     if (!addTenantEstateControl) return;
 
     try {
@@ -3046,7 +3024,10 @@
         estates.length === 0
       );
 
-      if (!estates.length) {
+      const preferredEstate = findAddTenantEstate(estates, preferredEstateName);
+      if (preferredEstate) {
+        addTenantEstateControl.setValue(String(preferredEstate.estateId));
+      } else if (!estates.length) {
         setAddTenantRoomHint("There are no active estates to choose from.");
       }
     } catch (err) {
@@ -3134,10 +3115,11 @@
     lastAddTenantTrigger?.focus();
   }
 
-  async function openAddTenantModal() {
+  async function openAddTenantModal(options = {}) {
     const modal = document.getElementById("addTenantModal");
     if (!modal) return;
 
+    const estateName = typeof options?.estateName === "string" ? options.estateName : "";
     lastAddTenantTrigger = document.activeElement;
     resetAddTenantForm();
     modal.hidden = false;
@@ -3148,7 +3130,7 @@
     } else {
       document.getElementById("addTenantFirstName")?.focus();
     }
-    await loadAddTenantEstates();
+    await loadAddTenantEstates(estateName);
   }
 
   function initAddTenantModalOnce() {
@@ -4294,9 +4276,13 @@
       setMessage("");
       try {
         await RentLedgerApi.del(`/api/payments/${editingPayment.paymentId}`);
-        await refreshFromApi();
         closePaymentEditModal();
-        window.alert("Payment deleted. The tenant's balance has been updated.");
+        await refreshFromApi();
+        showPaymentSuccessModal(null, null, {
+          title: "Payment deleted",
+          subtitle: "The tenant's balance has been updated.",
+          summaryOnly: true,
+        });
       } catch (error) {
         setMessage(error?.message || "Could not delete this payment.");
       } finally {
@@ -4335,9 +4321,13 @@
       setMessage("");
       try {
         await RentLedgerApi.put(`/api/payments/${editingPayment.paymentId}`, payload);
-        await refreshFromApi();
         closePaymentEditModal();
-        window.alert("Payment updated. The receipt and tenant balance have been recalculated.");
+        await refreshFromApi();
+        showPaymentSuccessModal(null, null, {
+          title: "Payment updated",
+          subtitle: "The receipt and tenant balance have been recalculated.",
+          summaryOnly: true,
+        });
       } catch (error) {
         setMessage(error?.message || "Could not update this payment.");
       } finally {
@@ -4869,10 +4859,14 @@
             bankRef,
           })),
         });
-        await refreshFromApi();
-        closeMultiPaymentModal();
         const count = result?.count || result?.payments?.length || payloads.length;
-        window.alert(`Successfully recorded ${count} payment${count === 1 ? "" : "s"}.`);
+        closeMultiPaymentModal();
+        await refreshFromApi();
+        showPaymentSuccessModal(null, null, {
+          title: `Recorded ${count} payment${count === 1 ? "" : "s"}`,
+          subtitle: "Receipts and tenant balances have been updated.",
+          summaryOnly: true,
+        });
       } catch (err) {
         setMultiPaymentMessage(err?.message || "Could not save payments.");
       } finally {
@@ -5585,10 +5579,14 @@
     paymentSuccessModalInitialized = true;
   }
 
-  function showPaymentSuccessModal(result, tenant) {
+  function showPaymentSuccessModal(result, tenant, options = {}) {
     initPaymentSuccessModalOnce();
 
     const modal = document.getElementById("paymentSuccessModal");
+    const titleEl = document.getElementById("paymentSuccessTitle");
+    const subtitleEl = document.getElementById("paymentSuccessSubtitle");
+    const receiptBlock = modal?.querySelector(".payment-success__receipt");
+    const details = modal?.querySelector(".payment-success__details");
     const receiptEl = document.getElementById("paymentSuccessReceiptNo");
     const tenantEl = document.getElementById("paymentSuccessTenant");
     const amountEl = document.getElementById("paymentSuccessAmount");
@@ -5596,18 +5594,30 @@
     const monthsEl = document.getElementById("paymentSuccessMonths");
     if (!modal) return;
 
-    const receiptNo = result.payment?.receiptNo || result.receipt?.receiptNo;
-    const hasReceipt = Boolean(receiptNo && isReceiptDisplayable(result.receipt));
-    const displayReceipt = hasReceipt ? formatReceiptNumber(receiptNo) : RECEIPT_UNAVAILABLE_MESSAGE;
-
-    if (receiptEl) receiptEl.textContent = displayReceipt;
-    if (tenantEl) tenantEl.textContent = tenant?.name || result.payment?.tenantName || "—";
-    if (amountEl) {
-      amountEl.textContent = formatUgxAmount(result.payment?.amount || result.receipt?.amount || 0);
+    if (titleEl) titleEl.textContent = options.title || "Payment recorded";
+    if (subtitleEl) {
+      subtitleEl.textContent = options.subtitle || "";
+      subtitleEl.hidden = !options.subtitle;
     }
-    if (bankRefEl) bankRefEl.textContent = result.payment?.bankRef || getBankRefValue() || "—";
-    if (monthsEl) {
-      monthsEl.textContent = result.receipt?.monthsCovered || result.allocation?.monthsCovered || "—";
+
+    const showBreakdown = !options.summaryOnly && Boolean(result);
+    if (receiptBlock) receiptBlock.hidden = !showBreakdown;
+    if (details) details.hidden = !showBreakdown;
+
+    if (showBreakdown) {
+      const receiptNo = result.payment?.receiptNo || result.receipt?.receiptNo;
+      const hasReceipt = Boolean(receiptNo && isReceiptDisplayable(result.receipt));
+      const displayReceipt = hasReceipt ? formatReceiptNumber(receiptNo) : RECEIPT_UNAVAILABLE_MESSAGE;
+
+      if (receiptEl) receiptEl.textContent = displayReceipt;
+      if (tenantEl) tenantEl.textContent = tenant?.name || result.payment?.tenantName || "—";
+      if (amountEl) {
+        amountEl.textContent = formatUgxAmount(result.payment?.amount || result.receipt?.amount || 0);
+      }
+      if (bankRefEl) bankRefEl.textContent = result.payment?.bankRef || getBankRefValue() || "—";
+      if (monthsEl) {
+        monthsEl.textContent = result.receipt?.monthsCovered || result.allocation?.monthsCovered || "—";
+      }
     }
 
     lastPaymentSuccessTrigger = document.activeElement;
@@ -6733,6 +6743,7 @@
         viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
         return;
       }
+      els.hidden.value = iso;
       selectedDate = new Date(`${iso}T12:00:00`);
       pendingDate = new Date(selectedDate);
       viewDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);

@@ -3556,6 +3556,12 @@ body.sidebar-open {
   color: var(--gray-600);
 }
 
+.payment-success__subtitle[hidden],
+.payment-success__receipt[hidden],
+.payment-success__details[hidden] {
+  display: none;
+}
+
 .payment-success__receipt {
   display: flex;
   flex-direction: column;
