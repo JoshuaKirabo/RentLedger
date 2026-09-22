@@ -283,6 +283,25 @@ function waiveArrearsBeforeOutstandingStart(db) {
   `).run(OUTSTANDING_START_MONTH);
 }
 
+function migrateAppSettings(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      setting_key     TEXT PRIMARY KEY,
+      setting_value   TEXT NOT NULL,
+      CHECK (setting_key = trim(setting_key) AND length(setting_key) > 0),
+      CHECK (length(trim(setting_value)) > 0)
+    );
+  `);
+
+  // Harriet is the only operator for now. Keep the name in the database so a
+  // later change does not require editing the client.
+  db.prepare(`
+    INSERT INTO app_settings (setting_key, setting_value)
+    VALUES ('waiver_approved_by', 'Harriet Kisaku')
+    ON CONFLICT(setting_key) DO NOTHING
+  `).run();
+}
+
 function migrate(db) {
   const hasSchema = db.prepare(
     "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'tenants'"
@@ -311,6 +330,7 @@ function migrate(db) {
   recreateTenantInputView(db);
   waiveArrearsBeforeOutstandingStart(db);
   migrateTenantTypes(db);
+  migrateAppSettings(db);
   applyScheduledMoveOuts(db);
 }
 

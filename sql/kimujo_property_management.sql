@@ -23,6 +23,7 @@ DROP TRIGGER IF EXISTS tr_payment_allocation_immutable_update;
 DROP TRIGGER IF EXISTS tr_payment_allocation_apply;
 DROP TRIGGER IF EXISTS tr_payment_allocation_validate;
 
+DROP TABLE IF EXISTS app_settings;
 DROP TABLE IF EXISTS receipts;
 DROP TABLE IF EXISTS security_deposit_payments;
 DROP TABLE IF EXISTS payment_allocations;
@@ -502,6 +503,20 @@ BEFORE DELETE ON security_deposit_payments
 BEGIN
     SELECT RAISE(ABORT, 'Security deposit allocations are immutable; post an adjustment instead');
 END;
+
+-- ============================================================================
+-- Application settings
+-- ============================================================================
+-- Operator identity lives here so the client never hardcodes a person's name.
+-- waiver_approved_by is seeded on startup for the current operator.
+
+CREATE TABLE app_settings (
+    setting_key     TEXT PRIMARY KEY,
+    setting_value   TEXT NOT NULL,
+
+    CHECK (setting_key = trim(setting_key) AND length(setting_key) > 0),
+    CHECK (length(trim(setting_value)) > 0)
+);
 
 -- ============================================================================
 -- Controlled tenant input interface

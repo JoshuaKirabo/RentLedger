@@ -725,21 +725,10 @@ body.sidebar-open {
   background: transparent;
   font-family: inherit;
   text-align: left;
-  cursor: pointer;
-  transition: background var(--motion-fast) ease;
 }
 
 .dash-unpaid__list > li:first-child .dash-unpaid__row {
   border-top: 0;
-}
-
-.dash-unpaid__row:hover {
-  background: var(--surface-muted);
-}
-
-.dash-unpaid__row:focus-visible {
-  outline: 2px solid var(--green-800);
-  outline-offset: -2px;
 }
 
 .dash-unpaid__info {
@@ -3007,7 +2996,7 @@ body.sidebar-open {
   cursor: default;
 }
 
-.waive-balance-form-card .form-input--readonly {
+.waive-balance-form-card #waiveAmount.form-input--readonly {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -4542,59 +4531,132 @@ body.sidebar-open {
 
 .waive-balance-layout {
   display: grid;
-  grid-template-columns: 1.35fr 1fr;
-  gap: 20px;
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0fr);
+  gap: 0;
+  align-items: stretch;
+  min-height: 0;
+  transition:
+    grid-template-columns 210ms var(--ease-in-out),
+    gap 210ms var(--ease-in-out);
+}
+
+.waive-balance-layout--open {
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 16px;
+  transition:
+    grid-template-columns 280ms var(--ease-in-out),
+    gap 280ms var(--ease-in-out);
 }
 
 .waive-balance-detail {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  align-items: stretch;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  opacity: 1;
+  transform: translateX(0);
+  visibility: visible;
+  transition:
+    opacity 280ms var(--ease-out),
+    transform 280ms var(--ease-out),
+    visibility 0s linear 0s;
 }
 
-.waive-balances-list-card__hint {
-  margin: 4px 0 0;
-  color: var(--gray-500);
-  font-size: 13px;
+.waive-balance-layout:not(.waive-balance-layout--open) .waive-balance-detail {
+  opacity: 0;
+  transform: translateX(8%);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 210ms var(--ease-out),
+    transform 210ms var(--ease-out),
+    visibility 0s linear 210ms;
 }
 
-.waive-balances-filters {
-  padding-top: 0;
+.waive-balance-layout--open .waive-balance-detail {
+  overflow: visible;
+  transition:
+    opacity 280ms var(--ease-out),
+    transform 280ms var(--ease-out),
+    visibility 0s linear 0s,
+    overflow 0s linear 280ms;
 }
 
-.waive-balances-table tbody tr.waive-balance-row {
-  cursor: pointer;
+@media (prefers-reduced-motion: reduce) {
+  .waive-balance-stage__body > .waive-balance-review,
+  .waive-balance-stage__body > #waiveBalanceForm,
+  .waive-balance-form-card .btn,
+  .waive-balance-item,
+  .waive-balance-close,
+  .balances-hero .btn,
+  .waive-kind-filter__btn {
+    transition: none;
+  }
+
+  .waive-balance-layout,
+  .waive-balance-layout--open {
+    transition: none;
+  }
+
+  .waive-balance-detail,
+  .waive-balance-layout--open .waive-balance-detail,
+  .waive-balance-layout:not(.waive-balance-layout--open) .waive-balance-detail {
+    transform: none;
+    transition:
+      opacity 120ms ease,
+      visibility 0s linear 120ms;
+  }
+
+  .balances-hero.is-settling .balances-hero__total,
+  .waive-balance-item:active,
+  .waive-balance-close:active,
+  .balances-hero .btn:active,
+  .waive-kind-filter__btn:active,
+  .waive-balance-skel__name,
+  .waive-balance-skel__meta,
+  .waive-balance-skel__amount {
+    animation: none;
+  }
 }
 
-.waive-balances-table tbody tr.waive-balance-row:hover td,
-.waive-balances-table tbody tr.waive-balance-row:focus-visible td {
-  background: #f4f8f5;
+.outstanding-filters.waive-balances-filters {
+  grid-template-columns: minmax(180px, 1fr) auto;
+  align-items: center;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--gray-100);
+  background: transparent;
 }
 
-.waive-balances-table tbody tr.waive-balance-row--selected td {
-  background: #edf6f0;
-}
-
-.waive-balances-table tbody tr.waive-balance-row:focus-visible {
-  outline: none;
-}
-
-.waive-balances-table tbody tr.waive-balance-row:focus-visible td:first-child {
-  box-shadow: inset 3px 0 0 var(--green-700);
+.waive-balances-filters .outstanding-search input {
+  height: 44px;
+  font-size: 16px;
 }
 
 .waive-balance-form-empty {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  gap: 8px;
-  min-height: 220px;
-  padding: 24px;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  padding: 28px 24px;
   color: var(--gray-500);
-  font-size: 13px;
-  text-align: center;
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.waive-balance-form-empty__title {
+  margin: 0;
+  color: var(--gray-900);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .waive-balance-form-empty[hidden] {
@@ -4610,93 +4672,291 @@ body.sidebar-open {
   margin: 0;
 }
 
-.waive-balance-form-card .form-group--full {
-  grid-column: 1 / -1;
-}
-
 .waive-balance-form-card .multi-select {
   width: 100%;
 }
 
-.month-list--summary {
-  justify-content: flex-end;
-  flex-wrap: wrap;
-}
-
 .waive-balance-form-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  align-self: stretch;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
   overflow: visible;
 }
 
-.waive-balance-summary-card {
-  min-height: 280px;
+.waive-selection {
+  margin: 0;
+  color: var(--gray-900);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  text-wrap: balance;
 }
 
-.waive-balance-summary {
-  padding: 0 24px 24px;
-  display: flex;
-  flex-direction: column;
+.waive-selection:empty {
+  display: none;
+}
+
+#waiveBalanceForm[hidden] {
+  display: none !important;
+}
+
+.waive-balance-form-card .payment-form {
+  flex: 1;
+  min-height: 0;
+  padding: 16px 20px 20px;
   gap: 14px;
 }
 
-.waive-balance-summary__empty {
+.waive-balance-form-card .payment-form .form-input,
+.waive-balance-form-card .payment-form .multi-select__trigger,
+.waive-balance-form-card .form-actions .btn {
+  min-height: 44px;
+}
+
+.waive-balance-form-card .form-textarea {
+  height: 64px;
+  min-height: 64px;
+}
+
+.waive-balance-form-card .form-actions {
+  margin-top: auto;
+}
+
+.waive-balance-stage[hidden] {
+  display: none !important;
+}
+
+.waive-balance-stage {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 14px;
+  padding: 16px 20px 20px;
+}
+
+.waive-balance-stage__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.waive-balance-close {
+  width: 44px;
+  height: 44px;
+  margin: -6px -8px 0 0;
+  flex-shrink: 0;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 180px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: background 120ms ease-out, transform 100ms ease-out;
+}
+
+.waive-balance-close:hover {
+  background: var(--gray-100);
+}
+
+.waive-balance-close:active {
+  transform: scale(0.96);
+}
+
+.waive-balance-close:focus-visible {
+  outline: 2px solid var(--green-800);
+  outline-offset: 2px;
+}
+
+.waive-balance-close .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.waive-balance-stage__body {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+}
+
+.waive-balance-stage__body > .waive-balance-review,
+.waive-balance-stage__body > #waiveBalanceForm {
+  grid-area: 1 / 1;
+  min-height: 0;
+  height: 100%;
+  transition: opacity 220ms var(--ease-out);
+}
+
+.waive-balance-stage:not(.is-waiving) > .waive-balance-stage__body > #waiveBalanceForm,
+.waive-balance-stage.is-waiving > .waive-balance-stage__body > .waive-balance-review {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.waive-balance-form-card .waive-balance-stage .payment-form {
+  padding: 0;
+}
+
+.waive-balance-review {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.waive-balance-review .form-actions {
+  border-top: none;
+  padding-top: 4px;
+}
+
+.waive-balance-review .form-actions .btn {
+  flex: 1;
+  min-height: 44px;
+}
+
+.waive-owed {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 4px;
+}
+
+.waive-owed__label {
+  color: var(--gray-500);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.waive-owed__value {
+  color: var(--gray-900);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.waive-owed__note {
+  margin-top: 4px;
+  color: var(--gray-500);
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.waive-period-kicker {
   margin: 0;
   color: var(--gray-500);
   font-size: 13px;
-  text-align: center;
+  font-weight: 600;
+  letter-spacing: -0.011em;
+  line-height: 1.3;
 }
 
-.waive-balance-summary__empty .icon--empty {
-  font-size: 28px;
-  color: var(--gray-400);
+.waive-period-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+  border-top: 1px solid var(--gray-100);
+}
+
+.waive-period-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 44px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.waive-period-row__label {
+  min-width: 0;
+  color: var(--gray-900);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.waive-period-row__amount {
+  flex-shrink: 0;
+  color: var(--gray-900);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.waive-period-row__amount--due {
+  color: var(--red-600);
+}
+
+.waive-balance-review .waive-balance-summary {
+  flex-shrink: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.waive-balance-form-card .btn {
+  transition: background 150ms ease, opacity 150ms ease, transform 100ms var(--ease-out);
+}
+
+.waive-balance-form-card .btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.waive-balance-summary {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--gray-100);
 }
 
 .waive-balance-summary__row {
   display: flex;
-  align-items: flex-start;
+  align-items: baseline;
   justify-content: space-between;
   gap: 16px;
-  padding-bottom: 12px;
+  padding: 9px 0;
   border-bottom: 1px solid var(--gray-100);
 }
 
 .waive-balance-summary__row:last-child {
   border-bottom: none;
-  padding-bottom: 0;
 }
 
 .waive-balance-summary__label {
+  flex-shrink: 0;
   color: var(--gray-500);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 
 .waive-balance-summary__value {
   color: var(--gray-900);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
-.waive-balance-summary__value--amount {
+.waive-balance-summary__value--clear {
   color: var(--green-800);
-  font-size: 18px;
-  font-variant-numeric: tabular-nums;
 }
 
-.waive-balance-summary__note {
-  margin: 4px 0 0;
-  padding: 12px;
-  border-radius: var(--radius-sm);
-  background: var(--gray-50);
-  color: var(--gray-700);
-  font-size: 12px;
-  line-height: 1.5;
+.waive-balance-summary__value--due {
+  color: var(--red-600);
 }
 
 .waived-payments-page {
@@ -4764,23 +5024,421 @@ body.sidebar-open {
   text-overflow: ellipsis;
 }
 
-.waive-balances-table {
-  table-layout: fixed;
-  width: 100%;
+.waive-balances-list-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
-.waive-balances-table th:nth-child(1),
-.waive-balances-table td:nth-child(1) { width: 20%; }
-.waive-balances-table th:nth-child(2),
-.waive-balances-table td:nth-child(2) { width: 16%; }
-.waive-balances-table th:nth-child(3),
-.waive-balances-table td:nth-child(3) { width: 12%; }
-.waive-balances-table th:nth-child(4),
-.waive-balances-table td:nth-child(4) { width: 16%; }
-.waive-balances-table th:nth-child(5),
-.waive-balances-table td:nth-child(5) { width: 18%; }
-.waive-balances-table th:nth-child(6),
-.waive-balances-table td:nth-child(6) { width: 18%; }
+.waive-balances-list-card > .outstanding-report-card__header,
+.waive-balances-list-card > .outstanding-filters,
+.waive-balances-list-card > .outstanding-report-card__footer {
+  flex-shrink: 0;
+}
+
+.waive-balance-list {
+  flex: 1;
+  min-height: 120px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.waive-balances-list-card > .outstanding-report-card__footer[hidden] {
+  display: none;
+}
+
+.balances-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.balances-hero__lead {
+  min-width: 0;
+}
+
+.balances-hero__title {
+  margin: 0;
+  color: var(--gray-900);
+  font-weight: inherit;
+}
+
+.balances-hero__kicker {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--gray-500);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.011em;
+  line-height: 1.3;
+}
+
+.balances-hero__total {
+  display: block;
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+}
+
+.balances-hero.is-settling .balances-hero__total {
+  animation: balances-settle 320ms var(--ease-out) both;
+}
+
+@keyframes balances-settle {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.balances-hero__context {
+  margin: 10px 0 0;
+  color: var(--gray-500);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.balances-hero .btn {
+  min-height: 44px;
+  transition: background 150ms ease-out, transform 100ms ease-out;
+}
+
+.balances-hero .btn:active {
+  transform: scale(0.98);
+}
+
+.waive-kind-filter {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  height: 44px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--gray-100);
+}
+
+.waive-kind-filter__btn {
+  min-width: 64px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--gray-700);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease-out, color 120ms ease-out, transform 100ms ease-out;
+}
+
+.waive-kind-filter__btn.is-active {
+  background: var(--surface);
+  color: var(--gray-900);
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.08);
+}
+
+.waive-kind-filter__btn:active {
+  transform: scale(0.98);
+}
+
+.waive-kind-filter__btn:focus-visible {
+  outline: 2px solid var(--green-800);
+  outline-offset: 2px;
+}
+.waive-balance-page .btn:focus-visible {
+  outline: 2px solid var(--green-800);
+  outline-offset: 2px;
+}
+
+.waive-balance-head,
+.waive-balance-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 108px minmax(128px, auto);
+  column-gap: 16px;
+  align-items: center;
+}
+
+.waive-balance-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--gray-100);
+  background: var(--surface);
+  color: var(--gray-500);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.waive-balance-head span:last-child {
+  text-align: right;
+}
+
+.waive-balance-item {
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 20px;
+  border: 0;
+  border-bottom: 1px solid var(--gray-100);
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  touch-action: manipulation;
+  transition: background 120ms ease-out;
+}
+
+.waive-balance-item:hover {
+  background: var(--gray-50);
+}
+
+.waive-balance-item:active {
+  background: var(--sidebar-active);
+}
+
+.waive-balance-item--selected,
+.waive-balance-item--selected:hover {
+  background: var(--sidebar-active);
+}
+
+.waive-balance-item:focus-visible {
+  outline: 2px solid var(--green-800);
+  outline-offset: -2px;
+}
+
+.waive-balance-item__main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.waive-balance-item__name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.011em;
+  color: var(--gray-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.waive-balance-item__meta {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.waive-balance-item__amount {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--gray-900);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.waive-balance-item__category {
+  color: var(--gray-700);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.waive-balance-list__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 14px;
+  min-height: 180px;
+  padding: 28px 20px;
+  color: var(--gray-700);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.waive-balance-list__empty .btn {
+  min-height: 44px;
+}
+
+.waive-balance-list__loading {
+  display: flex;
+  flex-direction: column;
+}
+
+.waive-balance-skel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  align-items: center;
+  gap: 16px;
+  min-height: 72px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.waive-balance-skel__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.waive-balance-skel__name,
+.waive-balance-skel__meta,
+.waive-balance-skel__amount {
+  display: block;
+  border-radius: 6px;
+  background: var(--gray-100);
+  animation: waive-skel 1.4s ease-in-out infinite;
+}
+
+.waive-balance-skel__name {
+  width: 46%;
+  height: 14px;
+}
+
+.waive-balance-skel__meta {
+  width: 62%;
+  height: 10px;
+}
+
+.waive-balance-skel__amount {
+  width: 96px;
+  height: 16px;
+  justify-self: end;
+}
+
+.waive-balance-skel:nth-child(2n) .waive-balance-skel__name {
+  width: 34%;
+}
+
+.waive-balance-skel:nth-child(3n) .waive-balance-skel__meta {
+  width: 48%;
+}
+
+@keyframes waive-skel {
+  50% { opacity: 0.45; }
+}
+
+@media (max-width: 992px) {
+  .balances-hero {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .balances-hero__total {
+    font-size: 36px;
+  }
+
+  .waive-owed__value {
+    font-size: 24px;
+  }
+
+  .waive-selection {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 720px) {
+  .balances-hero__total {
+    font-size: 32px;
+  }
+
+  .outstanding-filters.waive-balances-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .waive-kind-filter {
+    width: 100%;
+  }
+
+  .waive-kind-filter__btn {
+    flex: 1;
+  }
+
+  .waive-balance-head,
+  .waive-balance-item {
+    grid-template-columns: minmax(0, 1fr) 76px minmax(108px, auto);
+    column-gap: 10px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .waive-balance-item {
+    min-height: 64px;
+  }
+
+  .waive-balance-item__amount {
+    font-size: 15px;
+  }
+}
+
+.waive-deposit-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--gray-50);
+  color: var(--gray-700);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.waive-deposit-note[hidden],
+#waiveRentMonthField[hidden] {
+  display: none !important;
+}
+
+/* The page stays put. The balance list scrolls inside its card. */
+@media (min-width: 1201px) {
+  .main:has(#view-waive-balance.view--active) {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  #view-waive-balance.view--active {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #view-waive-balance.view--active > .waive-balance-page {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 20px 28px 16px;
+    gap: 20px;
+  }
+
+  .waive-balance-page .balances-hero {
+    flex-shrink: 0;
+  }
+
+  .waive-balance-page .waive-balance-layout {
+    flex: 1;
+  }
+}
 
 .waived-payment-reason {
   display: -webkit-box;
@@ -4917,75 +5575,6 @@ body.sidebar-open {
   border-top: 1px solid var(--gray-100);
   color: var(--gray-500);
   font-size: 12px;
-}
-
-/* Keep the outstanding balance summary in view while its tenant list scrolls. */
-.main:has(#view-outstanding-balances.view--active) {
-  height: 100vh;
-  overflow: hidden;
-}
-
-#view-outstanding-balances.view--active {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-#view-outstanding-balances.view--active > .outstanding-page {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  padding: 0;
-  gap: 0;
-}
-
-#view-outstanding-balances.view--active .metrics--outstanding {
-  flex-shrink: 0;
-  padding: 28px 16px 16px 40px;
-}
-
-#view-outstanding-balances.view--active .outstanding-report-panel {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-#view-outstanding-balances.view--active .outstanding-report-card__header,
-#view-outstanding-balances.view--active .outstanding-filters,
-#view-outstanding-balances.view--active .outstanding-report-card__footer {
-  flex-shrink: 0;
-}
-
-#view-outstanding-balances.view--active .outstanding-report-card__header {
-  padding: 16px 16px 8px 16px;
-}
-
-#view-outstanding-balances.view--active .outstanding-report-card__header .card__title {
-  font-family: "Lato", var(--font);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-#view-outstanding-balances.view--active .outstanding-filters {
-  padding-left: 16px;
-  padding-right: 16px;
-}
-
-#view-outstanding-balances.view--active .outstanding-report-card__footer {
-  padding-left: 16px;
-  padding-right: 16px;
-}
-
-#view-outstanding-balances.view--active .outstanding-table-wrap {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
 }
 
 .main:has(#view-pending-deposits.view--active) {
@@ -6357,6 +6946,26 @@ body.sidebar-open {
   .dash-metrics,
   .waive-balance-layout {
     grid-template-columns: 1fr;
+  }
+
+  .waive-balances-list-card {
+    height: auto;
+    max-height: min(520px, 70vh);
+  }
+
+  .waive-balance-detail,
+  .waive-balance-form-card {
+    height: auto;
+  }
+
+  .waive-balance-layout,
+  .waive-balance-layout--open {
+    grid-template-columns: minmax(0, 1fr);
+    transition: none;
+  }
+
+  .waive-balance-layout:not(.waive-balance-layout--open) .waive-balance-detail {
+    display: none;
   }
 
   #view-payment-entry .payment-layout,
