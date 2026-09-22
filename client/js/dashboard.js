@@ -6014,6 +6014,8 @@
   let waiveMode = false;
   let waiveHeroSettled = false;
   let waiveKindFilter = "all";
+  let waiveListSortKey = "";
+  let waiveListSortDirection = "asc";
   const waiveBalanceStage = document.getElementById("waiveBalanceStage");
   const waiveBalanceReview = document.getElementById("waiveBalanceReview");
 
@@ -6140,6 +6142,27 @@
     return kind === "deposit" ? "Deposit" : "Rent";
   }
 
+  function compareWaiveListItems(a, b) {
+    let comparison = 0;
+    if (waiveListSortKey === "category") {
+      comparison = waiveCategoryLabel(a.kind).localeCompare(waiveCategoryLabel(b.kind), "en", { sensitivity: "base" });
+    } else if (waiveListSortKey === "amount") {
+      comparison = (Number(a.amount) || 0) - (Number(b.amount) || 0);
+    }
+    if (waiveListSortDirection === "desc") comparison = -comparison;
+    if (comparison) return comparison;
+    return a.name.localeCompare(b.name, "en", { sensitivity: "base" });
+  }
+
+  function waiveSortButton(label, key, alignRight) {
+    const active = waiveListSortKey === key;
+    const direction = waiveListSortDirection === "asc" ? "A to Z" : "Z to A";
+    const icon = active
+      ? (waiveListSortDirection === "asc" ? "arrow_upward" : "arrow_downward")
+      : "unfold_more";
+    return `<button type="button" class="outstanding-column-sort${alignRight ? " outstanding-column-sort--right" : ""}" data-sort-key="${key}" aria-pressed="${active}" aria-label="Sort by ${label}, ${active ? direction : "A to Z"}"><span>${label}</span><span class="material-symbols-outlined" aria-hidden="true">${icon}</span></button>`;
+  }
+
   function renderWaiveBalanceItems(items) {
     return items.map((item) => {
       const selected = item.key === waiveSelectedItem?.key;
@@ -6229,14 +6252,19 @@
       return;
     }
 
+    const sortedItems = waiveListSortKey
+      ? [...rent, ...deposits].sort(compareWaiveListItems)
+      : null;
+
     list.innerHTML = `
       <div class="waive-balance-head">
         <span>Tenant</span>
-        <span>Category</span>
-        <span>Amount</span>
+        ${waiveSortButton("Category", "category")}
+        ${waiveSortButton("Amount", "amount", true)}
       </div>
-      ${renderWaiveBalanceItems(rent)}
-      ${renderWaiveBalanceItems(deposits)}`;
+      ${sortedItems
+        ? renderWaiveBalanceItems(sortedItems)
+        : `${renderWaiveBalanceItems(rent)}${renderWaiveBalanceItems(deposits)}`}`;
     list.scrollTop = scrollTop;
 
     if (options.restoreFocus && waiveSelectedItem) {
@@ -6611,6 +6639,21 @@
     });
 
     document.getElementById("waiveBalancesList")?.addEventListener("click", (e) => {
+      const sortButton = e.target.closest(".waive-balance-head [data-sort-key]");
+      if (sortButton) {
+        const nextSortKey = sortButton.dataset.sortKey;
+        if (nextSortKey === waiveListSortKey) {
+          waiveListSortDirection = waiveListSortDirection === "asc" ? "desc" : "asc";
+        } else {
+          waiveListSortKey = nextSortKey;
+          waiveListSortDirection = "asc";
+        }
+        renderWaiveBalancesList();
+        document.getElementById("waiveBalancesList")
+          ?.querySelector(`[data-sort-key="${CSS.escape(nextSortKey)}"]`)
+          ?.focus();
+        return;
+      }
       if (e.target.closest("#waiveBalancesRetry")) {
         refreshFromApi();
         return;
@@ -6635,7 +6678,7 @@
     document.addEventListener("pointerdown", (e) => {
       if (!waiveSelectedItem) return;
       if (!document.getElementById("view-waive-balance")?.classList.contains("view--active")) return;
-      if (e.target.closest(".waive-balance-detail, .waive-balance-item")) return;
+      if (e.target.closest(".waive-balance-detail, .waive-balance-item, .waive-balance-head")) return;
       if (waiveMode) {
         exitWaiveMode();
         return;

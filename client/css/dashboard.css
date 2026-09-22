@@ -5181,8 +5181,14 @@ body.sidebar-open {
   font-weight: 600;
 }
 
-.waive-balance-head span:last-child {
-  text-align: right;
+.waive-balance-head .outstanding-column-sort {
+  width: 100%;
+  min-height: 0;
+  color: inherit;
+}
+
+.waive-balance-head .outstanding-column-sort--right {
+  justify-content: flex-end;
 }
 
 .waive-balance-item {
