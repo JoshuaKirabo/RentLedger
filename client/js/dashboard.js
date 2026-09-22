@@ -2568,14 +2568,6 @@
     return control;
   }
 
-  function tenantProfileLockedDate(value) {
-    return `
-      <button type="button" class="datepicker__trigger tenant-profile__locked-date" disabled aria-disabled="true">
-        <span class="material-symbols-outlined icon icon--input" aria-hidden="true">calendar_today</span>
-        <span class="datepicker__value">${escapeHtml(value || "—")}</span>
-      </button>`;
-  }
-
   function tenantProfileLockedText(value) {
     return `<input class="tenant-profile__input tenant-profile__input--locked" value="${escapeHtml(value || "—")}" disabled readonly aria-readonly="true">`;
   }
@@ -2588,7 +2580,7 @@
     return /^[A-Z0-9]{8,20}$/.test(normalizeNationalIdInput(value));
   }
 
-  function tenantProfileDatePickerMarkup(prefix, isoValue = "") {
+  function tenantProfileDatePickerMarkup(prefix, isoValue = "", dialogLabel = "Choose move-out date") {
     return `
       <div class="datepicker tenant-profile__datepicker" id="${prefix}Picker">
         <button type="button" class="datepicker__trigger" id="${prefix}Trigger" aria-haspopup="dialog" aria-expanded="false">
@@ -2596,7 +2588,7 @@
           <span class="datepicker__value" id="${prefix}Display">Select date</span>
         </button>
         <input type="hidden" id="${prefix}Input" value="${escapeHtml(isoValue || "")}">
-        <div class="datepicker__popover" id="${prefix}Popover" role="dialog" aria-label="Choose move-out date" hidden>
+        <div class="datepicker__popover" id="${prefix}Popover" role="dialog" aria-label="${escapeHtml(dialogLabel)}" hidden>
           <div class="datepicker__header">
             <button type="button" class="datepicker__nav-btn" id="${prefix}Prev" aria-label="Previous month"><span class="material-symbols-outlined">chevron_left</span></button>
             <span class="datepicker__month-label" id="${prefix}MonthLabel"></span>
@@ -2616,7 +2608,7 @@
       </div>`;
   }
 
-  function initTenantProfileDatePicker(prefix) {
+  function initTenantProfileDatePicker(prefix, options = {}) {
     return initDatePicker({
       picker: document.getElementById(`${prefix}Picker`),
       trigger: document.getElementById(`${prefix}Trigger`),
@@ -2631,7 +2623,8 @@
       todayBtn: document.getElementById(`${prefix}Today`),
       cancelBtn: document.getElementById(`${prefix}Cancel`),
       applyBtn: document.getElementById(`${prefix}Apply`),
-      emptyLabel: "Select move-out date",
+      emptyLabel: options.emptyLabel || "Select move-out date",
+      onChange: options.onChange,
     });
   }
 
@@ -2826,10 +2819,11 @@
     }
     setTenantProfileHtml("tpPhone", tenantProfileInput("tpPhoneInput", tenant.phone || "", { attrs: 'inputmode="tel"' }));
     setTenantProfileHtml("tpAltPhone", tenantProfileInput("tpAltPhoneInput", tenant.altPhone && tenant.altPhone !== "—" ? tenant.altPhone : "", { attrs: 'inputmode="tel" placeholder="Optional"' }));
-    setTenantProfileHtml("tpDateBecame", tenantProfileLockedDate(tenant.dateBecame));
+    const startDateIso = tenant.dateBecameIso || tenant.moveInDateIso || "";
+    setTenantProfileHtml("tpDateBecame", tenantProfileDatePickerMarkup("tpDateBecameDate", startDateIso, "Choose start date"));
     setTenantProfileHtml("tpEstate", tenantProfileSelectMarkup("tpEstateInput", [], "", "Loading estates...", true));
     setTenantProfileHtml("tpHouse", tenantProfileSelectMarkup("tpHouseInput", [], "", "Choose an estate first", true));
-    setTenantProfileHtml("tpMoveIn", tenantProfileLockedDate(tenant.moveInDate || tenant.dateBecame));
+    setTenantProfileHtml("tpMoveIn", tenantProfileDatePickerMarkup("tpMoveInDate", startDateIso, "Choose start date"));
     const moveOutField = document.getElementById("tpMoveOutField");
     if (moveOutField) moveOutField.hidden = false;
     setTenantProfileHtml("tpMoveOut", tenantProfileDatePickerMarkup("tpMoveOutDate", tenant.moveOutDateIso || ""));
@@ -2842,6 +2836,20 @@
 
     initTenantProfileSelect("tpTenantTypeInput", syncTenantProfileTypeFields);
     initTenantProfileSelect("tpStatusInput", syncTenantProfileStatusFields);
+    let dateBecamePicker;
+    let moveInPicker;
+    dateBecamePicker = initTenantProfileDatePicker("tpDateBecameDate", {
+      emptyLabel: "Select start date",
+      onChange() {
+        moveInPicker?.setDate(dateBecamePicker.getDate());
+      },
+    });
+    moveInPicker = initTenantProfileDatePicker("tpMoveInDate", {
+      emptyLabel: "Select start date",
+      onChange() {
+        dateBecamePicker?.setDate(moveInPicker.getDate());
+      },
+    });
     initTenantProfileDatePicker("tpMoveOutDate");
     syncTenantProfileTypeFields();
     syncTenantProfileStatusFields();
@@ -2873,6 +2881,7 @@
   function getTenantProfileEditPayload() {
     const tenantType = document.getElementById("tpTenantTypeInput")?.value || "INDIVIDUAL";
     const status = document.getElementById("tpStatusInput")?.value || "Active";
+    const moveInDate = document.getElementById("tpDateBecameDateInput")?.value || "";
     const moveOutDate = document.getElementById("tpMoveOutDateInput")?.value || "";
     const phoneNumber = window.PhoneNumbers.normalizeE164(document.getElementById("tpPhoneInput")?.value || "");
     const altPhoneRaw = document.getElementById("tpAltPhoneInput")?.value || "";
@@ -2889,11 +2898,19 @@
     if (altPhoneRaw.trim() && !/^\+2567\d{8}$/.test(altPhoneNumber)) throw new Error("Enter a valid alternative phone number in +256 format.");
     if (altPhoneNumber && altPhoneNumber === phoneNumber) throw new Error("Alternative phone must be different from the primary phone.");
     if (!unitId) throw new Error("Choose a house number for this tenant.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(moveInDate)) {
+      document.getElementById("tpDateBecameDateTrigger")?.focus();
+      throw new Error("Start date is required.");
+    }
     if (status === "Inactive" && !moveOutDate) throw new Error("Move-out date is required when setting a tenant to inactive.");
+    if (status === "Inactive" && moveOutDate < moveInDate) {
+      throw new Error("Start date cannot be after the move-out date.");
+    }
 
     const payload = {
       tenantType,
       status,
+      moveInDate,
       moveOutDate,
       phoneNumber,
       altPhoneNumber,

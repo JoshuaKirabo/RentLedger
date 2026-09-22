@@ -7160,6 +7160,13 @@ body.sidebar-open {
   overflow-y: auto;
 }
 
+.tenant-profile__datepicker .datepicker__trigger {
+  min-height: 40px;
+  padding: 9px 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
 .tenant-profile__datepicker .datepicker__popover {
   z-index: 240;
 }

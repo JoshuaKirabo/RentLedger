@@ -2,6 +2,8 @@
 
 const { open, applyScheduledMoveOuts } = require("../db/connection");
 const { TENANT_DISPLAY_NAME_SQL } = require("../db/tenantSql");
+const { currentRentMonth, formatRentMonthLabelLong } = require("../lib/rentMonths");
+const ledgerRepository = require("./ledgerRepository");
 
 const MIN_MONTHLY_RENT = 100000;
 const MAX_MONTHLY_RENT = 15000000;
@@ -488,6 +490,9 @@ function updateTenantProfile(tenantId, data) {
   );
   const rentDueDay = parseSmallInteger(data.rentDueDay ?? current.rent_due_day ?? 1, "Rent due day", 1, 31);
   const gracePeriodDays = parseSmallInteger(data.gracePeriodDays ?? current.grace_period_days ?? 5, "Grace period", 0, 31);
+  const startDate = validateDate(data.moveInDate || current.start_date, "Start date");
+  const previousStartMonth = String(current.start_date || "").slice(0, 7);
+  const nextStartMonth = startDate.slice(0, 7);
   const requestedStatus = String(data.status || (current.is_active ? "Active" : "Inactive")).trim().toUpperCase();
   if (!["ACTIVE", "INACTIVE"].includes(requestedStatus)) {
     throw createError("Status must be Active or Inactive", 400);
@@ -501,8 +506,8 @@ function updateTenantProfile(tenantId, data) {
       data.moveOutDate || current.scheduled_move_out_date || current.end_date,
       "Move-out date"
     );
-    if (current.start_date && moveOutDate < current.start_date) {
-      throw createError("Move-out date cannot be before move-in date", 400);
+    if (moveOutDate < startDate) {
+      throw createError("Move-out date cannot be before the start date", 400);
     }
 
     if (moveOutDate <= todayIso()) {
@@ -581,12 +586,56 @@ function updateTenantProfile(tenantId, data) {
   const updateTenancy = db.prepare(`
     UPDATE tenancy_assignments
     SET unit_id = ?,
+        start_date = ?,
         agreed_monthly_rent = ?,
         rent_due_day = ?,
         grace_period_days = ?,
         end_date = ?,
         scheduled_move_out_date = ?
     WHERE tenancy_id = ?
+  `);
+  const overlappingTenancy = db.prepare(`
+    SELECT 1
+    FROM tenancy_assignments
+    WHERE unit_id = ?
+      AND tenancy_id <> ?
+      AND start_date <= ?
+      AND COALESCE(end_date, scheduled_move_out_date, '9999-12-31') >= ?
+  `);
+  const blockedEarlierObligation = db.prepare(`
+    SELECT ro.rent_month
+    FROM rent_obligations ro
+    WHERE ro.tenancy_id = ?
+      AND ro.rent_month < ?
+      AND (
+        EXISTS (
+          SELECT 1
+          FROM payment_allocations pa
+          WHERE pa.rent_obligation_id = ro.rent_obligation_id
+        )
+        OR EXISTS (
+          SELECT 1
+          FROM waiver_lines wl
+          WHERE wl.rent_obligation_id = ro.rent_obligation_id
+        )
+      )
+    ORDER BY ro.rent_month DESC
+    LIMIT 1
+  `);
+  const deleteObligationsBeforeStart = db.prepare(`
+    DELETE FROM rent_obligations
+    WHERE tenancy_id = ?
+      AND rent_month < ?
+      AND NOT EXISTS (
+        SELECT 1
+        FROM payment_allocations pa
+        WHERE pa.rent_obligation_id = rent_obligations.rent_obligation_id
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM waiver_lines wl
+        WHERE wl.rent_obligation_id = rent_obligations.rent_obligation_id
+      )
   `);
   const updateSecurityDeposit = db.prepare(`
     UPDATE security_deposits
@@ -604,6 +653,22 @@ function updateTenantProfile(tenantId, data) {
       throw createError("That room is already occupied. Choose another available room.", 409);
     }
 
+    const rangeEnd = endDate || scheduledMoveOutDate || "9999-12-31";
+    if (overlappingTenancy.get(unitId, current.tenancy_id, rangeEnd, startDate)) {
+      throw createError("Start date overlaps another tenancy for this room", 409);
+    }
+
+    if (nextStartMonth > previousStartMonth) {
+      const blocked = blockedEarlierObligation.get(current.tenancy_id, nextStartMonth);
+      if (blocked) {
+        throw createError(
+          `Start date cannot be later than ${formatRentMonthLabelLong(blocked.rent_month)} because that month already has a payment or waiver`,
+          400
+        );
+      }
+      deleteObligationsBeforeStart.run(current.tenancy_id, nextStartMonth);
+    }
+
     updateTenant.run(
       tenantType,
       tenantNames.businessName,
@@ -619,6 +684,7 @@ function updateTenantProfile(tenantId, data) {
     );
     updateTenancy.run(
       unitId,
+      startDate,
       monthlyRent,
       rentDueDay,
       gracePeriodDays,
@@ -636,8 +702,9 @@ function updateTenantProfile(tenantId, data) {
     return getTenantById(numericTenantId);
   });
 
+  let updated;
   try {
-    return transaction.immediate();
+    updated = transaction.immediate();
   } catch (err) {
     if (err.statusCode) throw err;
     if (err.code === "SQLITE_CONSTRAINT_UNIQUE" && /tenancy_assignments\.unit_id/i.test(err.message)) {
@@ -651,6 +718,12 @@ function updateTenantProfile(tenantId, data) {
     }
     throw err;
   }
+
+  if (nextStartMonth < previousStartMonth) {
+    ledgerRepository.ensureRentObligationsThroughMonth(currentRentMonth());
+  }
+
+  return updated;
 }
 
 module.exports = {
