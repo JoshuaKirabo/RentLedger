@@ -6940,6 +6940,59 @@
 
   syncRecordBtnState();
 
+  function placeFloatingPanel(trigger, panel, options = {}) {
+    const margin = 8;
+    const gap = 6;
+    const viewportWidth = document.documentElement.clientWidth;
+    const viewportHeight = document.documentElement.clientHeight;
+    const triggerRect = trigger.getBoundingClientRect();
+    const placement = options.placement || "below";
+
+    if (options.fixedClass) panel.classList.add(options.fixedClass);
+    panel.style.position = "fixed";
+    panel.style.right = "auto";
+    panel.style.bottom = "auto";
+    panel.style.zIndex = "220";
+    panel.style.maxHeight = "none";
+    panel.style.overflowY = "";
+
+    if (options.matchTriggerWidth) {
+      const width = Math.round(triggerRect.width);
+      panel.style.minWidth = `${width}px`;
+      panel.style.width = "max-content";
+      panel.style.maxWidth = `${Math.max(width, Math.min(options.maxWidth || 360, viewportWidth - margin * 2))}px`;
+    }
+
+    const contentHeight = panel.scrollHeight || panel.offsetHeight || 0;
+    const panelWidth = Math.min(panel.offsetWidth || triggerRect.width, viewportWidth - margin * 2);
+    const spaceAbove = Math.max(0, triggerRect.top - margin);
+    const spaceBelow = Math.max(0, viewportHeight - margin - triggerRect.bottom);
+    // Menus drop from the control. Flip upward only when the field sits too
+    // close to the bottom of the screen for a usable list.
+    const minUseful = 160;
+    let openBelow = spaceBelow >= minUseful || spaceBelow >= spaceAbove;
+    if (placement === "above") openBelow = spaceAbove < minUseful && spaceBelow > spaceAbove;
+
+    const available = Math.max(0, (openBelow ? spaceBelow : spaceAbove) - gap);
+    const heightLimit = options.maxHeight || contentHeight || 320;
+    if (available > 0 && contentHeight > available) {
+      panel.style.maxHeight = `${Math.round(Math.max(96, Math.min(heightLimit, available)))}px`;
+      panel.style.overflowY = options.overflow || "auto";
+    }
+
+    const panelHeight = Math.min(contentHeight, parseFloat(panel.style.maxHeight) || contentHeight || 0);
+    let top = openBelow ? triggerRect.bottom + gap : triggerRect.top - gap - panelHeight;
+    const maxTop = Math.max(margin, viewportHeight - margin - Math.min(panelHeight, viewportHeight - margin * 2));
+    top = Math.max(margin, Math.min(top, maxTop));
+
+    let left = options.align === "end" ? triggerRect.right - panelWidth : triggerRect.left;
+    if (left + panelWidth > viewportWidth - margin) left = viewportWidth - margin - panelWidth;
+    if (left < margin) left = margin;
+
+    panel.style.top = `${Math.round(top)}px`;
+    panel.style.left = `${Math.round(left)}px`;
+  }
+
   function initDatePicker(els) {
     if (!els.picker || !els.grid) return;
 
@@ -7048,72 +7101,24 @@
     }
 
     function positionPopover() {
-      const pop = els.popover;
-      // Reset any prior inline positioning before measuring.
-      pop.style.left = "";
-      pop.style.right = "";
-      pop.style.top = "";
-      pop.style.bottom = "";
-      pop.style.position = "";
-      pop.classList.remove("datepicker__popover--below", "datepicker__popover--fixed");
-
-      const margin = 8;
+      if (!isOpen) return;
       const triggerRect = els.trigger.getBoundingClientRect();
-      const viewportWidth = document.documentElement.clientWidth;
-      const viewportHeight = document.documentElement.clientHeight;
-      const popWidth = pop.offsetWidth || 260;
-      const popHeight = pop.offsetHeight || 320;
-
-      // Fixed mode escapes overflow:hidden ancestors (e.g. table cells / modals).
-      if (els.fixed) {
-        pop.classList.add("datepicker__popover--fixed");
-        pop.style.position = "fixed";
-
-        const spaceAbove = triggerRect.top;
-        const spaceBelow = viewportHeight - triggerRect.bottom;
-        const openBelow = els.placement === "below" ||
-          (els.placement !== "above" && spaceAbove < popHeight + margin && spaceBelow > spaceAbove);
-
-        let top = openBelow
-          ? triggerRect.bottom + 6
-          : triggerRect.top - popHeight - 6;
-        if (top + popHeight > viewportHeight - margin) {
-          top = Math.max(margin, viewportHeight - margin - popHeight);
-        }
-        if (top < margin) top = margin;
-
-        let left = triggerRect.left;
-        if (left + popWidth > viewportWidth - margin) {
-          left = viewportWidth - margin - popWidth;
-        }
-        if (left < margin) left = margin;
-
-        pop.style.top = `${Math.round(top)}px`;
-        pop.style.left = `${Math.round(left)}px`;
-        pop.style.right = "auto";
-        pop.style.bottom = "auto";
+      if (triggerRect.bottom <= 0 || triggerRect.top >= window.innerHeight) {
+        close();
         return;
       }
+      els.popover.classList.remove("datepicker__popover--below");
+      placeFloatingPanel(els.trigger, els.popover, {
+        placement: els.placement || "below",
+        maxHeight: 420,
+        overflow: "hidden",
+        fixedClass: "datepicker__popover--fixed",
+      });
+    }
 
-      // Horizontal: clamp so the popover stays within the viewport. The
-      // popover is absolutely positioned relative to the trigger's left edge.
-      const maxOffset = viewportWidth - margin - popWidth - triggerRect.left;
-      const minOffset = margin - triggerRect.left;
-      let offset = 0;
-      if (offset > maxOffset) offset = maxOffset;
-      if (offset < minOffset) offset = minOffset;
-      pop.style.left = `${Math.round(offset)}px`;
-      pop.style.right = "auto";
-
-      // Vertical: open upward by default, but allow dense table controls to
-      // opt into a below-trigger popover.
-      const spaceAbove = triggerRect.top;
-      const spaceBelow = viewportHeight - triggerRect.bottom;
-      const shouldOpenBelow = els.placement === "below" ||
-        (els.placement !== "above" && spaceAbove < popHeight + margin && spaceBelow > spaceAbove);
-      if (shouldOpenBelow) {
-        pop.classList.add("datepicker__popover--below");
-      }
+    function onPopoverReposition(event) {
+      if (event?.target instanceof Node && els.popover.contains(event.target)) return;
+      positionPopover();
     }
 
     function open() {
@@ -7127,11 +7132,11 @@
       }
       renderGrid();
       els.popover.hidden = false;
-      positionPopover();
       els.trigger.setAttribute("aria-expanded", "true");
       isOpen = true;
-      window.addEventListener("resize", positionPopover);
-      if (els.fixed) window.addEventListener("scroll", positionPopover, true);
+      positionPopover();
+      window.addEventListener("resize", onPopoverReposition);
+      window.addEventListener("scroll", onPopoverReposition, true);
     }
 
     function close() {
@@ -7141,11 +7146,17 @@
       els.popover.style.top = "";
       els.popover.style.bottom = "";
       els.popover.style.position = "";
+      els.popover.style.width = "";
+      els.popover.style.minWidth = "";
+      els.popover.style.maxWidth = "";
+      els.popover.style.maxHeight = "";
+      els.popover.style.zIndex = "";
+      els.popover.style.overflowY = "";
       els.popover.classList.remove("datepicker__popover--below", "datepicker__popover--fixed");
       els.trigger.setAttribute("aria-expanded", "false");
       isOpen = false;
-      window.removeEventListener("resize", positionPopover);
-      window.removeEventListener("scroll", positionPopover, true);
+      window.removeEventListener("resize", onPopoverReposition);
+      window.removeEventListener("scroll", onPopoverReposition, true);
     }
 
     els.trigger.addEventListener("click", () => {
@@ -8308,10 +8319,48 @@
       return [...refs.menu.querySelectorAll(".custom-select__option")];
     }
 
+    function clearMenuPosition() {
+      refs.menu.classList.remove("custom-select__menu--floating");
+      refs.menu.style.position = "";
+      refs.menu.style.top = "";
+      refs.menu.style.left = "";
+      refs.menu.style.right = "";
+      refs.menu.style.bottom = "";
+      refs.menu.style.width = "";
+      refs.menu.style.minWidth = "";
+      refs.menu.style.maxWidth = "";
+      refs.menu.style.maxHeight = "";
+      refs.menu.style.zIndex = "";
+      refs.menu.style.overflowY = "";
+    }
+
+    function positionMenu() {
+      if (!isOpen) return;
+      const triggerRect = refs.trigger.getBoundingClientRect();
+      if (triggerRect.bottom <= 0 || triggerRect.top >= window.innerHeight) {
+        close();
+        return;
+      }
+      placeFloatingPanel(refs.trigger, refs.menu, {
+        placement: "below",
+        matchTriggerWidth: true,
+        maxHeight: 320,
+        fixedClass: "custom-select__menu--floating",
+      });
+    }
+
+    function onMenuReposition(event) {
+      if (event?.target instanceof Node && refs.menu.contains(event.target)) return;
+      positionMenu();
+    }
+
     function close() {
       refs.menu.hidden = true;
       refs.trigger.setAttribute("aria-expanded", "false");
       isOpen = false;
+      clearMenuPosition();
+      window.removeEventListener("resize", onMenuReposition);
+      window.removeEventListener("scroll", onMenuReposition, true);
     }
 
     function open() {
@@ -8319,6 +8368,9 @@
       refs.menu.hidden = false;
       refs.trigger.setAttribute("aria-expanded", "true");
       isOpen = true;
+      positionMenu();
+      window.addEventListener("resize", onMenuReposition);
+      window.addEventListener("scroll", onMenuReposition, true);
     }
 
     function syncSelection(value, fallbackLabel) {

@@ -2953,6 +2953,17 @@ body.sidebar-open {
   box-shadow: 0 8px 24px rgba(16, 24, 40, 0.1), 0 2px 6px rgba(16, 24, 40, 0.05);
 }
 
+/* Fixed layer so an open menu escapes overflow clipping on cards, tables, and dialogs. */
+.custom-select__menu--floating {
+  position: fixed;
+  z-index: 220;
+  right: auto;
+  bottom: auto;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 16px));
+  overscroll-behavior: contain;
+}
+
 .custom-select__menu[hidden] {
   display: none;
 }
@@ -3054,6 +3065,21 @@ body.sidebar-open {
   position: fixed;
   z-index: 220;
   bottom: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.datepicker__popover--fixed .datepicker__header,
+.datepicker__popover--fixed .datepicker__toolbar,
+.datepicker__popover--fixed .datepicker__weekdays,
+.datepicker__popover--fixed .datepicker__footer {
+  flex-shrink: 0;
+}
+
+.datepicker__popover--fixed .datepicker__grid {
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .datepicker__popover[hidden] {
